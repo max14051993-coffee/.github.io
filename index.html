@@ -129,6 +129,30 @@
     return { type: 'FeatureCollection', features };
   }
 
+  function flagEmoji(countryName){
+  if(!countryName) return '';
+  const m = {
+    // Африка
+    'Ethiopia':'ET','Kenya':'KE','Rwanda':'RW','Burundi':'BI','Tanzania':'TZ','Uganda':'UG',
+    'Democratic Republic of the Congo':'CD','Zambia':'ZM','Zimbabwe':'ZW','Malawi':'MW',
+    // Америка
+    'Brazil':'BR','Colombia':'CO','Peru':'PE','Bolivia':'BO','Ecuador':'EC','Venezuela':'VE',
+    'Panama':'PA','Costa Rica':'CR','Guatemala':'GT','Honduras':'HN','El Salvador':'SV',
+    'Nicaragua':'NI','Mexico':'MX','Dominican Republic':'DO','Jamaica':'JM','Haiti':'HT','Hawaii (USA)':'US',
+    // Азия/ME
+    'Yemen':'YE','Saudi Arabia':'SA','India':'IN','Indonesia':'ID','East Timor (Timor-Leste)':'TL',
+    'Papua New Guinea':'PG','China (Yunnan)':'CN','Thailand':'TH','Vietnam':'VN','Myanmar':'MM',
+    'Philippines':'PH','Laos':'LA','Nepal':'NP','Sri Lanka':'LK',
+    // Океания
+    'Solomon Islands':'SB'
+  };
+  const clean = countryName.replace(/\s*\(.*?\)\s*/,'');
+  const code = m[countryName] || m[clean];
+  if(!code) return '';
+  return [...code.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0)-65)).join('');
+}
+
+
   function fitToData(geojson){
     if (!geojson.features.length) return;
     const b = new mapboxgl.LngLatBounds();
@@ -138,7 +162,8 @@
 
   // Карточка в стиле твоего шаблона
   function popupHTML(p) {
-    const country = escapeHtml(p.originCountry || '');
+    const flag = flagEmoji(p.originCountry || '');
+    const country = (flag ? flag + ' ' : '') + escapeHtml(p.originCountry || '');
     const region  = escapeHtml(p.originRegion || '');
     const place   = [country, region].filter(Boolean).join(', ');
     const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
@@ -155,7 +180,6 @@
     if (p.recipe)      rows.push(row('Recipe',  p.recipe));
     if (roaster)       rows.push(row('Roaster', roaster));
     if (p.uploader)    rows.push(row('By',      p.uploader));
-    if (p.timestamp)   rows.push(row('When',    p.timestamp));
 
     return `
       <div class="popup-card">

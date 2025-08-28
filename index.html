@@ -12,6 +12,10 @@
 
   <style>
     html,body,#map{height:100%;margin:0}
+    html,body{
+      font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,Arial,
+           "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji";
+    }
     .badge{position:absolute;top:8px;left:8px;background:#fff;padding:6px 10px;border-radius:8px;font:14px/1.2 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.06);z-index:5}
     :root{
       --card-bg: rgba(255,255,255,.86); --card-border: rgba(0,0,0,.06);
@@ -27,7 +31,8 @@
     .mapboxgl-popup-tip{ display:none }
     .popup-card{ width:320px; max-width:90vw; border-radius:20px; overflow:hidden;
       background:var(--card-bg); border:1px solid var(--card-border); font:14px/1.35 system-ui }
-    .popup-cover{ display:block; width:100%; height:200px; object-fit:cover }
+    .popup-cover-box{ width:100%; height:200px; background:linear-gradient(180deg,#e7efe1,#f4f7f1) }
+    .popup-cover{ width:100%; height:100%; object-fit:cover; display:block }
     .popup-body{ padding:14px }
     .popup-title{ font-weight:800; font-size:18px; margin:2px 0 6px; color:var(--title) }
     .process-pill{ font-size:12px; padding:5px 10px; border-radius:999px; background:var(--pill-bg); border:1px solid var(--pill-br); color:var(--title); margin-left:auto }
@@ -41,35 +46,19 @@
 <body>
   <div id="map"></div>
   <div class="badge" id="badge">Загружаю данные…</div>
-  <div class="collection-title" id="collectionTitle">Coffee Log</div>
+  <div class="collection-title" id="collectionTitle">My coffee experience</div>
 
 <script>
-  // ==== ЗАПОЛНИ ЭТИ 2 ПАРАМЕТРА ====
+  // ==== ВАЖНО: подставь свой токен и CSV (ниже уже стоят твои значения) ====
   const MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
   const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRh5ft53W2ettUoEJqOyaJFoySOEbGr14qomprmDRlCwI0F3WEhnTn6IybbqgP_q9yv23sfNeqlPN5x/pub?output=csv';
 
-  // Тема из URL: ?style=dark  |  ?style=light (по умолчанию — light)
+  // Тема из URL: ?style=dark | ?style=light (по умолчанию — light)
   const theme = (new URLSearchParams(location.search).get('style') || 'light').toLowerCase();
   document.body.dataset.theme = theme;
 
-  // Сопоставление заголовков из таблицы
-  const HEADERS = {
-    timestamp: ['Timestamp','created_at'],
-    uploader: ['Uploader'],
-    originCountry: ['Origin country','country'],
-    originRegion: ['Origin region','region'],
-    farmName: ['Farm name','farm_name'],
-    process: ['Process','process'],
-    brewMethod: ['Brew method','brew_method'],
-    whereConsumed: ['Where consumed','where_consumed'],
-    cafeName: ['Cafe name','Cafe name (if "кофейня")','cafe_name'],
-    recipe: ['Recipe','recipe'],
-    roasterName: ['Roaster name','roaster_name'],
-    roasterCity: ['Roaster city','roaster_city'],
-    photoUrl: ['Photo (URL)','photo_url'],
-    lat: ['Latitude (lat)','lat','Latitude'],
-    lng: ['Longitude (lng)','lng','Longitude']
-  };
+  // Флаги: по умолчанию PNG (надёжно на десктопах). Можно принудительно ?flag=emoji
+  const FLAG_MODE = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase();
 
   mapboxgl.accessToken = MAPBOX_TOKEN;
   const map = new mapboxgl.Map({
@@ -81,7 +70,7 @@
   });
   map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
-  // 3D-террейн/небо/туман как в твоём примере
+  // 3D-террейн/небо/туман
   map.on('load', () => {
     if (!map.getSource('terrain-dem')) {
       map.addSource('terrain-dem', { type: 'raster-dem', url: 'mapbox://mapbox.terrain-rgb', tileSize: 512 });
@@ -93,45 +82,52 @@
     map.setFog({ range:[0.6, 12], color:'#f6efe7', 'high-color':'#d4c7b8', 'horizon-blend':0.2, 'star-intensity':0 });
   });
 
-  // Утилиты
-  function pick(obj, keys) { for (const k of keys) if (obj[k] !== undefined && obj[k] !== '') return obj[k]; return ''; }
+  // ==== Утилиты ====
+  // Нормализация заголовков: lower + схлопнуть пробелы
+  function normKey(k){ return String(k||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+
+  // Берём значение по списку возможных заголовков (с учётом лишних пробелов/языка)
+  function pickSmart(row, candidates){
+    // 1) прямое совпадение
+    for (const k of candidates) if (row[k] !== undefined && row[k] !== '') return row[k];
+    // 2) нормализованное совпадение
+    const nRow = {};
+    for (const key in row) nRow[normKey(key)] = row[key];
+    for (const cand of candidates){
+      const nCand = normKey(cand);
+      if (nRow[nCand] !== undefined && nRow[nCand] !== '') return nRow[nCand];
+    }
+    return '';
+  }
+
   function toNumber(v){ if (typeof v==='number') return v; if (typeof v==='string') return parseFloat(v.replace(',', '.')); return NaN; }
   function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   function escapeAttr(s){ return String(s||'').replace(/"/g,'&quot;'); }
 
-  function rowsToGeoJSON(rows) {
-    const features = [];
-    for (const row of rows) {
-      const lat = toNumber(pick(row, HEADERS.lat));
-      const lng = toNumber(pick(row, HEADERS.lng));
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
-
-      features.push({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [lng, lat] },
-        properties: {
-          timestamp: pick(row, HEADERS.timestamp),
-          uploader: pick(row, HEADERS.uploader),
-          originCountry: pick(row, HEADERS.originCountry),
-          originRegion: pick(row, HEADERS.originRegion),
-          farmName: pick(row, HEADERS.farmName),
-          process: pick(row, HEADERS.process),
-          brewMethod: pick(row, HEADERS.brewMethod),
-          whereConsumed: pick(row, HEADERS.whereConsumed),
-          cafeName: pick(row, HEADERS.cafeName),
-          recipe: pick(row, HEADERS.recipe),
-          roasterName: pick(row, HEADERS.roasterName),
-          roasterCity: pick(row, HEADERS.roasterCity),
-          photoUrl: pick(row, HEADERS.photoUrl)
-        }
-      });
-    }
-    return { type: 'FeatureCollection', features };
+  // Drive helpers
+  function extractDriveId(url){
+    const m = String(url||'').match(/(?:\/d\/|id=)([-\w]{25,})/);
+    return m ? m[1] : null;
+  }
+  function driveImgHtml(url){
+    const id = extractDriveId(url);
+    const chain = id ? [
+      `https://drive.google.com/thumbnail?id=${id}&sz=w1600`,
+      `https://lh3.googleusercontent.com/d/${id}=w1600`,
+      `https://drive.google.com/uc?export=view&id=${id}`,
+      `https://drive.google.com/uc?export=download&id=${id}`
+    ] : [url];
+    const first = chain.shift();
+    return `<img class="popup-cover" loading="lazy" src="${escapeAttr(first)}"
+             alt="photo" onerror="driveImgFallback(this, ${JSON.stringify(chain)})">`;
+  }
+  function driveImgFallback(img, list){
+    if (!list || !list.length) { img.remove(); return; }
+    img.src = list.shift();
   }
 
-  function flagEmoji(countryName){
-  if(!countryName) return '';
-  const ISO = {
+  // Флаги: словарь origin → ISO2
+  const ISO2 = {
     'Ethiopia':'ET','Kenya':'KE','Rwanda':'RW','Burundi':'BI','Tanzania':'TZ','Uganda':'UG',
     'Democratic Republic of the Congo':'CD','Zambia':'ZM','Zimbabwe':'ZW','Malawi':'MW',
     'Brazil':'BR','Colombia':'CO','Peru':'PE','Bolivia':'BO','Ecuador':'EC','Venezuela':'VE',
@@ -141,11 +137,72 @@
     'Papua New Guinea':'PG','China (Yunnan)':'CN','Thailand':'TH','Vietnam':'VN','Myanmar':'MM',
     'Philippines':'PH','Laos':'LA','Nepal':'NP','Sri Lanka':'LK','Solomon Islands':'SB'
   };
-  const clean = String(countryName).replace(/\s*\(.*?\)\s*/,'');
-  const code = (ISO[countryName] || ISO[clean] || '').toUpperCase().replace(/[^A-Z]/g,'');
-  if(code.length !== 2) return '';
-  return [...code].map(c => String.fromCodePoint(0x1F1E6 + (c.charCodeAt(0) - 65))).join('');
-}
+  function flagEmoji(code){
+    const up = String(code||'').toUpperCase();
+    return up.length===2 ? [...up].map(c=>String.fromCodePoint(0x1F1E6 + (c.charCodeAt(0)-65))).join('') : '';
+  }
+  function flagHTML(countryName){
+    if(!countryName) return '';
+    const clean = String(countryName).replace(/\s*\(.*?\)\s*/,'');
+    const code = (ISO2[countryName] || ISO2[clean] || '').toUpperCase();
+    if (code.length !== 2) return '';
+    if (FLAG_MODE === 'emoji') {
+      return flagEmoji(code);
+    }
+    return `<img src="https://flagcdn.com/24x18/${code.toLowerCase()}.png" alt="${code}"
+             width="24" height="18" style="vertical-align:-2px;border-radius:2px">`;
+  }
+
+  // Ожидаемые заголовки (варианты)
+  const HEADERS = {
+    timestamp: ['Timestamp','created_at'],
+    uploader: ['Uploader','Автор','Кто загрузил'],
+    originCountry: ['Origin country','country','Страна'],
+    originRegion: ['Origin region','region','Регион'],
+    farmName: ['Farm name','farm_name','Название фермы'],
+    process: ['Process','process','Способ обработки'],
+    brewMethod: ['Brew method','brew_method','Метод приготовления'],
+    whereConsumed: ['Where consumed','where_consumed','Где был выпит'],
+    cafeName: ['Cafe name','Cafe name (if "кофейня")','cafe_name','Название кофейни'],
+    recipe: ['Recipe','recipe','Рецепт'],
+    roasterName: ['Roaster name','roaster_name','Название обжарщика'],
+    roasterCity: ['Roaster city','roaster_city','Город обжарщика'],
+    // сюда добавлены разные варианты фото-колонок, включая "File upload  " с пробелом
+    photoUrl: ['Photo (URL)','photo_url','Photo (file upload)','File upload','File upload ','Фото','Фото (загрузка файла)'],
+    lat: ['Latitude (lat)','lat','Latitude','Широта'],
+    lng: ['Longitude (lng)','lng','Longitude','Долгота']
+  };
+
+  function rowsToGeoJSON(rows) {
+    const features = [];
+    for (const row of rows) {
+      const lat = toNumber(pickSmart(row, HEADERS.lat));
+      const lng = toNumber(pickSmart(row, HEADERS.lng));
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+
+      const photoCandidate = pickSmart(row, HEADERS.photoUrl); // может быть direct URL или ссылка Drive
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [lng, lat] },
+        properties: {
+          timestamp: pickSmart(row, HEADERS.timestamp),
+          uploader: pickSmart(row, HEADERS.uploader),
+          originCountry: pickSmart(row, HEADERS.originCountry),
+          originRegion: pickSmart(row, HEADERS.originRegion),
+          farmName: pickSmart(row, HEADERS.farmName),
+          process: pickSmart(row, HEADERS.process),
+          brewMethod: pickSmart(row, HEADERS.brewMethod),
+          whereConsumed: pickSmart(row, HEADERS.whereConsumed),
+          cafeName: pickSmart(row, HEADERS.cafeName),
+          recipe: pickSmart(row, HEADERS.recipe),
+          roasterName: pickSmart(row, HEADERS.roasterName),
+          roasterCity: pickSmart(row, HEADERS.roasterCity),
+          photoUrl: photoCandidate
+        }
+      });
+    }
+    return { type: 'FeatureCollection', features };
+  }
 
   function fitToData(geojson){
     if (!geojson.features.length) return;
@@ -154,32 +211,28 @@
     map.fitBounds(b, { padding: 40, duration: 700, maxZoom: 10 });
   }
 
-  // Карточка в стиле твоего шаблона
+  // Карточка
   function popupHTML(p) {
-    const flag = flagEmoji(p.originCountry || '');
     const country = p.originCountry
-      ? (flagEmoji(p.originCountry) + ' ' + escapeHtml(p.originCountry))
+      ? (flagHTML(p.originCountry) + ' ' + escapeHtml(p.originCountry))
       : '';
     const region  = escapeHtml(p.originRegion || '');
     const place   = [country, region].filter(Boolean).join(', ');
     const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
                     (p.roasterCity ? ' (' + escapeHtml(p.roasterCity) + ')' : '');
     const process = p.process ? `<span class="process-pill">${escapeHtml(p.process)}</span>` : '';
-    const photo = `
-      <div class="popup-cover-box">
-        ${p.photoUrl ? `<img class="popup-cover" loading="lazy"
-           referrerpolicy="no-referrer" crossorigin="anonymous"
-           src="${escapeAttr(p.photoUrl)}"
-           alt="photo" onerror="this.remove()">` : '' }
-      </div>`;
+    const photo = `<div class="popup-cover-box">${
+      p.photoUrl ? driveImgHtml(p.photoUrl) : ''
+    }</div>`;
 
     const rows = [];
-    if (p.process)     rows.push(row('Process', p.process));
-    if (p.brewMethod)  rows.push(row('Method',  p.brewMethod));
-    if (p.whereConsumed) rows.push(row('Where', p.whereConsumed + (p.cafeName ? ' — ' + p.cafeName : '')));
-    if (p.recipe)      rows.push(row('Recipe',  p.recipe));
-    if (roaster)       rows.push(row('Roaster', roaster));
-    if (p.uploader)    rows.push(row('By',      p.uploader));
+    if (p.process)       rows.push(row('Process', p.process));
+    if (p.brewMethod)    rows.push(row('Method',  p.brewMethod));
+    if (p.whereConsumed) rows.push(row('Where',   p.whereConsumed + (p.cafeName ? ' — ' + p.cafeName : '')));
+    if (p.recipe)        rows.push(row('Recipe',  p.recipe));
+    if (roaster)         rows.push(row('Roaster', roaster));
+    if (p.uploader)      rows.push(row('By',      p.uploader));
+    // Дату (timestamp) намеренно НЕ показываем
 
     return `
       <div class="popup-card">

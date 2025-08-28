@@ -131,27 +131,21 @@
 
   function flagEmoji(countryName){
   if(!countryName) return '';
-  const m = {
-    // Африка
+  const ISO = {
     'Ethiopia':'ET','Kenya':'KE','Rwanda':'RW','Burundi':'BI','Tanzania':'TZ','Uganda':'UG',
     'Democratic Republic of the Congo':'CD','Zambia':'ZM','Zimbabwe':'ZW','Malawi':'MW',
-    // Америка
     'Brazil':'BR','Colombia':'CO','Peru':'PE','Bolivia':'BO','Ecuador':'EC','Venezuela':'VE',
     'Panama':'PA','Costa Rica':'CR','Guatemala':'GT','Honduras':'HN','El Salvador':'SV',
     'Nicaragua':'NI','Mexico':'MX','Dominican Republic':'DO','Jamaica':'JM','Haiti':'HT','Hawaii (USA)':'US',
-    // Азия/ME
     'Yemen':'YE','Saudi Arabia':'SA','India':'IN','Indonesia':'ID','East Timor (Timor-Leste)':'TL',
     'Papua New Guinea':'PG','China (Yunnan)':'CN','Thailand':'TH','Vietnam':'VN','Myanmar':'MM',
-    'Philippines':'PH','Laos':'LA','Nepal':'NP','Sri Lanka':'LK',
-    // Океания
-    'Solomon Islands':'SB'
+    'Philippines':'PH','Laos':'LA','Nepal':'NP','Sri Lanka':'LK','Solomon Islands':'SB'
   };
-  const clean = countryName.replace(/\s*\(.*?\)\s*/,'');
-  const code = m[countryName] || m[clean];
-  if(!code) return '';
-  return [...code.toUpperCase()].map(c => String.fromCodePoint(0x1F1E6 + c.charCodeAt(0)-65)).join('');
+  const clean = String(countryName).replace(/\s*\(.*?\)\s*/,'');
+  const code = (ISO[countryName] || ISO[clean] || '').toUpperCase().replace(/[^A-Z]/g,'');
+  if(code.length !== 2) return '';
+  return [...code].map(c => String.fromCodePoint(0x1F1E6 + (c.charCodeAt(0) - 65))).join('');
 }
-
 
   function fitToData(geojson){
     if (!geojson.features.length) return;
@@ -163,15 +157,21 @@
   // Карточка в стиле твоего шаблона
   function popupHTML(p) {
     const flag = flagEmoji(p.originCountry || '');
-    const country = (flag ? flag + ' ' : '') + escapeHtml(p.originCountry || '');
+    const country = p.originCountry
+      ? (flagEmoji(p.originCountry) + ' ' + escapeHtml(p.originCountry))
+      : '';
     const region  = escapeHtml(p.originRegion || '');
     const place   = [country, region].filter(Boolean).join(', ');
     const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
                     (p.roasterCity ? ' (' + escapeHtml(p.roasterCity) + ')' : '');
     const process = p.process ? `<span class="process-pill">${escapeHtml(p.process)}</span>` : '';
-    const photo   = p.photoUrl
-      ? `<img class="popup-cover" src="${escapeAttr(p.photoUrl)}" alt="photo">`
-      : `<div class="popup-cover" style="height:140px;background:linear-gradient(180deg,#e7efe1,#f4f7f1)"></div>`;
+    const photo = `
+      <div class="popup-cover-box">
+        ${p.photoUrl ? `<img class="popup-cover" loading="lazy"
+           referrerpolicy="no-referrer" crossorigin="anonymous"
+           src="${escapeAttr(p.photoUrl)}"
+           alt="photo" onerror="this.remove()">` : '' }
+      </div>`;
 
     const rows = [];
     if (p.process)     rows.push(row('Process', p.process));

@@ -159,102 +159,107 @@
     }
 
     // 1) Загружаем CSV, 2) строим GeoJSON, 3) добавляем источник/слои
-    Papa.parse(CSV_URL, {
-      download: true,
-      header: true,
-      dynamicTyping: false,
-      complete: (results) => {
-        const geojson = rowsToGeoJSON(results.data || []);
-        map.once('load', () => {
-          map.addSource('brews', {
-            type: 'geojson',
-            data: geojson,
-            cluster: true,
-            clusterMaxZoom: 14,
-            clusterRadius: 50
-          });
+<script>
+Papa.parse(CSV_URL, {
+  download: true,
+  header: true,
+  dynamicTyping: false,
+  complete: (results) => {
+    const geojson = rowsToGeoJSON(results.data || []);
+    console.log('CSV rows:', (results.data || []).length, 'Features:', geojson.features.length);
 
-          // Кластеры
-          map.addLayer({
-            id: 'clusters',
-            type: 'circle',
-            source: 'brews',
-            filter: ['has', 'point_count'],
-            paint: {
-              'circle-color': [
-                'step', ['get', 'point_count'],
-                '#9ecae1', 10,
-                '#6baed6', 30,
-                '#3182bd'
-              ],
-              'circle-radius': [
-                'step', ['get', 'point_count'],
-                16, 10,
-                20, 30,
-                26
-              ]
-            }
-          });
-
-          map.addLayer({
-            id: 'cluster-count',
-            type: 'symbol',
-            source: 'brews',
-            filter: ['has', 'point_count'],
-            layout: {
-              'text-field': ['get', 'point_count_abbreviated'],
-              'text-size': 12
-            },
-            paint: { 'text-color': '#08306b' }
-          });
-
-          // Одиночные точки
-          map.addLayer({
-            id: 'unclustered',
-            type: 'circle',
-            source: 'brews',
-            filter: ['!', ['has', 'point_count']],
-            paint: {
-              'circle-color': '#e6550d',
-              'circle-radius': 6,
-              'circle-stroke-width': 1,
-              'circle-stroke-color': '#fff'
-            }
-          });
-
-          // Клик по кластеру → зум в него
-          map.on('click', 'clusters', (e) => {
-            const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
-            const clusterId = features[0].properties.cluster_id;
-            map.getSource('brews').getClusterExpansionZoom(clusterId, (err, zoom) => {
-              if (err) return;
-              map.easeTo({ center: features[0].geometry.coordinates, zoom });
-            });
-          });
-
-          // Клик по точке → попап
-          map.on('click', 'unclustered', (e) => {
-            const f = e.features[0];
-            const html = popupHTML(f.properties);
-            new mapboxgl.Popup({ offset: 12 })
-              .setLngLat(f.geometry.coordinates)
-              .setHTML(html)
-              .addTo(map);
-          });
-
-          map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
-          map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
-
-          map.on('mouseenter', 'unclustered', () => map.getCanvas().style.cursor = 'pointer');
-          map.on('mouseleave', 'unclustered', () => map.getCanvas().style.cursor = '');
-
-          fitToData(geojson);
-        });
-      },
-      error: (err) => {
-        alert('CSV load error: ' + err);
+    function addLayers() {
+      // если уже добавляли — просто обновим данные
+      if (map.getSource && map.getSource('brews')) {
+        map.getSource('brews').setData(geojson);
+        fitToData(geojson);
+        return;
       }
-    });
-  </script>
+
+      map.addSource('brews', {
+        type: 'geojson',
+        data: geojson,
+        cluster: true,
+        clusterMaxZoom: 14,
+        clusterRadius: 50
+      });
+
+      map.addLayer({
+        id: 'clusters',
+        type: 'circle',
+        source: 'brews',
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': [
+            'step', ['get', 'point_count'],
+            '#9ecae1', 10,
+            '#6baed6', 30,
+            '#3182bd'
+          ],
+          'circle-radius': [
+            'step', ['get', 'point_count'],
+            16, 10,
+            20, 30,
+            26
+          ]
+        }
+      });
+
+      map.addLayer({
+        id: 'cluster-count',
+        type: 'symbol',
+        source: 'brews',
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': ['get', 'point_count_abbreviated'],
+          'text-size': 12
+        },
+        paint: { 'text-color': '#08306b' }
+      });
+
+      map.addLayer({
+        id: 'unclustered',
+        type: 'circle',
+        source: 'brews',
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': '#e6550d',
+          'circle-radius': 6,
+          'circle-stroke-width': 1,
+          'circle-stroke-color': '#fff'
+        }
+      });
+
+      // клики
+      map.on('click', 'clusters', (e) => {
+        const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+        const cid = features[0].properties.cluster_id;
+        map.getSource('brews').getClusterExpansionZoom(cid, (err, zoom) => {
+          if (!err) map.easeTo({ center: features[0].geometry.coordinates, zoom });
+        });
+      });
+
+      map.on('click', 'unclustered', (e) => {
+        const f = e.features[0];
+        new mapboxgl.Popup({ offset: 12 })
+          .setLngLat(f.geometry.coordinates)
+          .setHTML(popupHTML(f.properties))
+          .addTo(map);
+      });
+
+      fitToData(geojson);
+    }
+
+    // ВАЖНО: если стиль уже загружен — добавляем сразу, иначе ждём событие
+    if (map.isStyleLoaded && map.isStyleLoaded()) addLayers();
+    else map.on('load', addLayers);
+  },
+  error: (err) => {
+    alert('CSV load error: ' + err);
+    console.error(err);
+  }
+});
+</script>
+
 </body>
 </html>

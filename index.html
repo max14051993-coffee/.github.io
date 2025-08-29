@@ -21,11 +21,13 @@
       --card-bg: rgba(255,255,255,.86); --card-border: rgba(0,0,0,.06);
       --title: #0f1b10; --pill-bg: rgba(84,116,75,.12); --pill-br: rgba(84,116,75,.28);
       --glass: rgba(255,255,255,.9); --glass-br: rgba(0,0,0,.08); --text: #0f1b10;
+      --muted: #5b5f5b;
     }
     body[data-theme="dark"]{
       --card-bg: rgba(22,24,27,.85); --card-border: rgba(255,255,255,.12);
       --title: #f3f5f1; --pill-bg: rgba(160,200,160,.14); --pill-br: rgba(190,230,190,.30);
       --glass: rgba(22,24,27,.9); --glass-br: rgba(255,255,255,.12); --text: #f3f5f1;
+      --muted: #c9cdc8;
     }
     .mapboxgl-popup-content{ background:transparent; padding:0; border-radius:20px; box-shadow:none }
     .mapboxgl-popup-tip{ display:none }
@@ -41,6 +43,9 @@
       background:var(--glass); color:var(--text); padding:8px 14px; border-radius:12px; border:1px solid var(--glass-br);
       z-index:5; white-space:nowrap; max-width:80vw; overflow:hidden; text-overflow:ellipsis; font:600 16px/1.2 system-ui
     }
+    .meta{margin-bottom:6px;color:var(--muted)}
+    .chip{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--pill-br);background:var(--pill-bg);font-size:12px;color:var(--title)}
+    a{color:#2b6cb0;text-decoration:none} a:hover{text-decoration:underline}
   </style>
 </head>
 <body>
@@ -49,28 +54,25 @@
   <div class="collection-title" id="collectionTitle">My coffee experience</div>
 
 <script>
-  // ==== ВАЖНО: подставь свой токен и CSV (ниже уже стоят твои значения) ====
+  /* ==== настройки ==== */
   const MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
   const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRh5ft53W2ettUoEJqOyaJFoySOEbGr14qomprmDRlCwI0F3WEhnTn6IybbqgP_q9yv23sfNeqlPN5x/pub?output=csv';
 
-  // Тема из URL: ?style=dark | ?style=light (по умолчанию — light)
   const theme = (new URLSearchParams(location.search).get('style') || 'light').toLowerCase();
   document.body.dataset.theme = theme;
+  const FLAG_MODE = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase(); // 'img' | 'emoji'
 
-  // Флаги: по умолчанию PNG (надёжно на десктопах). Можно принудительно ?flag=emoji
-  const FLAG_MODE = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase();
-
+  /* ==== карта ==== */
   mapboxgl.accessToken = MAPBOX_TOKEN;
   const map = new mapboxgl.Map({
     container: 'map',
-    style: 'mapbox://styles/mapbox/light-v11',
+    style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
     center: [12, 20],
     zoom: 2.2,
     attributionControl: true
   });
   map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
-  // 3D-террейн/небо/туман
   map.on('load', () => {
     if (!map.getSource('terrain-dem')) {
       map.addSource('terrain-dem', { type: 'raster-dem', url: 'mapbox://mapbox.terrain-rgb', tileSize: 512 });
@@ -82,34 +84,50 @@
     map.setFog({ range:[0.6, 12], color:'#f6efe7', 'high-color':'#d4c7b8', 'horizon-blend':0.2, 'star-intensity':0 });
   });
 
-  // ==== Утилиты ====
-  // Нормализация заголовков: lower + схлопнуть пробелы
-  function normKey(k){ return String(k||'').toLowerCase().replace(/\s+/g,' ').trim(); }
+  /* ==== утилиты ==== */
+  const normKey = (k) => String(k||'').toLowerCase().replace(/\s+/g,' ').trim();
 
-  // Берём значение по списку возможных заголовков (с учётом лишних пробелов/языка)
+  // Расширенный пикер: 1) точное имя 2) нормализованное имя 3) любой ключ, который НАЧИНАЕТСЯ с шаблона (для дубликатов "Cafe URL", "Cafe URL_1", "Consumed city   " и т.п.)
   function pickSmart(row, candidates){
     // 1) прямое совпадение
     for (const k of candidates) if (row[k] !== undefined && row[k] !== '') return row[k];
-    // 2) нормализованное совпадение
+
+    // нормализованная карта ключей
     const nRow = {};
     for (const key in row) nRow[normKey(key)] = row[key];
+
+    // 2) точное сравнение нормализованных
     for (const cand of candidates){
       const nCand = normKey(cand);
       if (nRow[nCand] !== undefined && nRow[nCand] !== '') return nRow[nCand];
     }
+
+    // 3) префиксный матч (берём первый непустой)
+    const allKeys = Object.keys(row);
+    for (const cand of candidates){
+      const nCand = normKey(cand);
+      for (const key of allKeys){
+        if (normKey(key).startsWith(nCand) && row[key] !== '') return row[key];
+      }
+    }
     return '';
   }
 
-  function toNumber(v){ if (typeof v==='number') return v; if (typeof v==='string') return parseFloat(v.replace(',', '.')); return NaN; }
-  function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
-  function escapeAttr(s){ return String(s||'').replace(/"/g,'&quot;'); }
+  const toNumber = (v) => (typeof v==='number') ? v : (typeof v==='string' ? parseFloat(v.replace(',', '.')) : NaN);
+  const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const escapeAttr = (s) => String(s||'').replace(/"/g,'&quot;');
 
-  // Drive helpers
+  // Drive helpers (для Photo (URL) и любых прямых drive-ссылок)
   function extractDriveId(url){
     const m = String(url||'').match(/(?:\/d\/|id=)([-\w]{25,})/);
     return m ? m[1] : null;
   }
   function driveImgHtml(url){
+    if (!url) return '';
+    // если это уже наш thumbnail — просто вставляем
+    if (/thumbnail\?id=/.test(url)) {
+      return `<img class="popup-cover" loading="lazy" src="${escapeAttr(url)}" alt="photo">`;
+    }
     const id = extractDriveId(url);
     const chain = id ? [
       `https://drive.google.com/thumbnail?id=${id}&sz=w1600`,
@@ -125,52 +143,47 @@
     if (!list || !list.length) { img.remove(); return; }
     img.src = list.shift();
   }
+  window.driveImgFallback = driveImgFallback; // используется в onerror
 
-  // Флаги: словарь origin → ISO2
-  const ISO2 = {
-    'Ethiopia':'ET','Kenya':'KE','Rwanda':'RW','Burundi':'BI','Tanzania':'TZ','Uganda':'UG',
-    'Democratic Republic of the Congo':'CD','Zambia':'ZM','Zimbabwe':'ZW','Malawi':'MW',
-    'Brazil':'BR','Colombia':'CO','Peru':'PE','Bolivia':'BO','Ecuador':'EC','Venezuela':'VE',
-    'Panama':'PA','Costa Rica':'CR','Guatemala':'GT','Honduras':'HN','El Salvador':'SV',
-    'Nicaragua':'NI','Mexico':'MX','Dominican Republic':'DO','Jamaica':'JM','Haiti':'HT','Hawaii (USA)':'US',
-    'Yemen':'YE','Saudi Arabia':'SA','India':'IN','Indonesia':'ID','East Timor (Timor-Leste)':'TL',
-    'Papua New Guinea':'PG','China (Yunnan)':'CN','Thailand':'TH','Vietnam':'VN','Myanmar':'MM',
-    'Philippines':'PH','Laos':'LA','Nepal':'NP','Sri Lanka':'LK','Solomon Islands':'SB'
-  };
-  function flagEmoji(code){
-    const up = String(code||'').toUpperCase();
-    return up.length===2 ? [...up].map(c=>String.fromCodePoint(0x1F1E6 + (c.charCodeAt(0)-65))).join('') : '';
-  }
-  function flagHTML(countryName){
-    if(!countryName) return '';
-    const clean = String(countryName).replace(/\s*\(.*?\)\s*/,'');
-    const code = (ISO2[countryName] || ISO2[clean] || '').toUpperCase();
-    if (code.length !== 2) return '';
-    if (FLAG_MODE === 'emoji') {
-      return flagEmoji(code);
+  // приоритет флага: эмоджи из таблицы (если ?flag=emoji) → ISO2 PNG → пусто
+  function flagFromRow(flagEmojiCell, iso2Cell){
+    const emoji = String(flagEmojiCell||'').trim();
+    if (FLAG_MODE==='emoji' && emoji) return emoji;
+    const code = String(iso2Cell||'').trim().toLowerCase();
+    if (code.length===2){
+      return `<img src="https://flagcdn.com/24x18/${code}.png" alt="${code.toUpperCase()}"
+               width="24" height="18" style="vertical-align:-2px;border-radius:2px">`;
     }
-    return `<img src="https://flagcdn.com/24x18/${code.toLowerCase()}.png" alt="${code}"
-             width="24" height="18" style="vertical-align:-2px;border-radius:2px">`;
+    return FLAG_MODE==='emoji' ? emoji : '';
   }
 
-  // Ожидаемые заголовки (варианты)
+  /* ==== заголовки CSV (с дубликатами) ==== */
   const HEADERS = {
-    timestamp: ['Timestamp','created_at'],
-    uploader: ['Uploader','Автор','Кто загрузил'],
-    originCountry: ['Origin country','country','Страна'],
-    originRegion: ['Origin region','region','Регион'],
-    farmName: ['Farm name','farm_name','Название фермы'],
-    process: ['Process','process','Способ обработки'],
-    brewMethod: ['Brew method','brew_method','Метод приготовления'],
-    whereConsumed: ['Where consumed','where_consumed','Где был выпит'],
-    cafeName: ['Cafe name','Cafe name (if "кофейня")','cafe_name','Название кофейни'],
-    recipe: ['Recipe','recipe','Рецепт'],
-    roasterName: ['Roaster name','roaster_name','Название обжарщика'],
-    roasterCity: ['Roaster city','roaster_city','Город обжарщика'],
-    // сюда добавлены разные варианты фото-колонок, включая "File upload  " с пробелом
-    photoUrl: ['Photo (URL)','photo_url','Photo (file upload)','File upload','File upload ','Фото','Фото (загрузка файла)'],
-    lat: ['Latitude (lat)','lat','Latitude','Широта'],
-    lng: ['Longitude (lng)','lng','Longitude','Долгота']
+    timestamp:       ['Timestamp'],
+    email:           ['Email Address'],
+    uploader:        ['Uploader'],
+    originCountry:   ['Origin country'],
+    originRegion:    ['Origin region'],
+    farmName:        ['Farm name'],
+    process:         ['Process'],
+    brewMethod:      ['Brew method'],
+    whereConsumed:   ['Where consumed'],
+    cafeName:        ['Cafe name'],
+    cafeUrl:         ['Cafe URL'],                 // есть дубликат — pickSmart найдёт первый непустой, включая "Cafe URL_1"
+    consumedCity:    ['Consumed city','Consumed city '], // учтён вариант с пробелами
+    consumedAddr:    ['Consumed address'],
+    recipe:          ['Recipe'],
+    roasterName:     ['Roaster name'],
+    roasterCity:     ['Roaster city'],
+    fileUpload:      ['File upload','File upload '], // Google иногда добавляет пробел
+    lat:             ['Latitude (lat)','Latitude'],
+    lng:             ['Longitude (lng)','Longitude'],
+    photoUrl:        ['Photo (URL)'],             // при пустом возьмём fileUpload
+    geocodeSource:   ['Geocode source'],
+    geocodeAccuracy: ['Geocode accuracy'],
+    matchedName:     ['Matched name'],
+    countryIso2:     ['Country ISO2'],
+    flagEmoji:       ['Flag emoji']
   };
 
   function rowsToGeoJSON(rows) {
@@ -180,25 +193,42 @@
       const lng = toNumber(pickSmart(row, HEADERS.lng));
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
-      const photoCandidate = pickSmart(row, HEADERS.photoUrl); // может быть direct URL или ссылка Drive
+      // фото: сначала Photo (URL), если пусто — попробуем File upload (могут быть ссылки на drive)
+      let photo = pickSmart(row, HEADERS.photoUrl);
+      if (!photo) photo = pickSmart(row, HEADERS.fileUpload);
+
+      // cafe url: учитываем дубликаты "Cafe URL", "Cafe URL_1", … (pickSmart уже умеет)
+      const cafeUrl = pickSmart(row, HEADERS.cafeUrl);
+
+      const p = {
+        timestamp:       pickSmart(row, HEADERS.timestamp),
+        email:           pickSmart(row, HEADERS.email),
+        uploader:        pickSmart(row, HEADERS.uploader),
+        originCountry:   pickSmart(row, HEADERS.originCountry),
+        originRegion:    pickSmart(row, HEADERS.originRegion),
+        farmName:        pickSmart(row, HEADERS.farmName),
+        process:         pickSmart(row, HEADERS.process),
+        brewMethod:      pickSmart(row, HEADERS.brewMethod),
+        whereConsumed:   pickSmart(row, HEADERS.whereConsumed),
+        cafeName:        pickSmart(row, HEADERS.cafeName),
+        cafeUrl:         cafeUrl,
+        consumedCity:    pickSmart(row, HEADERS.consumedCity),
+        consumedAddr:    pickSmart(row, HEADERS.consumedAddr),
+        recipe:          pickSmart(row, HEADERS.recipe),
+        roasterName:     pickSmart(row, HEADERS.roasterName),
+        roasterCity:     pickSmart(row, HEADERS.roasterCity),
+        photoUrl:        photo,
+        geocodeSource:   pickSmart(row, HEADERS.geocodeSource),
+        geocodeAccuracy: pickSmart(row, HEADERS.geocodeAccuracy),
+        matchedName:     pickSmart(row, HEADERS.matchedName),
+        countryIso2:     pickSmart(row, HEADERS.countryIso2),
+        flagEmoji:       pickSmart(row, HEADERS.flagEmoji)
+      };
+
       features.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [lng, lat] },
-        properties: {
-          timestamp: pickSmart(row, HEADERS.timestamp),
-          uploader: pickSmart(row, HEADERS.uploader),
-          originCountry: pickSmart(row, HEADERS.originCountry),
-          originRegion: pickSmart(row, HEADERS.originRegion),
-          farmName: pickSmart(row, HEADERS.farmName),
-          process: pickSmart(row, HEADERS.process),
-          brewMethod: pickSmart(row, HEADERS.brewMethod),
-          whereConsumed: pickSmart(row, HEADERS.whereConsumed),
-          cafeName: pickSmart(row, HEADERS.cafeName),
-          recipe: pickSmart(row, HEADERS.recipe),
-          roasterName: pickSmart(row, HEADERS.roasterName),
-          roasterCity: pickSmart(row, HEADERS.roasterCity),
-          photoUrl: photoCandidate
-        }
+        properties: p
       });
     }
     return { type: 'FeatureCollection', features };
@@ -211,11 +241,10 @@
     map.fitBounds(b, { padding: 40, duration: 700, maxZoom: 10 });
   }
 
-  // Карточка
+  /* ==== карточка ==== */
   function popupHTML(p) {
-    const country = p.originCountry
-      ? (flagHTML(p.originCountry) + ' ' + escapeHtml(p.originCountry))
-      : '';
+    const flag = flagFromRow(p.flagEmoji, p.countryIso2);
+    const country = p.originCountry ? ((flag ? flag + ' ' : '') + escapeHtml(p.originCountry)) : '';
     const region  = escapeHtml(p.originRegion || '');
     const place   = [country, region].filter(Boolean).join(', ');
     const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
@@ -228,11 +257,25 @@
     const rows = [];
     if (p.process)       rows.push(row('Process', p.process));
     if (p.brewMethod)    rows.push(row('Method',  p.brewMethod));
-    if (p.whereConsumed) rows.push(row('Where',   p.whereConsumed + (p.cafeName ? ' — ' + p.cafeName : '')));
+    // Где пил
+    if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
+      const whereBits = [];
+      if (p.whereConsumed) whereBits.push(escapeHtml(p.whereConsumed));
+      if (p.consumedCity)  whereBits.push(escapeHtml(p.consumedCity));
+      if (p.cafeUrl)       whereBits.push(`<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`);
+      rows.push(row('Where', whereBits.join(' — ')));
+      if (p.consumedAddr) rows.push(`<div style="margin:2px 0;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
+    }
     if (p.recipe)        rows.push(row('Recipe',  p.recipe));
     if (roaster)         rows.push(row('Roaster', roaster));
     if (p.uploader)      rows.push(row('By',      p.uploader));
-    // Дату (timestamp) намеренно НЕ показываем
+
+    // геокодинг-чипы (если есть)
+    const chips = [];
+    if (p.geocodeSource)   chips.push(`<span class="chip">src: ${escapeHtml(p.geocodeSource)}</span>`);
+    if (p.geocodeAccuracy) chips.push(`<span class="chip">acc: ${escapeHtml(p.geocodeAccuracy)}</span>`);
+    if (p.matchedName)     chips.push(`<span class="chip">${escapeHtml(p.matchedName)}</span>`);
+    const chipsLine = chips.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px">${chips.join('')}</div>` : '';
 
     return `
       <div class="popup-card">
@@ -242,18 +285,19 @@
             <div class="popup-title" style="flex:1">${escapeHtml(p.farmName || 'Без названия')}</div>
             ${process}
           </div>
-          <div class="popup-meta" style="margin-bottom:6px;color:#555">${place || '—'}</div>
+          <div class="meta">${place || '—'}</div>
+          ${chipsLine}
           ${rows.join('')}
         </div>
       </div>
     `;
 
     function row(label, val){
-      return `<div style="margin:2px 0"><span style="color:#666">${escapeHtml(label)}: </span>${escapeHtml(val||'')}</div>`;
+      return `<div style="margin:2px 0"><span style="color:#666">${escapeHtml(label)}: </span>${typeof val==='string'?escapeHtml(val):val||''}</div>`;
     }
   }
 
-  // Загрузка CSV → добавление слоёв
+  /* ==== загрузка CSV → слои ==== */
   Papa.parse(CSV_URL, {
     download: true, header: true, dynamicTyping: false,
     complete: (results) => {

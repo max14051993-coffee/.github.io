@@ -242,60 +242,57 @@
   }
 
   /* ==== карточка ==== */
-  function popupHTML(p) {
-    const flag = flagFromRow(p.flagEmoji, p.countryIso2);
-    const country = p.originCountry ? ((flag ? flag + ' ' : '') + escapeHtml(p.originCountry)) : '';
-    const region  = escapeHtml(p.originRegion || '');
-    const place   = [country, region].filter(Boolean).join(', ');
-    const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
-                    (p.roasterCity ? ' (' + escapeHtml(p.roasterCity) + ')' : '');
-    const process = p.process ? `<span class="process-pill">${escapeHtml(p.process)}</span>` : '';
-    const photo = `<div class="popup-cover-box">${
-      p.photoUrl ? driveImgHtml(p.photoUrl) : ''
-    }</div>`;
+function popupHTML(p) {
+  const flag = flagFromRow(p.flagEmoji, p.countryIso2);
+  const country = p.originCountry ? ((flag ? flag + ' ' : '') + escapeHtml(p.originCountry)) : '';
+  const region  = escapeHtml(p.originRegion || '');
+  const place   = [country, region].filter(Boolean).join(', ');
+  const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
+                  (p.roasterCity ? ' (' + escapeHtml(p.roasterCity) + ')' : '');
+  const process = p.process ? `<span class="process-pill">${escapeHtml(p.process)}</span>` : '';
+  const photo = `<div class="popup-cover-box">${
+    p.photoUrl ? driveImgHtml(p.photoUrl) : ''
+  }</div>`;
 
-    const rows = [];
-    if (p.process)       rows.push(row('Process', p.process));
-    if (p.brewMethod)    rows.push(row('Method',  p.brewMethod));
-    // Где пил
-    if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
-      const whereBits = [];
-      if (p.whereConsumed) whereBits.push(escapeHtml(p.whereConsumed));
-      if (p.consumedCity)  whereBits.push(escapeHtml(p.consumedCity));
-      if (p.cafeUrl)       whereBits.push(`<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`);
-      rows.push(row('Where', whereBits.join(' — ')));
-      if (p.consumedAddr) rows.push(`<div style="margin:2px 0;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
-    }
-    if (p.recipe)        rows.push(row('Recipe',  p.recipe));
-    if (roaster)         rows.push(row('Roaster', roaster));
-    if (p.uploader)      rows.push(row('By',      p.uploader));
-
-    // геокодинг-чипы (если есть)
-    const chips = [];
-    if (p.geocodeSource)   chips.push(`<span class="chip">src: ${escapeHtml(p.geocodeSource)}</span>`);
-    if (p.geocodeAccuracy) chips.push(`<span class="chip">acc: ${escapeHtml(p.geocodeAccuracy)}</span>`);
-    if (p.matchedName)     chips.push(`<span class="chip">${escapeHtml(p.matchedName)}</span>`);
-    const chipsLine = chips.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px">${chips.join('')}</div>` : '';
-
-    return `
-      <div class="popup-card">
-        ${photo}
-        <div class="popup-body">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div class="popup-title" style="flex:1">${escapeHtml(p.farmName || 'Без названия')}</div>
-            ${process}
-          </div>
-          <div class="meta">${place || '—'}</div>
-          ${chipsLine}
-          ${rows.join('')}
-        </div>
-      </div>
-    `;
-
-    function row(label, val){
-      return `<div style="margin:2px 0"><span style="color:#666">${escapeHtml(label)}: </span>${typeof val==='string'?escapeHtml(val):val||''}</div>`;
-    }
+  const rows = [];
+  if (p.process)       rows.push(row('Process', p.process));
+  if (p.brewMethod)    rows.push(row('Method',  p.brewMethod));
+  if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
+    const whereBits = [];
+    if (p.whereConsumed) whereBits.push(escapeHtml(p.whereConsumed));
+    if (p.consumedCity)  whereBits.push(escapeHtml(p.consumedCity));
+    if (p.cafeUrl)       whereBits.push(`<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`);
+    rows.push(row('Where', whereBits.join(' — ')));
+    if (p.consumedAddr) rows.push(`<div style="margin:2px 0;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
   }
+  if (p.recipe)        rows.push(row('Recipe',  p.recipe));
+  if (roaster)         rows.push(row('Roaster', roaster));
+  if (p.uploader)      rows.push(row('By',      p.uploader));
+
+  // ❌ Убрали чипы src/acc
+  // ✅ Если хочешь оставить только matchedName — раскомментируй две строки ниже:
+  // const chips = p.matchedName ? [`<span class="chip">${escapeHtml(p.matchedName)}</span>`] : [];
+  // const chipsLine = chips.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px">${chips.join('')}</div>` : '';
+
+  return `
+    <div class="popup-card">
+      ${photo}
+      <div class="popup-body">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div class="popup-title" style="flex:1">${escapeHtml(p.farmName || 'Без названия')}</div>
+          ${process}
+        </div>
+        <div class="meta">${place || '—'}</div>
+        ${/* chipsLine */ '' }
+        ${rows.join('')}
+      </div>
+    </div>
+  `;
+
+  function row(label, val){
+    return `<div style="margin:2px 0"><span style="color:#666">${escapeHtml(label)}: </span>${typeof val==='string'?escapeHtml(val):val||''}</div>`;
+  }
+}
 
   /* ==== загрузка CSV → слои ==== */
   Papa.parse(CSV_URL, {

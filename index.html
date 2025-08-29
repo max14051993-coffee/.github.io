@@ -44,7 +44,6 @@
       z-index:5; white-space:nowrap; max-width:80vw; overflow:hidden; text-overflow:ellipsis; font:600 16px/1.2 system-ui
     }
     .meta{margin-bottom:6px;color:var(--muted)}
-    .chip{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--pill-br);background:var(--pill-bg);font-size:12px;color:var(--title)}
     a{color:#2b6cb0;text-decoration:none} a:hover{text-decoration:underline}
   </style>
 </head>
@@ -87,22 +86,11 @@
   /* ==== утилиты ==== */
   const normKey = (k) => String(k||'').toLowerCase().replace(/\s+/g,' ').trim();
 
-  // Расширенный пикер: 1) точное имя 2) нормализованное имя 3) любой ключ, который НАЧИНАЕТСЯ с шаблона (для дубликатов "Cafe URL", "Cafe URL_1", "Consumed city   " и т.п.)
+  // Расширенный пикер: учитывает дубликаты колонок
   function pickSmart(row, candidates){
-    // 1) прямое совпадение
     for (const k of candidates) if (row[k] !== undefined && row[k] !== '') return row[k];
-
-    // нормализованная карта ключей
-    const nRow = {};
-    for (const key in row) nRow[normKey(key)] = row[key];
-
-    // 2) точное сравнение нормализованных
-    for (const cand of candidates){
-      const nCand = normKey(cand);
-      if (nRow[nCand] !== undefined && nRow[nCand] !== '') return nRow[nCand];
-    }
-
-    // 3) префиксный матч (берём первый непустой)
+    const nRow = {}; for (const key in row) nRow[normKey(key)] = row[key];
+    for (const cand of candidates){ const nCand = normKey(cand); if (nRow[nCand] !== undefined && nRow[nCand] !== '') return nRow[nCand]; }
     const allKeys = Object.keys(row);
     for (const cand of candidates){
       const nCand = normKey(cand);
@@ -117,17 +105,14 @@
   const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const escapeAttr = (s) => String(s||'').replace(/"/g,'&quot;');
 
-  // Drive helpers (для Photo (URL) и любых прямых drive-ссылок)
+  // Drive helpers
   function extractDriveId(url){
     const m = String(url||'').match(/(?:\/d\/|id=)([-\w]{25,})/);
     return m ? m[1] : null;
   }
   function driveImgHtml(url){
     if (!url) return '';
-    // если это уже наш thumbnail — просто вставляем
-    if (/thumbnail\?id=/.test(url)) {
-      return `<img class="popup-cover" loading="lazy" src="${escapeAttr(url)}" alt="photo">`;
-    }
+    if (/thumbnail\?id=/.test(url)) return `<img class="popup-cover" loading="lazy" src="${escapeAttr(url)}" alt="photo">`;
     const id = extractDriveId(url);
     const chain = id ? [
       `https://drive.google.com/thumbnail?id=${id}&sz=w1600`,
@@ -139,22 +124,17 @@
     return `<img class="popup-cover" loading="lazy" src="${escapeAttr(first)}"
              alt="photo" onerror="driveImgFallback(this, ${JSON.stringify(chain)})">`;
   }
-  function driveImgFallback(img, list){
-    if (!list || !list.length) { img.remove(); return; }
-    img.src = list.shift();
-  }
-  window.driveImgFallback = driveImgFallback; // используется в onerror
+  function driveImgFallback(img, list){ if (!list || !list.length) { img.remove(); return; } img.src = list.shift(); }
+  window.driveImgFallback = driveImgFallback;
 
-  // приоритет флага: эмоджи из таблицы (если ?flag=emoji) → ISO2 PNG → пусто
+  // флаг: emoji (если ?flag=emoji) → ISO2 PNG
   function flagFromRow(flagEmojiCell, iso2Cell){
     const emoji = String(flagEmojiCell||'').trim();
     if (FLAG_MODE==='emoji' && emoji) return emoji;
     const code = String(iso2Cell||'').trim().toLowerCase();
-    if (code.length===2){
-      return `<img src="https://flagcdn.com/24x18/${code}.png" alt="${code.toUpperCase()}"
-               width="24" height="18" style="vertical-align:-2px;border-radius:2px">`;
-    }
-    return FLAG_MODE==='emoji' ? emoji : '';
+    return (code.length===2)
+      ? `<img src="https://flagcdn.com/24x18/${code}.png" alt="${code.toUpperCase()}" width="24" height="18" style="vertical-align:-2px;border-radius:2px">`
+      : (FLAG_MODE==='emoji' ? emoji : '');
   }
 
   /* ==== заголовки CSV (с дубликатами) ==== */
@@ -169,16 +149,16 @@
     brewMethod:      ['Brew method'],
     whereConsumed:   ['Where consumed'],
     cafeName:        ['Cafe name'],
-    cafeUrl:         ['Cafe URL'],                 // есть дубликат — pickSmart найдёт первый непустой, включая "Cafe URL_1"
-    consumedCity:    ['Consumed city','Consumed city '], // учтён вариант с пробелами
+    cafeUrl:         ['Cafe URL'],
+    consumedCity:    ['Consumed city','Consumed city '],
     consumedAddr:    ['Consumed address'],
     recipe:          ['Recipe'],
     roasterName:     ['Roaster name'],
     roasterCity:     ['Roaster city'],
-    fileUpload:      ['File upload','File upload '], // Google иногда добавляет пробел
+    fileUpload:      ['File upload','File upload '],
     lat:             ['Latitude (lat)','Latitude'],
     lng:             ['Longitude (lng)','Longitude'],
-    photoUrl:        ['Photo (URL)'],             // при пустом возьмём fileUpload
+    photoUrl:        ['Photo (URL)'],
     geocodeSource:   ['Geocode source'],
     geocodeAccuracy: ['Geocode accuracy'],
     matchedName:     ['Matched name'],
@@ -193,12 +173,8 @@
       const lng = toNumber(pickSmart(row, HEADERS.lng));
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
-      // фото: сначала Photo (URL), если пусто — попробуем File upload (могут быть ссылки на drive)
       let photo = pickSmart(row, HEADERS.photoUrl);
       if (!photo) photo = pickSmart(row, HEADERS.fileUpload);
-
-      // cafe url: учитываем дубликаты "Cafe URL", "Cafe URL_1", … (pickSmart уже умеет)
-      const cafeUrl = pickSmart(row, HEADERS.cafeUrl);
 
       const p = {
         timestamp:       pickSmart(row, HEADERS.timestamp),
@@ -211,27 +187,21 @@
         brewMethod:      pickSmart(row, HEADERS.brewMethod),
         whereConsumed:   pickSmart(row, HEADERS.whereConsumed),
         cafeName:        pickSmart(row, HEADERS.cafeName),
-        cafeUrl:         cafeUrl,
+        cafeUrl:         pickSmart(row, HEADERS.cafeUrl),
         consumedCity:    pickSmart(row, HEADERS.consumedCity),
         consumedAddr:    pickSmart(row, HEADERS.consumedAddr),
         recipe:          pickSmart(row, HEADERS.recipe),
         roasterName:     pickSmart(row, HEADERS.roasterName),
         roasterCity:     pickSmart(row, HEADERS.roasterCity),
         photoUrl:        photo,
-        geocodeSource:   pickSmart(row, HEADERS.geocodeSource),
-        geocodeAccuracy: pickSmart(row, HEADERS.geocodeAccuracy),
         matchedName:     pickSmart(row, HEADERS.matchedName),
         countryIso2:     pickSmart(row, HEADERS.countryIso2),
         flagEmoji:       pickSmart(row, HEADERS.flagEmoji)
       };
 
-      features.push({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [lng, lat] },
-        properties: p
-      });
+      features.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lng,lat] }, properties:p });
     }
-    return { type: 'FeatureCollection', features };
+    return { type:'FeatureCollection', features };
   }
 
   function fitToData(geojson){
@@ -242,112 +212,248 @@
   }
 
   /* ==== карточка ==== */
-function popupHTML(p) {
-  const flag = flagFromRow(p.flagEmoji, p.countryIso2);
-  const country = p.originCountry ? ((flag ? flag + ' ' : '') + escapeHtml(p.originCountry)) : '';
-  const region  = escapeHtml(p.originRegion || '');
-  const place   = [country, region].filter(Boolean).join(', ');
-  const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
-                  (p.roasterCity ? ' (' + escapeHtml(p.roasterCity) + ')' : '');
-  const process = p.process ? `<span class="process-pill">${escapeHtml(p.process)}</span>` : '';
-  const photo = `<div class="popup-cover-box">${
-    p.photoUrl ? driveImgHtml(p.photoUrl) : ''
-  }</div>`;
+  function popupHTML(p) {
+    const flag = flagFromRow(p.flagEmoji, p.countryIso2);
+    const country = p.originCountry ? ((flag ? flag + ' ' : '') + escapeHtml(p.originCountry)) : '';
+    const region  = escapeHtml(p.originRegion || '');
+    const place   = [country, region].filter(Boolean).join(', ');
+    const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
+                    (p.roasterCity ? ' (' + escapeHtml(p.roasterCity) + ')' : '');
+    const process = p.process ? `<span class="process-pill">${escapeHtml(p.process)}</span>` : '';
+    const photo = `<div class="popup-cover-box">${ p.photoUrl ? driveImgHtml(p.photoUrl) : '' }</div>`;
 
-  const rows = [];
-  if (p.process)       rows.push(row('Process', p.process));
-  if (p.brewMethod)    rows.push(row('Method',  p.brewMethod));
-  if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
-    const whereBits = [];
-    if (p.whereConsumed) whereBits.push(escapeHtml(p.whereConsumed));
-    if (p.consumedCity)  whereBits.push(escapeHtml(p.consumedCity));
-    if (p.cafeUrl)       whereBits.push(`<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`);
-    rows.push(row('Where', whereBits.join(' — ')));
-    if (p.consumedAddr) rows.push(`<div style="margin:2px 0;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
-  }
-  if (p.recipe)        rows.push(row('Recipe',  p.recipe));
-  if (roaster)         rows.push(row('Roaster', roaster));
-  if (p.uploader)      rows.push(row('By',      p.uploader));
+    const rows = [];
+    if (p.process)       rows.push(row('Process', p.process));
+    if (p.brewMethod)    rows.push(row('Method',  p.brewMethod));
+    if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
+      const whereBits = [];
+      if (p.whereConsumed) whereBits.push(escapeHtml(p.whereConsumed));
+      if (p.consumedCity)  whereBits.push(escapeHtml(p.consumedCity));
+      if (p.cafeUrl)       whereBits.push(`<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`);
+      rows.push(row('Where', whereBits.join(' — ')));
+      if (p.consumedAddr) rows.push(`<div style="margin:2px 0;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
+    }
+    if (p.recipe)        rows.push(row('Recipe',  p.recipe));
+    if (roaster)         rows.push(row('Roaster', roaster));
+    if (p.uploader)      rows.push(row('By',      p.uploader));
 
-  // ❌ Убрали чипы src/acc
-  // ✅ Если хочешь оставить только matchedName — раскомментируй две строки ниже:
-  // const chips = p.matchedName ? [`<span class="chip">${escapeHtml(p.matchedName)}</span>`] : [];
-  // const chipsLine = chips.length ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 2px">${chips.join('')}</div>` : '';
-
-  return `
-    <div class="popup-card">
-      ${photo}
-      <div class="popup-body">
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-          <div class="popup-title" style="flex:1">${escapeHtml(p.farmName || 'Без названия')}</div>
-          ${process}
+    return `
+      <div class="popup-card">
+        ${photo}
+        <div class="popup-body">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="popup-title" style="flex:1">${escapeHtml(p.farmName || 'Без названия')}</div>
+            ${process}
+          </div>
+          <div class="meta">${place || '—'}</div>
+          ${rows.join('')}
         </div>
-        <div class="meta">${place || '—'}</div>
-        ${/* chipsLine */ '' }
-        ${rows.join('')}
       </div>
-    </div>
-  `;
+    `;
 
-  function row(label, val){
-    return `<div style="margin:2px 0"><span style="color:#666">${escapeHtml(label)}: </span>${typeof val==='string'?escapeHtml(val):val||''}</div>`;
+    function row(label, val){
+      return `<div style="margin:2px 0"><span style="color:#666">${escapeHtml(label)}: </span>${typeof val==='string'?escapeHtml(val):val||''}</div>`;
+    }
   }
-}
 
-  /* ==== загрузка CSV → слои ==== */
+  /* ==== линии до городов: геокодинг в браузере + кеш ==== */
+  const CITY_CACHE_NS = 'coffee_city_cache_v1';
+  const cityCache = JSON.parse(localStorage.getItem(CITY_CACHE_NS) || '{}');
+  const cacheSave = () => localStorage.setItem(CITY_CACHE_NS, JSON.stringify(cityCache));
+
+  async function geocodeCityName(name){
+    const key = String(name||'').trim().toLowerCase();
+    if (!key) return null;
+    if (cityCache[key]) return cityCache[key]; // {lng,lat}
+    const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
+      encodeURIComponent(name) + '.json?' + new URLSearchParams({
+        access_token: MAPBOX_TOKEN, types: 'place,locality', language: 'ru,en', limit: '1'
+      });
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const f = (json.features||[])[0];
+    if (!f || !Array.isArray(f.center)) return null;
+    const [lng, lat] = f.center;
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+    const pt = {lng, lat};
+    cityCache[key] = pt; cacheSave();
+    return pt;
+  }
+
+  async function geocodeCities(names){
+    const out = {};
+    for (const name of names){ out[name] = await geocodeCityName(name); }
+    return out;
+  }
+
+  function buildRouteFeatures(pointFeatures, cityMap){
+    const lines = [];
+    for (const f of pointFeatures){
+      const p = f.properties;
+      const [farmLng, farmLat] = f.geometry.coordinates;
+
+      if (p.roasterCity){
+        const rc = cityMap[p.roasterCity];
+        if (rc){
+          lines.push({
+            type:'Feature',
+            geometry:{ type:'LineString', coordinates:[[farmLng,farmLat],[rc.lng,rc.lat]] },
+            properties:{ kind:'farm_to_roaster', farm:p.farmName||'', roasterCity:p.roasterCity||'' }
+          });
+        }
+      }
+      if (p.roasterCity && p.consumedCity){
+        const rc = cityMap[p.roasterCity];
+        const uc = cityMap[p.consumedCity];
+        if (rc && uc){
+          lines.push({
+            type:'Feature',
+            geometry:{ type:'LineString', coordinates:[[rc.lng,rc.lat],[uc.lng,uc.lat]] },
+            properties:{ kind:'roaster_to_consumed', roasterCity:p.roasterCity||'', consumedCity:p.consumedCity||'' }
+          });
+        }
+      }
+    }
+    return lines;
+  }
+
+  // Управление подсветкой маршрута
+  function highlightRouteFor(p){
+    if (!map.getLayer('route-highlight')) return;
+    const filt = ['any'];
+    if (p.roasterCity){
+      filt.push(['all',
+        ['==',['get','kind'],'farm_to_roaster'],
+        ['==',['get','roasterCity'], String(p.roasterCity)]
+      ]);
+      if (p.consumedCity){
+        filt.push(['all',
+          ['==',['get','kind'],'roaster_to_consumed'],
+          ['==',['get','roasterCity'], String(p.roasterCity)],
+          ['==',['get','consumedCity'], String(p.consumedCity)]
+        ]);
+      }
+    }
+    map.setFilter('route-highlight', filt.length>1 ? filt : ['==', ['get','kind'], '___nope___']);
+  }
+  function clearRouteHighlight(){
+    if (map.getLayer('route-highlight')){
+      map.setFilter('route-highlight', ['==', ['get','kind'], '___nope___']);
+    }
+  }
+
+  /* ==== загрузка CSV → точки + линии ==== */
   Papa.parse(CSV_URL, {
     download: true, header: true, dynamicTyping: false,
-    complete: (results) => {
-      const geojson = rowsToGeoJSON(results.data || []);
-      const badge = document.getElementById('badge');
-      badge.textContent = `Точек: ${geojson.features.length}`;
+    complete: async (results) => {
+      const geojsonPoints = rowsToGeoJSON(results.data || []);
+      const pointFeatures = geojsonPoints.features;
+
+      // собрать уникальные города
+      const want = new Set();
+      for (const f of pointFeatures){
+        const p = f.properties;
+        if (p.roasterCity)  want.add(String(p.roasterCity).trim());
+        if (p.consumedCity) want.add(String(p.consumedCity).trim());
+      }
+      const uniqueCities = [...want].filter(Boolean);
+
+      // геокодим
+      const cityCoordsMap = await geocodeCities(uniqueCities);
+
+      // строим линии
+      const lineFeatures = buildRouteFeatures(pointFeatures, cityCoordsMap);
+      const geojsonLines = { type:'FeatureCollection', features: lineFeatures };
+
+      // бейдж
+      document.getElementById('badge').textContent =
+        `Точек: ${pointFeatures.length} · Линий: ${lineFeatures.length}`;
 
       function addLayers(){
-        if (map.getSource('brews')) {
-          map.getSource('brews').setData(geojson);
-          fitToData(geojson); return;
+        // источники
+        if (!map.getSource('brews')) {
+          map.addSource('brews', { type:'geojson', data:geojsonPoints, cluster:true, clusterMaxZoom:14, clusterRadius:50 });
+        } else {
+          map.getSource('brews').setData(geojsonPoints);
         }
-        map.addSource('brews', { type:'geojson', data:geojson, cluster:true, clusterMaxZoom:14, clusterRadius:50 });
+        if (!map.getSource('routes')) {
+          map.addSource('routes', { type:'geojson', data:geojsonLines });
+        } else {
+          map.getSource('routes').setData(geojsonLines);
+        }
 
-        map.addLayer({
-          id:'clusters', type:'circle', source:'brews', filter:['has','point_count'],
-          paint:{
-            'circle-color': ['step',['get','point_count'],'#9ecae1',10,'#6baed6',30,'#3182bd'],
-            'circle-radius': ['step',['get','point_count'],16,10,20,30,26]
-          }
-        });
-        map.addLayer({
-          id:'cluster-count', type:'symbol', source:'brews', filter:['has','point_count'],
-          layout:{ 'text-field': ['get','point_count_abbreviated'], 'text-size':12 },
-          paint:{ 'text-color':'#08306b' }
-        });
-        map.addLayer({
-          id:'unclustered', type:'circle', source:'brews', filter:['!', ['has','point_count']],
-          paint:{
-            'circle-color':'#e6550d','circle-radius':6,'circle-stroke-width':1,'circle-stroke-color':'#fff'
-          }
-        });
-
-        map.on('click','clusters',(e)=>{
-          const f = map.queryRenderedFeatures(e.point,{layers:['clusters']})[0];
-          map.getSource('brews').getClusterExpansionZoom(f.properties.cluster_id,(err,zoom)=>{
-            if (!err) map.easeTo({center:f.geometry.coordinates, zoom});
+        // слои линий
+        if (!map.getLayer('route-farm-roaster')){
+          map.addLayer({
+            id:'route-farm-roaster', type:'line', source:'routes',
+            filter:['==',['get','kind'],'farm_to_roaster'],
+            paint:{ 'line-color':'#006d2c', 'line-width':2, 'line-opacity':0.6 }
           });
-        });
-        map.on('click','unclustered',(e)=>{
-          const f = e.features[0];
-          new mapboxgl.Popup({ offset:12, maxWidth:'360px' })
-            .setLngLat(f.geometry.coordinates)
-            .setHTML(popupHTML(f.properties))
-            .addTo(map);
-        });
+        }
+        if (!map.getLayer('route-roaster-consumed')){
+          map.addLayer({
+            id:'route-roaster-consumed', type:'line', source:'routes',
+            filter:['==',['get','kind'],'roaster_to_consumed'],
+            paint:{ 'line-color':'#08519c', 'line-width':2, 'line-opacity':0.6, 'line-dasharray':[2,2] }
+          });
+        }
+        // слой подсветки сверху
+        if (!map.getLayer('route-highlight')){
+          map.addLayer({
+            id:'route-highlight', type:'line', source:'routes',
+            filter:['==', ['get','kind'], '___nope___'],
+            paint:{ 'line-color':'#ff7f00', 'line-width':5, 'line-opacity':0.9 }
+          });
+        }
 
-        map.on('mouseenter','clusters',()=>map.getCanvas().style.cursor='pointer');
-        map.on('mouseleave','clusters',()=>map.getCanvas().style.cursor='');
-        map.on('mouseenter','unclustered',()=>map.getCanvas().style.cursor='pointer');
-        map.on('mouseleave','unclustered',()=>map.getCanvas().style.cursor='');
+        // кластеры и точки
+        if (!map.getLayer('clusters')){
+          map.addLayer({
+            id:'clusters', type:'circle', source:'brews', filter:['has','point_count'],
+            paint:{
+              'circle-color': ['step',['get','point_count'],'#9ecae1',10,'#6baed6',30,'#3182bd'],
+              'circle-radius': ['step',['get','point_count'],16,10,20,30,26]
+            }
+          });
+          map.addLayer({
+            id:'cluster-count', type:'symbol', source:'brews', filter:['has','point_count'],
+            layout:{ 'text-field': ['get','point_count_abbreviated'], 'text-size':12 },
+            paint:{ 'text-color':'#08306b' }
+          });
+          map.addLayer({
+            id:'unclustered', type:'circle', source:'brews', filter:['!', ['has','point_count']],
+            paint:{ 'circle-color':'#e6550d','circle-radius':6,'circle-stroke-width':1,'circle-stroke-color':'#fff' }
+          });
 
-        fitToData(geojson);
+          map.on('click','clusters',(e)=>{
+            const f = map.queryRenderedFeatures(e.point,{layers:['clusters']})[0];
+            map.getSource('brews').getClusterExpansionZoom(f.properties.cluster_id,(err,zoom)=>{
+              if (!err) map.easeTo({center:f.geometry.coordinates, zoom});
+            });
+          });
+          map.on('click','unclustered',(e)=>{
+            const f = e.features[0];
+            new mapboxgl.Popup({ offset:12, maxWidth:'360px' })
+              .setLngLat(f.geometry.coordinates)
+              .setHTML(popupHTML(f.properties))
+              .addTo(map);
+            highlightRouteFor(f.properties);
+          });
+
+          // клик по пустому месту — снять подсветку
+          map.on('click', (e) => {
+            const feats = map.queryRenderedFeatures(e.point, {layers:['unclustered','clusters']});
+            if (!feats.length) clearRouteHighlight();
+          });
+
+          map.on('mouseenter','clusters',()=>map.getCanvas().style.cursor='pointer');
+          map.on('mouseleave','clusters',()=>map.getCanvas().style.cursor='');
+          map.on('mouseenter','unclustered',()=>map.getCanvas().style.cursor='pointer');
+          map.on('mouseleave','unclustered',()=>map.getCanvas().style.cursor='');
+        }
+
+        fitToData(geojsonPoints);
       }
 
       if (map.isStyleLoaded && map.isStyleLoaded()) addLayers();

@@ -55,8 +55,8 @@
 <script>
   /* ==== настройки ==== */
   const MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
-  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRh5ft53W2ettUoEJqOyaJFoySOEbGr14qomprmDRlCwI0F3WEhnTn6IybbqgP_q9yv23sfNeqlPN5x/pub?output=csv';
-
+  const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbms6-9Pie6VdyXzbjiMwWeIF-mxMvMiyFHaRI1DJE0nPNkSG99lewaeeU8YIuj7Y8vxzJGOD2md1v/pubhtml';
+  
   const theme = (new URLSearchParams(location.search).get('style') || 'light').toLowerCase();
   document.body.dataset.theme = theme;
   const FLAG_MODE = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase(); // 'img' | 'emoji'

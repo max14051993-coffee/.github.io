@@ -31,13 +31,21 @@
     }
     .mapboxgl-popup-content{ background:transparent; padding:0; border-radius:20px; box-shadow:none }
     .mapboxgl-popup-tip{ display:none }
-    .popup-card{ width:320px; max-width:90vw; border-radius:20px; overflow:hidden;
-      background:var(--card-bg); border:1px solid var(--card-border); font:14px/1.35 system-ui }
+    .popup-card{
+      position:relative; width:320px; max-width:90vw; border-radius:20px; overflow:hidden;
+      background:var(--card-bg); border:1px solid var(--card-border); font:14px/1.35 system-ui
+    }
     .popup-cover-box{ width:100%; height:200px; background:linear-gradient(180deg,#e7efe1,#f4f7f1) }
     .popup-cover{ width:100%; height:100%; object-fit:cover; display:block }
     .popup-body{ padding:14px }
     .popup-title{ font-weight:800; font-size:18px; margin:2px 0 6px; color:var(--title) }
-    .process-pill{ font-size:12px; padding:5px 10px; border-radius:999px; background:var(--pill-bg); border:1px solid var(--pill-br); color:var(--title); margin-left:auto }
+    /* Плашка процесса — фиксировано в правом верхнем углу карточки */
+    .process-badge{
+      position:absolute; top:10px; right:10px; z-index:2;
+      font-size:12px; padding:5px 10px; border-radius:999px;
+      border:1px solid transparent; background:rgba(255,255,255,.8);
+      backdrop-filter: blur(2px);
+    }
     .collection-title{
       position:absolute; top:12px; left:50%; transform:translateX(-50%);
       background:var(--glass); color:var(--text); padding:8px 14px; border-radius:12px; border:1px solid var(--glass-br);
@@ -105,6 +113,28 @@
   const toNumber = (v) => (typeof v==='number') ? v : (typeof v==='string' ? parseFloat(v.replace(',', '.')) : NaN);
   const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   const escapeAttr = (s) => String(s||'').replace(/"/g,'&quot;');
+
+  // === нормализация процесса + цвета ===
+  function normalizeProcessName(raw){
+    const s = String(raw||'').toLowerCase();
+    if (!s) return 'other';
+    if (/(honey|red honey|yellow honey|white honey|black honey)/.test(s)) return 'honey';
+    if (/(anaer|carbonic|cm|термо|thermal|macerat|carbonique)/.test(s)) return 'anaerobic';
+    if (/(wash|fully washed|wet|мыта|мытый|вымыт)/.test(s)) return 'washed';
+    if (/(natur|dry|сух)/.test(s)) return 'natural';
+    if (/(yeast|који|koji|enzym|фермент|co-?ferment|double|triple|wine)/.test(s)) return 'experimental';
+    return 'other';
+  }
+  function processColors(pType){
+    switch(pType){
+      case 'washed':      return { point:'#2e7d32', bg:'#d7f0df', br:'#82b998', txt:'#205b3a' };
+      case 'natural':     return { point:'#c0392b', bg:'#ffd9d2', br:'#e59883', txt:'#7a1d12' };
+      case 'honey':       return { point:'#c77f0a', bg:'#ffe9c6', br:'#e9b86a', txt:'#6b4800' };
+      case 'anaerobic':   return { point:'#6a3cbc', bg:'#e6d7ff', br:'#b79de5', txt:'#3b2b6f' };
+      case 'experimental':return { point:'#2c5aa0', bg:'#dde9f7', br:'#9bb9e6', txt:'#1f3a63' };
+      default:            return { point:'#777777', bg:'#eeeeee', br:'#cccccc', txt:'#333333' };
+    }
+  }
 
   // Drive helpers
   function extractDriveId(url){
@@ -177,6 +207,9 @@
       let photo = pickSmart(row, HEADERS.photoUrl);
       if (!photo) photo = pickSmart(row, HEADERS.fileUpload);
 
+      const processRaw  = pickSmart(row, HEADERS.process);
+      const processNorm = normalizeProcessName(processRaw);
+
       const p = {
         timestamp:       pickSmart(row, HEADERS.timestamp),
         email:           pickSmart(row, HEADERS.email),
@@ -184,7 +217,8 @@
         originCountry:   pickSmart(row, HEADERS.originCountry),
         originRegion:    pickSmart(row, HEADERS.originRegion),
         farmName:        pickSmart(row, HEADERS.farmName),
-        process:         pickSmart(row, HEADERS.process),
+        process:         processRaw,
+        process_norm:    processNorm,            // <= для стилей
         brewMethod:      pickSmart(row, HEADERS.brewMethod),
         whereConsumed:   pickSmart(row, HEADERS.whereConsumed),
         cafeName:        pickSmart(row, HEADERS.cafeName),
@@ -220,17 +254,16 @@
     const place   = [country, region].filter(Boolean).join(', ');
     const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
                     (p.roasterCity ? ' (' + escapeHtml(p.roasterCity) + ')' : '');
-    const process = p.process ? `<span class="process-pill">${escapeHtml(p.process)}</span>` : '';
     const photo = `<div class="popup-cover-box">${ p.photoUrl ? driveImgHtml(p.photoUrl) : '' }</div>`;
 
     const rows = [];
-    if (p.process)       rows.push(row('Process', p.process));
+    // (убрано) if (p.process) rows.push(row('Process', p.process));
     if (p.brewMethod)    rows.push(row('Method',  p.brewMethod));
     if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
       const whereBits = [];
       if (p.whereConsumed) whereBits.push(escapeHtml(p.whereConsumed));
       if (p.consumedCity)  whereBits.push(escapeHtml(p.consumedCity));
-      if (p.cafeUrl)       whereBits.push(`<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`);
+      if (p.cafeUrl)       rows.push(row('Link', `<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`));
       rows.push(row('Where', whereBits.join(' — ')));
       if (p.consumedAddr) rows.push(`<div style="margin:2px 0;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
     }
@@ -238,14 +271,19 @@
     if (roaster)         rows.push(row('Roaster', roaster));
     if (p.uploader)      rows.push(row('By',      p.uploader));
 
+    // бейдж процесса (цвет — от нормализованного типа)
+    const pType = p.process_norm || 'other';
+    const col = processColors(pType);
+    const badge = p.process
+      ? `<div class="process-badge" style="background:${col.bg};border-color:${col.br};color:${col.txt}">${escapeHtml(p.process)}</div>`
+      : '';
+
     return `
       <div class="popup-card">
+        ${badge}
         ${photo}
         <div class="popup-body">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-            <div class="popup-title" style="flex:1">${escapeHtml(p.farmName || 'Без названия')}</div>
-            ${process}
-          </div>
+          <div class="popup-title">${escapeHtml(p.farmName || 'Без названия')}</div>
           <div class="meta">${place || '—'}</div>
           ${rows.join('')}
         </div>
@@ -253,7 +291,7 @@
     `;
 
     function row(label, val){
-      return `<div style="margin:2px 0"><span style="color:#666">${escapeHtml(label)}: </span>${typeof val==='string'?escapeHtml(val):val||''}</div>`;
+      return `<div style="margin:2px 0"><span style="color:#666">${escapeHtml(label)}: </span>${typeof val==='string'?val:val||''}</div>`;
     }
   }
 
@@ -344,7 +382,7 @@
   }
 
   /* ==== страны, которые пробовал (заливка) ==== */
-  const WORLDVIEW = 'US'; // фильтр мировоззрения, чтобы не задваивать спорные границы (Mapbox советует так)
+  const WORLDVIEW = 'US';
   function getVisitedCountriesIso2(pointFeatures){
     const set = new Set();
     for (const f of pointFeatures){
@@ -365,7 +403,7 @@
     if (!map.getSource('countries')){
       map.addSource('countries', { type:'vector', url:'mapbox://mapbox.country-boundaries-v1' });
     }
-    const beforeId = 'admin-1-boundary-bg'; // под административными линиями
+    const beforeId = 'admin-1-boundary-bg';
     if (!map.getLayer('countries-visited-fill')){
       map.addLayer({
         id:'countries-visited-fill',
@@ -484,9 +522,23 @@
             layout:{ 'text-field': ['get','point_count_abbreviated'], 'text-size':12 },
             paint:{ 'text-color':'#08306b' }
           });
+          // точки — цвет по типу обработки
           map.addLayer({
             id:'unclustered', type:'circle', source:'brews', filter:['!', ['has','point_count']],
-            paint:{ 'circle-color':'#e6550d','circle-radius':6,'circle-stroke-width':1,'circle-stroke-color':'#fff' }
+            paint:{
+              'circle-color': [
+                'match', ['get','process_norm'],
+                'washed',      '#2e7d32',
+                'natural',     '#c0392b',
+                'honey',       '#c77f0a',
+                'anaerobic',   '#6a3cbc',
+                'experimental','#2c5aa0',
+                /* other */    '#777777'
+              ],
+              'circle-radius':6,
+              'circle-stroke-width':1,
+              'circle-stroke-color':'#fff'
+            }
           });
 
           map.on('click','clusters',(e)=>{
@@ -522,7 +574,7 @@
       if (map.isStyleLoaded && map.isStyleLoaded()) addLayers();
       else map.on('load', addLayers);
 
-      // обработчик чекбокса
+      // обработчик чекбокса стран
       document.getElementById('toggleVisited')?.addEventListener('change', (e)=>{
         setCountriesVisibility(e.target.checked);
       });
@@ -533,7 +585,7 @@
     }
   });
 
-  // Заголовок в «glass»-чипе
+  // Заголовок
   document.getElementById('collectionTitle').textContent = 'My coffee experience';
 </script>
 </body>

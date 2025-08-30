@@ -45,6 +45,8 @@
     }
     .meta{margin-bottom:6px;color:var(--muted)}
     a{color:#2b6cb0;text-decoration:none} a:hover{text-decoration:underline}
+    .badge label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+    .badge input[type="checkbox"]{transform:translateY(1px)}
   </style>
 </head>
 <body>
@@ -86,7 +88,6 @@
   /* ==== утилиты ==== */
   const normKey = (k) => String(k||'').toLowerCase().replace(/\s+/g,' ').trim();
 
-  // Расширенный пикер: учитывает дубликаты колонок
   function pickSmart(row, candidates){
     for (const k of candidates) if (row[k] !== undefined && row[k] !== '') return row[k];
     const nRow = {}; for (const key in row) nRow[normKey(key)] = row[key];
@@ -318,7 +319,6 @@
     return lines;
   }
 
-  // Управление подсветкой маршрута
   function highlightRouteFor(p){
     if (!map.getLayer('route-highlight')) return;
     const filt = ['any'];
@@ -343,7 +343,57 @@
     }
   }
 
-  /* ==== загрузка CSV → точки + линии ==== */
+  /* ==== страны, которые пробовал (заливка) ==== */
+  const WORLDVIEW = 'US'; // фильтр мировоззрения, чтобы не задваивать спорные границы (Mapbox советует так)
+  function getVisitedCountriesIso2(pointFeatures){
+    const set = new Set();
+    for (const f of pointFeatures){
+      const c = String(f.properties?.countryIso2 || '').trim().toUpperCase();
+      if (/^[A-Z]{2}$/.test(c)) set.add(c);
+    }
+    return set;
+  }
+  function buildVisitedFilter(iso2List){
+    return [
+      'all',
+      ['==', ['get','disputed'], 'false'],
+      ['any', ['==','all',['get','worldview']], ['in', WORLDVIEW, ['get','worldview']]],
+      ['in', ['get','iso_3166_1'], ['literal', iso2List]]
+    ];
+  }
+  function ensureCountriesLayers(){
+    if (!map.getSource('countries')){
+      map.addSource('countries', { type:'vector', url:'mapbox://mapbox.country-boundaries-v1' });
+    }
+    const beforeId = 'admin-1-boundary-bg'; // под административными линиями
+    if (!map.getLayer('countries-visited-fill')){
+      map.addLayer({
+        id:'countries-visited-fill',
+        type:'fill',
+        source:'countries',
+        'source-layer':'country_boundaries',
+        paint:{ 'fill-color':'#76a96b', 'fill-opacity':0.35 }
+      }, beforeId);
+      map.setLayoutProperty('countries-visited-fill','visibility','none');
+    }
+    if (!map.getLayer('countries-visited-outline')){
+      map.addLayer({
+        id:'countries-visited-outline',
+        type:'line',
+        source:'countries',
+        'source-layer':'country_boundaries',
+        paint:{ 'line-color':'#567a58', 'line-width':0.8, 'line-opacity':0.85 }
+      }, beforeId);
+      map.setLayoutProperty('countries-visited-outline','visibility','none');
+    }
+  }
+  function setCountriesVisibility(state){
+    const vis = state ? 'visible' : 'none';
+    if (map.getLayer('countries-visited-fill'))   map.setLayoutProperty('countries-visited-fill',   'visibility', vis);
+    if (map.getLayer('countries-visited-outline'))map.setLayoutProperty('countries-visited-outline','visibility', vis);
+  }
+
+  /* ==== загрузка CSV → точки + линии + страны ==== */
   Papa.parse(CSV_URL, {
     download: true, header: true, dynamicTyping: false,
     complete: async (results) => {
@@ -366,12 +416,18 @@
       const lineFeatures = buildRouteFeatures(pointFeatures, cityCoordsMap);
       const geojsonLines = { type:'FeatureCollection', features: lineFeatures };
 
-      // бейдж
-      document.getElementById('badge').textContent =
-        `Точек: ${pointFeatures.length} · Линий: ${lineFeatures.length}`;
+      // === страны по ISO2 ===
+      const visitedSet  = getVisitedCountriesIso2(pointFeatures);
+      const visitedList = [...visitedSet];
+
+      // бейдж + чекбокс
+      const badgeEl = document.getElementById('badge');
+      badgeEl.innerHTML =
+        `Точек: ${pointFeatures.length} · Линий: ${lineFeatures.length} · Стран: ${visitedList.length}<br>` +
+        `<label><input type="checkbox" id="toggleVisited"> Закрашивать страны</label>`;
 
       function addLayers(){
-        // источники
+        // источники точек/линий
         if (!map.getSource('brews')) {
           map.addSource('brews', { type:'geojson', data:geojsonPoints, cluster:true, clusterMaxZoom:14, clusterRadius:50 });
         } else {
@@ -382,6 +438,13 @@
         } else {
           map.getSource('routes').setData(geojsonLines);
         }
+
+        // === страны: слой ===
+        ensureCountriesLayers();
+        const filt = buildVisitedFilter(visitedList);
+        map.setFilter('countries-visited-fill', filt);
+        map.setFilter('countries-visited-outline', filt);
+        setCountriesVisibility(false); // по умолчанию выключено
 
         // слои линий
         if (!map.getLayer('route-farm-roaster')){
@@ -458,6 +521,11 @@
 
       if (map.isStyleLoaded && map.isStyleLoaded()) addLayers();
       else map.on('load', addLayers);
+
+      // обработчик чекбокса
+      document.getElementById('toggleVisited')?.addEventListener('change', (e)=>{
+        setCountriesVisibility(e.target.checked);
+      });
     },
     error: (err) => {
       document.getElementById('badge').textContent = 'Ошибка загрузки CSV';

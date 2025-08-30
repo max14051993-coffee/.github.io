@@ -263,7 +263,6 @@
       const whereBits = [];
       if (p.whereConsumed) whereBits.push(escapeHtml(p.whereConsumed));
       if (p.consumedCity)  whereBits.push(escapeHtml(p.consumedCity));
-      if (p.cafeUrl)       rows.push(row('Link', `<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`));
       rows.push(row('Where', whereBits.join(' — ')));
       if (p.consumedAddr) rows.push(`<div style="margin:2px 0;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
     }

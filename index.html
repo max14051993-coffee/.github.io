@@ -32,12 +32,16 @@
     .mapboxgl-popup-content{ background:transparent; padding:0; border-radius:20px; box-shadow:none }
     .mapboxgl-popup-tip{ display:none }
 
-    .popup-card{ position:relative; width:320px; max-width:90vw; border-radius:20px; overflow:hidden;
-      background:var(--card-bg); border:1px solid var(--card-border); font:14px/1.35 system-ui }
+    .popup-card{
+      position:relative; width:320px; max-width:90vw; border-radius:20px; overflow:hidden;
+      background:var(--card-bg); border:1px solid var(--card-border); font:14px/1.35 system-ui
+    }
     .popup-cover-box{ width:100%; height:200px; background:linear-gradient(180deg,#e7efe1,#f4f7f1) }
     .popup-cover{ width:100%; height:100%; object-fit:cover; display:block }
     .popup-body{ padding:14px }
     .popup-title{ font-weight:800; font-size:18px; margin:2px 0 6px; color:var(--title) }
+
+    /* бейдж процесса */
     .process-badge{
       position:absolute; top:10px; right:10px; z-index:2;
       font-size:12px; padding:5px 10px; border-radius:999px;
@@ -45,12 +49,16 @@
       backdrop-filter: blur(2px);
     }
 
+    /* строки с эмодзи */
+    .row{margin:2px 0; display:flex; align-items:baseline; gap:6px}
+    .row-emoji{width:1.2em; text-align:center}
+    .meta{margin-bottom:6px;color:var(--muted)}
+
     .collection-title{
       position:absolute; top:12px; left:50%; transform:translateX(-50%);
       background:var(--glass); color:var(--text); padding:8px 14px; border-radius:12px; border:1px solid var(--glass-br);
       z-index:5; white-space:nowrap; max-width:80vw; overflow:hidden; text-overflow:ellipsis; font:600 16px/1.2 system-ui
     }
-    .meta{margin-bottom:6px;color:var(--muted)}
     a{color:#2b6cb0;text-decoration:none} a:hover{text-decoration:underline}
     .badge label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
     .badge input[type="checkbox"]{transform:translateY(1px)}
@@ -72,7 +80,7 @@
   /* ==== настройки ==== */
   const MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
   const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbms6-9Pie6VdyXzbjiMwWeIF-mxMvMiyFHaRI1DJE0nPNkSG99lewaeeU8YIuj7Y8vxzJGOD2md1v/pub?gid=1055803810&single=true&output=csv';
-  
+
   const theme = (new URLSearchParams(location.search).get('style') || 'light').toLowerCase();
   document.body.dataset.theme = theme;
   const FLAG_MODE = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase(); // 'img' | 'emoji'
@@ -252,7 +260,7 @@
     map.fitBounds(b, { padding: 40, duration: 700, maxZoom: 10 });
   }
 
-  /* ==== карточка ==== */
+  /* ==== карточка с эмодзи ==== */
   function popupHTML(p) {
     const flag = flagFromRow(p.flagEmoji, p.countryIso2);
     const country = p.originCountry ? ((flag ? flag + ' ' : '') + escapeHtml(p.originCountry)) : '';
@@ -263,19 +271,24 @@
     const photo = `<div class="popup-cover-box">${ p.photoUrl ? driveImgHtml(p.photoUrl) : '' }</div>`;
 
     const rows = [];
-    if (p.brewMethod)    rows.push(row('Method',  p.brewMethod));
-    if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
-      const whereBits = [];
-      if (p.whereConsumed) whereBits.push(escapeHtml(p.whereConsumed));
-      if (p.consumedCity)  whereBits.push(escapeHtml(p.consumedCity));
-      if (p.cafeUrl)       rows.push(row('Link', `<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`));
-      rows.push(row('Where', whereBits.join(' — ')));
-      if (p.consumedAddr) rows.push(`<div style="margin:2px 0;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
-    }
-    if (p.recipe)        rows.push(row('Recipe',  p.recipe));
-    if (roaster)         rows.push(row('Roaster', roaster));
-    if (p.uploader)      rows.push(row('By',      p.uploader));
+    if (p.brewMethod) rows.push(emojiRow('🧉','Method', escapeHtml(p.brewMethod)));
 
+    if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
+      const bits = [];
+      if (p.whereConsumed) bits.push(escapeHtml(p.whereConsumed));
+      if (p.consumedCity)  bits.push(escapeHtml(p.consumedCity));
+      // вместо отдельной строки Link — маленькая иконка в конце
+      let whereHtml = bits.join(' — ');
+      if (p.cafeUrl) whereHtml += ` <a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener" title="Ссылка на заведение">🔗</a>`;
+      rows.push(emojiRow('📍','Where', whereHtml));
+      if (p.consumedAddr) rows.push(`<div class="row" style="margin-left:1.6em;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
+    }
+
+    if (p.recipe)   rows.push(emojiRow('📋','Recipe', escapeHtml(p.recipe)));
+    if (roaster)    rows.push(emojiRow('🏭','Roaster', roaster));
+    if (p.uploader) rows.push(emojiRow('👤','By', escapeHtml(p.uploader)));
+
+    // бейдж процесса
     const pType = p.process_norm || 'other';
     const col = processColors(pType);
     const badge = p.process
@@ -294,12 +307,12 @@
       </div>
     `;
 
-    function row(label, val){
-      return `<div style="margin:2px 0"><span style="color:#666">${escapeHtml(label)}: </span>${typeof val==='string'?val:val||''}</div>`;
+    function emojiRow(emoji, title, val){
+      return `<div class="row"><span class="row-emoji" title="${escapeAttr(title)}">${emoji}</span><span>${val||''}</span></div>`;
     }
   }
 
-  /* ==== линии: геокодинг + кеш ==== */
+  /* ==== линии до городов: геокодинг + кеш ==== */
   const CITY_CACHE_NS = 'coffee_city_cache_v1';
   const cityCache = JSON.parse(localStorage.getItem(CITY_CACHE_NS) || '{}');
   const cacheSave = () => localStorage.setItem(CITY_CACHE_NS, JSON.stringify(cityCache));
@@ -361,6 +374,7 @@
     return lines;
   }
 
+  // подсветка маршрутов
   function highlightRouteFor(p){
     if (!map.getLayer('route-highlight')) return;
     const filt = ['any'];
@@ -437,21 +451,9 @@
 
   /* ==== Ачивки ==== */
   const ACHIEVEMENTS = [
-    {
-      id:'first_sip', emoji:'☕️', title:'Первый глоток',
-      color:{ bg:'#d1fae5', br:'#99f6e4', txt:'#065f46' },
-      earned:(m)=> m.total >= 1
-    },
-    {
-      id:'countries_3', emoji:'🌍', title:'Страны ×3',
-      color:{ bg:'#fef3c7', br:'#fde68a', txt:'#92400e' },
-      earned:(m)=> m.countries >= 3
-    },
-    {
-      id:'processes_3', emoji:'🧪', title:'Процессы ×3',
-      color:{ bg:'#ede9fe', br:'#ddd6fe', txt:'#4c1d95' },
-      earned:(m)=> m.processTypes >= 3
-    }
+    { id:'first_sip',   emoji:'☕️', title:'Первый глоток', color:{ bg:'#d1fae5', br:'#99f6e4', txt:'#065f46' }, earned:(m)=> m.total>=1 },
+    { id:'countries_3', emoji:'🌍', title:'Страны ×3',     color:{ bg:'#fef3c7', br:'#fde68a', txt:'#92400e' }, earned:(m)=> m.countries>=3 },
+    { id:'processes_3', emoji:'🧪', title:'Процессы ×3',   color:{ bg:'#ede9fe', br:'#ddd6fe', txt:'#4c1d95' }, earned:(m)=> m.processTypes>=3 }
   ];
   function computeMetrics(pointFeatures){
     const countriesSet = getVisitedCountriesIso2(pointFeatures);
@@ -460,17 +462,11 @@
       const t = (f.properties?.process_norm)||'';
       if (t && t !== 'other') proc.add(t);
     }
-    return {
-      total: pointFeatures.length,
-      countries: countriesSet.size,
-      processTypes: proc.size,
-      _countriesSet: countriesSet, _procSet: proc
-    };
+    return { total: pointFeatures.length, countries: countriesSet.size, processTypes: proc.size };
   }
   function renderAchievements(metrics){
     const earned = ACHIEVEMENTS.filter(a => a.earned(metrics));
     const el = document.getElementById('achievements');
-    if (!earned.length){ el.innerHTML = ''; return; }
     el.innerHTML = earned.map(a =>
       `<div class="ach-badge" style="background:${a.color.bg};border-color:${a.color.br};color:${a.color.txt}" title="${escapeAttr(a.title)}">
          <span class="ach-emoji">${a.emoji}</span><span class="ach-title">${escapeHtml(a.title)}</span>
@@ -498,18 +494,16 @@
       const geojsonLines = { type:'FeatureCollection', features: lineFeatures };
 
       // страны
-      const visitedSet  = getVisitedCountriesIso2(pointFeatures);
-      const visitedList = [...visitedSet];
+      const visitedList = [...getVisitedCountriesIso2(pointFeatures)];
 
       // бейдж слева
       const badgeEl = document.getElementById('badge');
       badgeEl.innerHTML =
-        `Точек: ${pointFeatures.length} · Стран: ${visitedList.length}<br>` +
+        `Точек: ${pointFeatures.length} · Линий: ${lineFeatures.length} · Стран: ${visitedList.length}<br>` +
         `<label><input type="checkbox" id="toggleVisited"> Закрашивать страны</label>`;
 
       // ачивки (справа)
-      const metrics = computeMetrics(pointFeatures);
-      renderAchievements(metrics);
+      renderAchievements(computeMetrics(pointFeatures));
 
       function addLayers(){
         // источники
@@ -533,25 +527,19 @@
 
         // линии
         if (!map.getLayer('route-farm-roaster')){
-          map.addLayer({
-            id:'route-farm-roaster', type:'line', source:'routes',
+          map.addLayer({ id:'route-farm-roaster', type:'line', source:'routes',
             filter:['==',['get','kind'],'farm_to_roaster'],
-            paint:{ 'line-color':'#006d2c', 'line-width':2, 'line-opacity':0.6 }
-          });
+            paint:{ 'line-color':'#006d2c', 'line-width':2, 'line-opacity':0.6 } });
         }
         if (!map.getLayer('route-roaster-consumed')){
-          map.addLayer({
-            id:'route-roaster-consumed', type:'line', source:'routes',
+          map.addLayer({ id:'route-roaster-consumed', type:'line', source:'routes',
             filter:['==',['get','kind'],'roaster_to_consumed'],
-            paint:{ 'line-color':'#08519c', 'line-width':2, 'line-opacity':0.6, 'line-dasharray':[2,2] }
-          });
+            paint:{ 'line-color':'#08519c', 'line-width':2, 'line-opacity':0.6, 'line-dasharray':[2,2] } });
         }
         if (!map.getLayer('route-highlight')){
-          map.addLayer({
-            id:'route-highlight', type:'line', source:'routes',
+          map.addLayer({ id:'route-highlight', type:'line', source:'routes',
             filter:['==', ['get','kind'], '___nope___'],
-            paint:{ 'line-color':'#ff7f00', 'line-width':5, 'line-opacity':0.9 }
-          });
+            paint:{ 'line-color':'#ff7f00', 'line-width':5, 'line-opacity':0.9 } });
         }
 
         // кластеры и точки (цвет по process_norm)

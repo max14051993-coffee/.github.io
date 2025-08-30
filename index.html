@@ -31,21 +31,20 @@
     }
     .mapboxgl-popup-content{ background:transparent; padding:0; border-radius:20px; box-shadow:none }
     .mapboxgl-popup-tip{ display:none }
-    .popup-card{
-      position:relative; width:320px; max-width:90vw; border-radius:20px; overflow:hidden;
-      background:var(--card-bg); border:1px solid var(--card-border); font:14px/1.35 system-ui
-    }
+
+    .popup-card{ position:relative; width:320px; max-width:90vw; border-radius:20px; overflow:hidden;
+      background:var(--card-bg); border:1px solid var(--card-border); font:14px/1.35 system-ui }
     .popup-cover-box{ width:100%; height:200px; background:linear-gradient(180deg,#e7efe1,#f4f7f1) }
     .popup-cover{ width:100%; height:100%; object-fit:cover; display:block }
     .popup-body{ padding:14px }
     .popup-title{ font-weight:800; font-size:18px; margin:2px 0 6px; color:var(--title) }
-    /* Плашка процесса — фиксировано в правом верхнем углу карточки */
     .process-badge{
       position:absolute; top:10px; right:10px; z-index:2;
       font-size:12px; padding:5px 10px; border-radius:999px;
       border:1px solid transparent; background:rgba(255,255,255,.8);
       backdrop-filter: blur(2px);
     }
+
     .collection-title{
       position:absolute; top:12px; left:50%; transform:translateX(-50%);
       background:var(--glass); color:var(--text); padding:8px 14px; border-radius:12px; border:1px solid var(--glass-br);
@@ -55,11 +54,18 @@
     a{color:#2b6cb0;text-decoration:none} a:hover{text-decoration:underline}
     .badge label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
     .badge input[type="checkbox"]{transform:translateY(1px)}
+
+    /* Виджет ачивок (правый верх карты) */
+    .achievements{position:absolute;top:12px;right:12px;z-index:6;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .ach-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--glass-br);font:12px/1.1 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+    .ach-emoji{font-size:14px}
+    .ach-title{font-weight:600}
   </style>
 </head>
 <body>
   <div id="map"></div>
   <div class="badge" id="badge">Загружаю данные…</div>
+  <div class="achievements" id="achievements"></div>
   <div class="collection-title" id="collectionTitle">My coffee experience</div>
 
 <script>
@@ -168,7 +174,7 @@
       : (FLAG_MODE==='emoji' ? emoji : '');
   }
 
-  /* ==== заголовки CSV (с дубликатами) ==== */
+  /* ==== заголовки CSV ==== */
   const HEADERS = {
     timestamp:       ['Timestamp'],
     email:           ['Email Address'],
@@ -218,7 +224,7 @@
         originRegion:    pickSmart(row, HEADERS.originRegion),
         farmName:        pickSmart(row, HEADERS.farmName),
         process:         processRaw,
-        process_norm:    processNorm,            // <= для стилей
+        process_norm:    processNorm,
         brewMethod:      pickSmart(row, HEADERS.brewMethod),
         whereConsumed:   pickSmart(row, HEADERS.whereConsumed),
         cafeName:        pickSmart(row, HEADERS.cafeName),
@@ -257,12 +263,12 @@
     const photo = `<div class="popup-cover-box">${ p.photoUrl ? driveImgHtml(p.photoUrl) : '' }</div>`;
 
     const rows = [];
-    // (убрано) if (p.process) rows.push(row('Process', p.process));
     if (p.brewMethod)    rows.push(row('Method',  p.brewMethod));
     if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
       const whereBits = [];
       if (p.whereConsumed) whereBits.push(escapeHtml(p.whereConsumed));
       if (p.consumedCity)  whereBits.push(escapeHtml(p.consumedCity));
+      if (p.cafeUrl)       rows.push(row('Link', `<a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener">link</a>`));
       rows.push(row('Where', whereBits.join(' — ')));
       if (p.consumedAddr) rows.push(`<div style="margin:2px 0;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
     }
@@ -270,7 +276,6 @@
     if (roaster)         rows.push(row('Roaster', roaster));
     if (p.uploader)      rows.push(row('By',      p.uploader));
 
-    // бейдж процесса (цвет — от нормализованного типа)
     const pType = p.process_norm || 'other';
     const col = processColors(pType);
     const badge = p.process
@@ -294,7 +299,7 @@
     }
   }
 
-  /* ==== линии до городов: геокодинг в браузере + кеш ==== */
+  /* ==== линии: геокодинг + кеш ==== */
   const CITY_CACHE_NS = 'coffee_city_cache_v1';
   const cityCache = JSON.parse(localStorage.getItem(CITY_CACHE_NS) || '{}');
   const cacheSave = () => localStorage.setItem(CITY_CACHE_NS, JSON.stringify(cityCache));
@@ -302,7 +307,7 @@
   async function geocodeCityName(name){
     const key = String(name||'').trim().toLowerCase();
     if (!key) return null;
-    if (cityCache[key]) return cityCache[key]; // {lng,lat}
+    if (cityCache[key]) return cityCache[key];
     const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
       encodeURIComponent(name) + '.json?' + new URLSearchParams({
         access_token: MAPBOX_TOKEN, types: 'place,locality', language: 'ru,en', limit: '1'
@@ -380,7 +385,7 @@
     }
   }
 
-  /* ==== страны, которые пробовал (заливка) ==== */
+  /* ==== страны-заливка ==== */
   const WORLDVIEW = 'US';
   function getVisitedCountriesIso2(pointFeatures){
     const set = new Set();
@@ -430,14 +435,57 @@
     if (map.getLayer('countries-visited-outline'))map.setLayoutProperty('countries-visited-outline','visibility', vis);
   }
 
-  /* ==== загрузка CSV → точки + линии + страны ==== */
+  /* ==== Ачивки ==== */
+  const ACHIEVEMENTS = [
+    {
+      id:'first_sip', emoji:'☕️', title:'Первый глоток',
+      color:{ bg:'#d1fae5', br:'#99f6e4', txt:'#065f46' },
+      earned:(m)=> m.total >= 1
+    },
+    {
+      id:'countries_3', emoji:'🌍', title:'Страны ×3',
+      color:{ bg:'#fef3c7', br:'#fde68a', txt:'#92400e' },
+      earned:(m)=> m.countries >= 3
+    },
+    {
+      id:'processes_3', emoji:'🧪', title:'Процессы ×3',
+      color:{ bg:'#ede9fe', br:'#ddd6fe', txt:'#4c1d95' },
+      earned:(m)=> m.processTypes >= 3
+    }
+  ];
+  function computeMetrics(pointFeatures){
+    const countriesSet = getVisitedCountriesIso2(pointFeatures);
+    const proc = new Set();
+    for (const f of pointFeatures){
+      const t = (f.properties?.process_norm)||'';
+      if (t && t !== 'other') proc.add(t);
+    }
+    return {
+      total: pointFeatures.length,
+      countries: countriesSet.size,
+      processTypes: proc.size,
+      _countriesSet: countriesSet, _procSet: proc
+    };
+  }
+  function renderAchievements(metrics){
+    const earned = ACHIEVEMENTS.filter(a => a.earned(metrics));
+    const el = document.getElementById('achievements');
+    if (!earned.length){ el.innerHTML = ''; return; }
+    el.innerHTML = earned.map(a =>
+      `<div class="ach-badge" style="background:${a.color.bg};border-color:${a.color.br};color:${a.color.txt}" title="${escapeAttr(a.title)}">
+         <span class="ach-emoji">${a.emoji}</span><span class="ach-title">${escapeHtml(a.title)}</span>
+       </div>`
+    ).join('');
+  }
+
+  /* ==== загрузка CSV → точки + линии + страны + ачивки ==== */
   Papa.parse(CSV_URL, {
     download: true, header: true, dynamicTyping: false,
     complete: async (results) => {
       const geojsonPoints = rowsToGeoJSON(results.data || []);
       const pointFeatures = geojsonPoints.features;
 
-      // собрать уникальные города
+      // города для линий
       const want = new Set();
       for (const f of pointFeatures){
         const p = f.properties;
@@ -445,26 +493,26 @@
         if (p.consumedCity) want.add(String(p.consumedCity).trim());
       }
       const uniqueCities = [...want].filter(Boolean);
-
-      // геокодим
       const cityCoordsMap = await geocodeCities(uniqueCities);
-
-      // строим линии
       const lineFeatures = buildRouteFeatures(pointFeatures, cityCoordsMap);
       const geojsonLines = { type:'FeatureCollection', features: lineFeatures };
 
-      // === страны по ISO2 ===
+      // страны
       const visitedSet  = getVisitedCountriesIso2(pointFeatures);
       const visitedList = [...visitedSet];
 
-      // бейдж + чекбокс
+      // бейдж слева
       const badgeEl = document.getElementById('badge');
       badgeEl.innerHTML =
-        `Точек: ${pointFeatures.length} · Линий: ${lineFeatures.length} · Стран: ${visitedList.length}<br>` +
+        `Точек: ${pointFeatures.length} · Стран: ${visitedList.length}<br>` +
         `<label><input type="checkbox" id="toggleVisited"> Закрашивать страны</label>`;
 
+      // ачивки (справа)
+      const metrics = computeMetrics(pointFeatures);
+      renderAchievements(metrics);
+
       function addLayers(){
-        // источники точек/линий
+        // источники
         if (!map.getSource('brews')) {
           map.addSource('brews', { type:'geojson', data:geojsonPoints, cluster:true, clusterMaxZoom:14, clusterRadius:50 });
         } else {
@@ -476,14 +524,14 @@
           map.getSource('routes').setData(geojsonLines);
         }
 
-        // === страны: слой ===
+        // страны
         ensureCountriesLayers();
         const filt = buildVisitedFilter(visitedList);
         map.setFilter('countries-visited-fill', filt);
         map.setFilter('countries-visited-outline', filt);
-        setCountriesVisibility(false); // по умолчанию выключено
+        setCountriesVisibility(false);
 
-        // слои линий
+        // линии
         if (!map.getLayer('route-farm-roaster')){
           map.addLayer({
             id:'route-farm-roaster', type:'line', source:'routes',
@@ -498,7 +546,6 @@
             paint:{ 'line-color':'#08519c', 'line-width':2, 'line-opacity':0.6, 'line-dasharray':[2,2] }
           });
         }
-        // слой подсветки сверху
         if (!map.getLayer('route-highlight')){
           map.addLayer({
             id:'route-highlight', type:'line', source:'routes',
@@ -507,7 +554,7 @@
           });
         }
 
-        // кластеры и точки
+        // кластеры и точки (цвет по process_norm)
         if (!map.getLayer('clusters')){
           map.addLayer({
             id:'clusters', type:'circle', source:'brews', filter:['has','point_count'],
@@ -521,7 +568,6 @@
             layout:{ 'text-field': ['get','point_count_abbreviated'], 'text-size':12 },
             paint:{ 'text-color':'#08306b' }
           });
-          // точки — цвет по типу обработки
           map.addLayer({
             id:'unclustered', type:'circle', source:'brews', filter:['!', ['has','point_count']],
             paint:{
@@ -555,7 +601,6 @@
             highlightRouteFor(f.properties);
           });
 
-          // клик по пустому месту — снять подсветку
           map.on('click', (e) => {
             const feats = map.queryRenderedFeatures(e.point, {layers:['unclustered','clusters']});
             if (!feats.length) clearRouteHighlight();
@@ -573,7 +618,7 @@
       if (map.isStyleLoaded && map.isStyleLoaded()) addLayers();
       else map.on('load', addLayers);
 
-      // обработчик чекбокса стран
+      // чекбокс стран
       document.getElementById('toggleVisited')?.addEventListener('change', (e)=>{
         setCountriesVisibility(e.target.checked);
       });

@@ -68,6 +68,11 @@
     .ach-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--glass-br);font:12px/1.1 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.06)}
     .ach-emoji{font-size:14px}
     .ach-title{font-weight:600}
+
+    /* навигация по совпадающим точкам */
+    .popup-nav{display:flex;align-items:center;justify-content:space-between;margin:8px 14px 14px;gap:8px}
+    .popup-nav button{padding:4px 10px;border:1px solid var(--glass-br);background:var(--glass);border-radius:8px;cursor:pointer}
+    .popup-nav .idx{font:12px/1.1 system-ui;color:var(--muted)}
   </style>
 </head>
 <body>
@@ -399,6 +404,41 @@
     }
   }
 
+  /* ==== мульти-попап для точек с одинаковыми координатами ==== */
+  function showMultiPopup(features, coord){
+    let i = 0;
+    const popup = new mapboxgl.Popup({ offset:12, maxWidth:'360px' }).setLngLat(coord);
+
+    const render = () => {
+      const p = features[i].properties;
+      const nav = (features.length>1)
+        ? `<div class="popup-nav">
+             <button type="button" data-prev>◀</button>
+             <div class="idx">${i+1} из ${features.length}</div>
+             <button type="button" data-next>▶</button>
+           </div>`
+        : '';
+      popup.setHTML(popupHTML(p) + nav);
+
+      // обработчики навигации
+      setTimeout(()=> {
+        const el = popup.getElement();
+        el?.querySelector('[data-prev]')?.addEventListener('click', ()=>{
+          i=(i-1+features.length)%features.length; render(); highlightRouteFor(features[i].properties);
+        });
+        el?.querySelector('[data-next]')?.addEventListener('click', ()=>{
+          i=(i+1)%features.length; render(); highlightRouteFor(features[i].properties);
+        });
+      }, 0);
+
+      highlightRouteFor(p);
+    };
+
+    popup.on('close', clearRouteHighlight);
+    popup.addTo(map);
+    render();
+  }
+
   /* ==== страны-заливка ==== */
   const WORLDVIEW = 'US';
   function getVisitedCountriesIso2(pointFeatures){
@@ -499,7 +539,7 @@
       // бейдж слева
       const badgeEl = document.getElementById('badge');
       badgeEl.innerHTML =
-        `Точек: ${pointFeatures.length} · Линий: ${lineFeatures.length} · Стран: ${visitedList.length}<br>` +
+        `Точек: ${pointFeatures.length} · Стран: ${visitedList.length}<br>` +
         `<label><input type="checkbox" id="toggleVisited"> Закрашивать страны</label>`;
 
       // ачивки (справа)
@@ -580,13 +620,22 @@
               if (!err) map.easeTo({center:f.geometry.coordinates, zoom});
             });
           });
+
+          // ОБНОВЛЕННЫЙ обработчик клика по одиночной точке — мульти-попап
           map.on('click','unclustered',(e)=>{
-            const f = e.features[0];
-            new mapboxgl.Popup({ offset:12, maxWidth:'360px' })
-              .setLngLat(f.geometry.coordinates)
-              .setHTML(popupHTML(f.properties))
-              .addTo(map);
-            highlightRouteFor(f.properties);
+            const clicked = e.features[0];
+            const [lng, lat] = clicked.geometry.coordinates;
+
+            // Ищем ВСЕ фичи точно на этих же координатах (в небольшом пиксельном радиусе)
+            const buf = 6; // пикселей
+            const cand = map.queryRenderedFeatures(
+              [[e.point.x-buf, e.point.y-buf],[e.point.x+buf, e.point.y+buf]],
+              { layers:['unclustered'] }
+            ).filter(f => Math.abs(f.geometry.coordinates[0]-lng) < 1e-12 &&
+                          Math.abs(f.geometry.coordinates[1]-lat) < 1e-12);
+
+            const features = cand.length ? cand : [clicked];
+            showMultiPopup(features, [lng, lat]);
           });
 
           map.on('click', (e) => {

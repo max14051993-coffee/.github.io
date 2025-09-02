@@ -16,7 +16,7 @@
       font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,Arial,
            "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji";
     }
-    .badge{position:absolute;top:8px;left:8px;background:#fff;padding:6px 10px;border-radius:8px;font:14px/1.2 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.06);z-index:5}
+
     :root{
       --card-bg: rgba(255,255,255,.86); --card-border: rgba(0,0,0,.06);
       --title: #0f1b10; --pill-bg: rgba(84,116,75,.12); --pill-br: rgba(84,116,75,.28);
@@ -29,6 +29,20 @@
       --glass: rgba(22,24,27,.9); --glass-br: rgba(255,255,255,.12); --text: #f3f5f1;
       --muted: #c9cdc8;
     }
+
+    /* Левое стеклянное меню */
+    .badge{
+      position:absolute;top:12px;left:12px;z-index:6;
+      background:var(--glass);border:1px solid var(--glass-br);color:var(--text);
+      padding:8px 10px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);
+      font:13px/1.2 system-ui;backdrop-filter: blur(4px);
+    }
+    .badge .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .badge .row + .row{margin-top:6px}
+    .badge label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+    .badge input[type="checkbox"]{transform:translateY(1px)}
+    .badge .chip{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:999px;border:1px solid var(--glass-br)}
+
     .mapboxgl-popup-content{ background:transparent; padding:0; border-radius:20px; box-shadow:none }
     .mapboxgl-popup-tip{ display:none }
 
@@ -57,11 +71,9 @@
     .collection-title{
       position:absolute; top:12px; left:50%; transform:translateX(-50%);
       background:var(--glass); color:var(--text); padding:8px 14px; border-radius:12px; border:1px solid var(--glass-br);
-      z-index:5; white-space:nowrap; max-width:80vw; overflow:hidden; text-overflow:ellipsis; font:600 16px/1.2 system-ui
+      z-index:6; white-space:nowrap; max-width:80vw; overflow:hidden; text-overflow:ellipsis; font:600 16px/1.2 system-ui
     }
     a{color:#2b6cb0;text-decoration:none} a:hover{text-decoration:underline}
-    .badge label{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
-    .badge input[type="checkbox"]{transform:translateY(1px)}
 
     /* Виджет ачивок (правый верх карты) */
     .achievements{position:absolute;top:12px;right:12px;z-index:6;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
@@ -77,7 +89,7 @@
 </head>
 <body>
   <div id="map"></div>
-  <div class="badge" id="badge">Загружаю данные…</div>
+  <div class="badge" id="badge">…</div>
   <div class="achievements" id="achievements"></div>
   <div class="collection-title" id="collectionTitle">My coffee experience</div>
 
@@ -98,7 +110,7 @@
     center: [12, 20],
     zoom: 2.2,
     attributionControl: true,
-    renderWorldCopies: false   // ⬅️ отключаем копии мира (источник дублей)
+    renderWorldCopies: false
   });
   map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
@@ -283,7 +295,6 @@
       const bits = [];
       if (p.whereConsumed) bits.push(escapeHtml(p.whereConsumed));
       if (p.consumedCity)  bits.push(escapeHtml(p.consumedCity));
-      // вместо отдельной строки Link — маленькая иконка в конце
       let whereHtml = bits.join(' — ');
       if (p.cafeUrl) whereHtml += ` <a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener" title="Ссылка на заведение">🔗</a>`;
       rows.push(emojiRow('📍','Where', whereHtml));
@@ -294,7 +305,6 @@
     if (roaster)    rows.push(emojiRow('🏭','Roaster', roaster));
     if (p.uploader) rows.push(emojiRow('👤','By', escapeHtml(p.uploader)));
 
-    // бейдж процесса
     const pType = p.process_norm || 'other';
     const col = processColors(pType);
     const badge = p.process
@@ -414,7 +424,6 @@
     const out = [];
     for (const f of arr){
       const c = f.geometry.coordinates;
-      // ключ по координатам (округлим) + подмножеству свойств (хватает, чтобы отличать разные карточки)
       const key = JSON.stringify([
         +c[0].toFixed(7), +c[1].toFixed(7),
         f.properties?.timestamp || '',
@@ -445,7 +454,6 @@
         : '';
       popup.setHTML(popupHTML(p) + nav);
 
-      // обработчики навигации
       setTimeout(()=> {
         const el = popup.getElement();
         el?.querySelector('[data-prev]')?.addEventListener('click', ()=>{
@@ -514,6 +522,15 @@
     if (map.getLayer('countries-visited-outline'))map.setLayoutProperty('countries-visited-outline','visibility', vis);
   }
 
+  /* ==== Routes visibility toggle ==== */
+  function setRoutesVisibility(state){
+    const vis = state ? 'visible' : 'none';
+    ['route-farm-roaster','route-roaster-consumed','route-highlight'].forEach(id=>{
+      if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', vis);
+    });
+    if (!state) clearRouteHighlight();
+  }
+
   /* ==== Ачивки ==== */
   const ACHIEVEMENTS = [
     { id:'first_sip',   emoji:'☕️', title:'Первый глоток', color:{ bg:'#d1fae5', br:'#99f6e4', txt:'#065f46' }, earned:(m)=> m.total>=1 },
@@ -546,6 +563,11 @@
       const geojsonPoints = rowsToGeoJSON(results.data || []);
       const pointFeatures = geojsonPoints.features;
 
+      // Имя(ена) загрузчика(ов)
+      const uploaders = [...new Set(pointFeatures.map(f => (f.properties?.uploader||'').trim()).filter(Boolean))];
+      const owner = uploaders[0] ? (uploaders.length>1 ? `${uploaders[0]} +${uploaders.length-1}` : uploaders[0]) : '';
+      document.getElementById('collectionTitle').textContent = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
+
       // города для линий
       const want = new Set();
       for (const f of pointFeatures){
@@ -561,11 +583,19 @@
       // страны
       const visitedList = [...getVisitedCountriesIso2(pointFeatures)];
 
-      // бейдж слева
+      // левое стеклянное меню — эмодзи вместо слов
       const badgeEl = document.getElementById('badge');
-      badgeEl.innerHTML =
-        `Точек: ${pointFeatures.length} · Стран: ${visitedList.length}<br>` +
-        `<label><input type="checkbox" id="toggleVisited"> Закрашивать страны</label>`;
+      badgeEl.innerHTML = `
+        <div class="row">
+          <span class="chip" title="Точек">☕ ${pointFeatures.length}</span>
+          <span class="chip" title="Линий">🧵 ${lineFeatures.length}</span>
+          <span class="chip" title="Стран">🌍 ${visitedList.length}</span>
+        </div>
+        <div class="row">
+          <label title="Показывать маршруты"><input type="checkbox" id="toggleRoutes"> 🧵</label>
+          <label title="Закрашивать страны"><input type="checkbox" id="toggleVisited"> 🎨🌍</label>
+        </div>
+      `;
 
       // ачивки (справа)
       renderAchievements(computeMetrics(pointFeatures));
@@ -606,6 +636,8 @@
             filter:['==', ['get','kind'], '___nope___'],
             paint:{ 'line-color':'#ff7f00', 'line-width':5, 'line-opacity':0.9 } });
         }
+        // по умолчанию скрыты — включаются чекбоксом
+        setRoutesVisibility(false);
 
         // кластеры и точки (цвет по process_norm)
         if (!map.getLayer('clusters')){
@@ -646,7 +678,7 @@
             });
           });
 
-          // ОБНОВЛЕННЫЙ обработчик клика — мульти-попап с дедупликацией
+          // Клик по точке — мульти-попап с дедупликацией
           map.on('click','unclustered',(e)=>{
             const clicked = e.features[0];
             const coord = clicked.geometry.coordinates;
@@ -655,7 +687,6 @@
             const box = [[e.point.x-buf, e.point.y-buf],[e.point.x+buf, e.point.y+buf]];
             const inBox = map.queryRenderedFeatures(box, { layers:['unclustered'] });
 
-            // берём только «совпадающие» по координатам (с допуском) и убираем дубли
             const nearSame = inBox.filter(f => sameCoord(f.geometry.coordinates, coord));
             const features = dedupeFeatures(nearSame.length ? nearSame : [clicked]);
 
@@ -683,15 +714,16 @@
       document.getElementById('toggleVisited')?.addEventListener('change', (e)=>{
         setCountriesVisibility(e.target.checked);
       });
+      // чекбокс маршрутов
+      document.getElementById('toggleRoutes')?.addEventListener('change', (e)=>{
+        setRoutesVisibility(e.target.checked);
+      });
     },
     error: (err) => {
       document.getElementById('badge').textContent = 'Ошибка загрузки CSV';
       console.error('CSV error:', err);
     }
   });
-
-  // Заголовок
-  document.getElementById('collectionTitle').textContent = 'My coffee experience';
 </script>
 </body>
 </html>

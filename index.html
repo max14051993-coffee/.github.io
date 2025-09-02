@@ -522,6 +522,42 @@
     if (map.getLayer('countries-visited-outline'))map.setLayoutProperty('countries-visited-outline','visibility', vis);
   }
 
+  /* ==== Точки городов обжарщиков и употребления ==== */
+  function buildCityPointCollections(pointFeatures, cityMap){
+    const roasterAgg = new Map();
+    const consumeAgg = new Map();
+
+    for (const f of pointFeatures){
+      const p = f.properties;
+      if (p.roasterCity){
+        const city = String(p.roasterCity).trim();
+        const pt = cityMap[city];
+        if (pt){ const k = city.toLowerCase(); const o = roasterAgg.get(k) || {city, ...pt, count:0}; o.count++; roasterAgg.set(k, o); }
+      }
+      if (p.consumedCity){
+        const city = String(p.consumedCity).trim();
+        const pt = cityMap[city];
+        if (pt){ const k = city.toLowerCase(); const o = consumeAgg.get(k) || {city, ...pt, count:0}; o.count++; consumeAgg.set(k, o); }
+      }
+    }
+
+    const roasterFeatures = [...roasterAgg.values()].map(o => ({
+      type:'Feature',
+      geometry:{ type:'Point', coordinates:[o.lng, o.lat] },
+      properties:{ city:o.city, count:o.count }
+    }));
+    const consumedFeatures = [...consumeAgg.values()].map(o => ({
+      type:'Feature',
+      geometry:{ type:'Point', coordinates:[o.lng, o.lat] },
+      properties:{ city:o.city, count:o.count }
+    }));
+
+    return {
+      roaster: { type:'FeatureCollection', features: roasterFeatures },
+      consumed:{ type:'FeatureCollection', features: consumedFeatures }
+    };
+  }
+
   /* ==== Routes visibility toggle ==== */
   function setRoutesVisibility(state){
     const vis = state ? 'visible' : 'none';
@@ -568,7 +604,7 @@
       const owner = uploaders[0] ? (uploaders.length>1 ? `${uploaders[0]} +${uploaders.length-1}` : uploaders[0]) : '';
       document.getElementById('collectionTitle').textContent = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
 
-      // города для линий
+      // города для линий и городских точек
       const want = new Set();
       for (const f of pointFeatures){
         const p = f.properties;
@@ -578,17 +614,16 @@
       const uniqueCities = [...want].filter(Boolean);
       const cityCoordsMap = await geocodeCities(uniqueCities);
       const lineFeatures = buildRouteFeatures(pointFeatures, cityCoordsMap);
-      const geojsonLines = { type:'FeatureCollection', features: lineFeatures };
+      const cityDots = buildCityPointCollections(pointFeatures, cityCoordsMap);
 
       // страны
       const visitedList = [...getVisitedCountriesIso2(pointFeatures)];
 
-      // левое стеклянное меню — эмодзи вместо слов
+      // левое стеклянное меню — убран счётчик линий
       const badgeEl = document.getElementById('badge');
       badgeEl.innerHTML = `
         <div class="row">
           <span class="chip" title="Точек">☕ ${pointFeatures.length}</span>
-          <span class="chip" title="Линий">🧵 ${lineFeatures.length}</span>
           <span class="chip" title="Стран">🌍 ${visitedList.length}</span>
         </div>
         <div class="row">
@@ -608,9 +643,20 @@
           map.getSource('brews').setData(geojsonPoints);
         }
         if (!map.getSource('routes')) {
-          map.addSource('routes', { type:'geojson', data:geojsonLines });
+          map.addSource('routes', { type:'geojson', data:{ type:'FeatureCollection', features: lineFeatures } });
         } else {
-          map.getSource('routes').setData(geojsonLines);
+          map.getSource('routes').setData({ type:'FeatureCollection', features: lineFeatures });
+        }
+        // новые источники для городских точек
+        if (!map.getSource('roaster-cities')) {
+          map.addSource('roaster-cities', { type:'geojson', data: cityDots.roaster });
+        } else {
+          map.getSource('roaster-cities').setData(cityDots.roaster);
+        }
+        if (!map.getSource('consumed-cities')) {
+          map.addSource('consumed-cities', { type:'geojson', data: cityDots.consumed });
+        } else {
+          map.getSource('consumed-cities').setData(cityDots.consumed);
         }
 
         // страны
@@ -704,17 +750,65 @@
           map.on('mouseleave','unclustered',()=>map.getCanvas().style.cursor='');
         }
 
+        /* ==== Слои городских точек (поверх обычных) ==== */
+        if (!map.getLayer('roaster-cities')){
+          map.addLayer({
+            id:'roaster-cities',
+            type:'circle',
+            source:'roaster-cities',
+            paint:{
+              'circle-color':'#006d2c',
+              'circle-opacity':0.7,
+              'circle-stroke-color':'#ffffff',
+              'circle-stroke-width':1.2,
+              'circle-radius':['interpolate',['linear'],['get','count'],1,5,3,7,5,9,10,12]
+            }
+          });
+          map.on('click','roaster-cities',(e)=>{
+            const f = e.features[0];
+            new mapboxgl.Popup({offset:10})
+              .setLngLat(f.geometry.coordinates)
+              .setHTML(`<div class="popup-card"><div class="popup-body"><div class="popup-title">🏭 ${escapeHtml(f.properties.city)}</div><div class="row"><span class="row-emoji">☕</span><span>${f.properties.count} запис.</span></div></div></div>`)
+              .addTo(map);
+          });
+          map.on('mouseenter','roaster-cities',()=>map.getCanvas().style.cursor='pointer');
+          map.on('mouseleave','roaster-cities',()=>map.getCanvas().style.cursor='');
+        }
+
+        if (!map.getLayer('consumed-cities')){
+          map.addLayer({
+            id:'consumed-cities',
+            type:'circle',
+            source:'consumed-cities',
+            paint:{
+              'circle-color':'#08519c',
+              'circle-opacity':0.7,
+              'circle-stroke-color':'#ffffff',
+              'circle-stroke-width':1.2,
+              'circle-radius':['interpolate',['linear'],['get','count'],1,5,3,7,5,9,10,12]
+            }
+          });
+          map.on('click','consumed-cities',(e)=>{
+            const f = e.features[0];
+            new mapboxgl.Popup({offset:10})
+              .setLngLat(f.geometry.coordinates)
+              .setHTML(`<div class="popup-card"><div class="popup-body"><div class="popup-title">📍 ${escapeHtml(f.properties.city)}</div><div class="row"><span class="row-emoji">☕</span><span>${f.properties.count} запис.</span></div></div></div>`)
+              .addTo(map);
+          });
+          map.on('mouseenter','consumed-cities',()=>map.getCanvas().style.cursor='pointer');
+          map.on('mouseleave','consumed-cities',()=>map.getCanvas().style.cursor='');
+        }
+
         fitToData(geojsonPoints);
       }
 
       if (map.isStyleLoaded && map.isStyleLoaded()) addLayers();
       else map.on('load', addLayers);
 
-      // чекбокс стран
+      // чекбоксы
       document.getElementById('toggleVisited')?.addEventListener('change', (e)=>{
         setCountriesVisibility(e.target.checked);
       });
-      // чекбокс маршрутов
       document.getElementById('toggleRoutes')?.addEventListener('change', (e)=>{
         setRoutesVisibility(e.target.checked);
       });

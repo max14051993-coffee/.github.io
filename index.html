@@ -97,7 +97,8 @@
     style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
     center: [12, 20],
     zoom: 2.2,
-    attributionControl: true
+    attributionControl: true,
+    renderWorldCopies: false   // ⬅️ отключаем копии мира (источник дублей)
   });
   map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
 
@@ -405,6 +406,30 @@
   }
 
   /* ==== мульти-попап для точек с одинаковыми координатами ==== */
+  const EPS = 1e-6; // ~0.1 м по широте
+  const sameCoord = (a,b) => Math.abs(a[0]-b[0])<EPS && Math.abs(a[1]-b[1])<EPS;
+
+  function dedupeFeatures(arr){
+    const seen = new Set();
+    const out = [];
+    for (const f of arr){
+      const c = f.geometry.coordinates;
+      // ключ по координатам (округлим) + подмножеству свойств (хватает, чтобы отличать разные карточки)
+      const key = JSON.stringify([
+        +c[0].toFixed(7), +c[1].toFixed(7),
+        f.properties?.timestamp || '',
+        f.properties?.farmName || '',
+        f.properties?.roasterName || '',
+        f.properties?.uploader || '',
+        f.properties?.process || '',
+        f.properties?.recipe || '',
+        f.properties?.photoUrl || ''
+      ]);
+      if (!seen.has(key)){ seen.add(key); out.push(f); }
+    }
+    return out;
+  }
+
   function showMultiPopup(features, coord){
     let i = 0;
     const popup = new mapboxgl.Popup({ offset:12, maxWidth:'360px' }).setLngLat(coord);
@@ -621,21 +646,20 @@
             });
           });
 
-          // ОБНОВЛЕННЫЙ обработчик клика по одиночной точке — мульти-попап
+          // ОБНОВЛЕННЫЙ обработчик клика — мульти-попап с дедупликацией
           map.on('click','unclustered',(e)=>{
             const clicked = e.features[0];
-            const [lng, lat] = clicked.geometry.coordinates;
+            const coord = clicked.geometry.coordinates;
 
-            // Ищем ВСЕ фичи точно на этих же координатах (в небольшом пиксельном радиусе)
             const buf = 6; // пикселей
-            const cand = map.queryRenderedFeatures(
-              [[e.point.x-buf, e.point.y-buf],[e.point.x+buf, e.point.y+buf]],
-              { layers:['unclustered'] }
-            ).filter(f => Math.abs(f.geometry.coordinates[0]-lng) < 1e-12 &&
-                          Math.abs(f.geometry.coordinates[1]-lat) < 1e-12);
+            const box = [[e.point.x-buf, e.point.y-buf],[e.point.x+buf, e.point.y+buf]];
+            const inBox = map.queryRenderedFeatures(box, { layers:['unclustered'] });
 
-            const features = cand.length ? cand : [clicked];
-            showMultiPopup(features, [lng, lat]);
+            // берём только «совпадающие» по координатам (с допуском) и убираем дубли
+            const nearSame = inBox.filter(f => sameCoord(f.geometry.coordinates, coord));
+            const features = dedupeFeatures(nearSame.length ? nearSame : [clicked]);
+
+            showMultiPopup(features, coord);
           });
 
           map.on('click', (e) => {

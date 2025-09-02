@@ -278,7 +278,7 @@
     map.fitBounds(b, { padding: 40, duration: 700, maxZoom: 10 });
   }
 
-  /* ==== карточка с эмодзи ==== */
+  /* ==== карточка с эмодзи для обычных точек ==== */
   function popupHTML(p) {
     const flag = flagFromRow(p.flagEmoji, p.countryIso2);
     const country = p.originCountry ? ((flag ? flag + ' ' : '') + escapeHtml(p.originCountry)) : '';
@@ -522,43 +522,83 @@
     if (map.getLayer('countries-visited-outline'))map.setLayoutProperty('countries-visited-outline','visibility', vis);
   }
 
-  /* ==== Точки городов обжарщиков и употребления ==== */
-  function buildCityPointCollections(pointFeatures, cityMap){
-    const roasterAgg = new Map();
-    const consumeAgg = new Map();
+  /* ==== ЕДИНЫЕ городские точки (обжарка/употребление) ==== */
+  const HOME_RE = /(home|дом|house|дома)/i;
+  const normalizeName = s => String(s||'').replace(/\s+/g,' ').trim();
 
+  function buildCityPoints(pointFeatures, cityMap){
+    const agg = new Map(); // key = city lower
     for (const f of pointFeatures){
       const p = f.properties;
+
+      // Обжарщики
       if (p.roasterCity){
-        const city = String(p.roasterCity).trim();
+        const city = normalizeName(p.roasterCity);
         const pt = cityMap[city];
-        if (pt){ const k = city.toLowerCase(); const o = roasterAgg.get(k) || {city, ...pt, count:0}; o.count++; roasterAgg.set(k, o); }
+        if (pt){
+          const key = city.toLowerCase();
+          const o = agg.get(key) || { city, lng:pt.lng, lat:pt.lat, roasters:new Set(), places:new Set(), home:false };
+          const rn = normalizeName(p.roasterName);
+          if (rn) o.roasters.add(rn.toLowerCase()); // dedupe case-insensitively
+          agg.set(key, o);
+        }
       }
+      // Где пил
       if (p.consumedCity){
-        const city = String(p.consumedCity).trim();
+        const city = normalizeName(p.consumedCity);
         const pt = cityMap[city];
-        if (pt){ const k = city.toLowerCase(); const o = consumeAgg.get(k) || {city, ...pt, count:0}; o.count++; consumeAgg.set(k, o); }
+        if (pt){
+          const key = city.toLowerCase();
+          const o = agg.get(key) || { city, lng:pt.lng, lat:pt.lat, roasters:new Set(), places:new Set(), home:false };
+          const cafe = normalizeName(p.cafeName);
+          if (cafe) o.places.add(cafe.toLowerCase());
+          if (p.whereConsumed && HOME_RE.test(p.whereConsumed)) o.home = true;
+          agg.set(key, o);
+        }
       }
     }
 
-    const roasterFeatures = [...roasterAgg.values()].map(o => ({
-      type:'Feature',
-      geometry:{ type:'Point', coordinates:[o.lng, o.lat] },
-      properties:{ city:o.city, count:o.count }
-    }));
-    const consumedFeatures = [...consumeAgg.values()].map(o => ({
-      type:'Feature',
-      geometry:{ type:'Point', coordinates:[o.lng, o.lat] },
-      properties:{ city:o.city, count:o.count }
-    }));
-
-    return {
-      roaster: { type:'FeatureCollection', features: roasterFeatures },
-      consumed:{ type:'FeatureCollection', features: consumedFeatures }
-    };
+    // Преобразуем в FeatureCollection c человекочитаемыми массивами
+    const features = [];
+    for (const o of agg.values()){
+      const roasters = [...o.roasters].map(s => s.replace(/\b\w/g, c=>c.toUpperCase())); // капитализация простая
+      const places   = [...o.places].map(s => s.replace(/\b\w/g, c=>c.toUpperCase()));
+      const kind = roasters.length && (places.length || o.home) ? 'both' : (roasters.length ? 'roaster' : 'consumed');
+      const size = Math.max(roasters.length + places.length + (o.home?1:0), 1);
+      features.push({
+        type:'Feature',
+        geometry:{ type:'Point', coordinates:[o.lng,o.lat] },
+        properties:{ city:o.city, roasters, places, home:o.home, kind, size }
+      });
+    }
+    return { type:'FeatureCollection', features };
   }
 
-  /* ==== Routes visibility toggle ==== */
+  function cityPopupHTML(props){
+    const rows = [];
+    if (props.roasters && props.roasters.length){
+      rows.push(row('🏭', props.roasters.join(', ')));
+    }
+    const placeBits = [];
+    if (props.places && props.places.length) placeBits.push(...props.places);
+    if (props.home) placeBits.push('дом');
+    if (placeBits.length){
+      rows.push(row('🔻', placeBits.join(', ')));
+    }
+    return `
+      <div class="popup-card">
+        <div class="popup-body">
+          <div class="popup-title">${escapeHtml(props.city)}</div>
+          ${rows.join('')}
+        </div>
+      </div>
+    `;
+    function row(emoji, text){
+      return `<div class="row"><span class="row-emoji">${emoji}</span><span>${escapeHtml(text)}</span></div>`;
+    }
+  }
+
+  /* ==== Переключатель линий ==== */
   function setRoutesVisibility(state){
     const vis = state ? 'visible' : 'none';
     ['route-farm-roaster','route-roaster-consumed','route-highlight'].forEach(id=>{
@@ -599,12 +639,12 @@
       const geojsonPoints = rowsToGeoJSON(results.data || []);
       const pointFeatures = geojsonPoints.features;
 
-      // Имя(ена) загрузчика(ов)
+      // Имя(ена) загрузчика(ов) в шапку
       const uploaders = [...new Set(pointFeatures.map(f => (f.properties?.uploader||'').trim()).filter(Boolean))];
       const owner = uploaders[0] ? (uploaders.length>1 ? `${uploaders[0]} +${uploaders.length-1}` : uploaders[0]) : '';
       document.getElementById('collectionTitle').textContent = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
 
-      // города для линий и городских точек
+      // Города для линий/точек
       const want = new Set();
       for (const f of pointFeatures){
         const p = f.properties;
@@ -614,12 +654,12 @@
       const uniqueCities = [...want].filter(Boolean);
       const cityCoordsMap = await geocodeCities(uniqueCities);
       const lineFeatures = buildRouteFeatures(pointFeatures, cityCoordsMap);
-      const cityDots = buildCityPointCollections(pointFeatures, cityCoordsMap);
+      const cityPoints = buildCityPoints(pointFeatures, cityCoordsMap);
 
-      // страны
+      // Страны
       const visitedList = [...getVisitedCountriesIso2(pointFeatures)];
 
-      // левое стеклянное меню — убран счётчик линий
+      // Меню слева (без счётчика линий)
       const badgeEl = document.getElementById('badge');
       badgeEl.innerHTML = `
         <div class="row">
@@ -632,7 +672,7 @@
         </div>
       `;
 
-      // ачивки (справа)
+      // Ачивки (справа)
       renderAchievements(computeMetrics(pointFeatures));
 
       function addLayers(){
@@ -647,16 +687,10 @@
         } else {
           map.getSource('routes').setData({ type:'FeatureCollection', features: lineFeatures });
         }
-        // новые источники для городских точек
-        if (!map.getSource('roaster-cities')) {
-          map.addSource('roaster-cities', { type:'geojson', data: cityDots.roaster });
+        if (!map.getSource('city-points')) {
+          map.addSource('city-points', { type:'geojson', data: cityPoints });
         } else {
-          map.getSource('roaster-cities').setData(cityDots.roaster);
-        }
-        if (!map.getSource('consumed-cities')) {
-          map.addSource('consumed-cities', { type:'geojson', data: cityDots.consumed });
-        } else {
-          map.getSource('consumed-cities').setData(cityDots.consumed);
+          map.getSource('city-points').setData(cityPoints);
         }
 
         // страны
@@ -666,7 +700,7 @@
         map.setFilter('countries-visited-outline', filt);
         setCountriesVisibility(false);
 
-        // линии
+        // линии (по умолчанию скрыты — включаются чекбоксом)
         if (!map.getLayer('route-farm-roaster')){
           map.addLayer({ id:'route-farm-roaster', type:'line', source:'routes',
             filter:['==',['get','kind'],'farm_to_roaster'],
@@ -682,7 +716,6 @@
             filter:['==', ['get','kind'], '___nope___'],
             paint:{ 'line-color':'#ff7f00', 'line-width':5, 'line-opacity':0.9 } });
         }
-        // по умолчанию скрыты — включаются чекбоксом
         setRoutesVisibility(false);
 
         // кластеры и точки (цвет по process_norm)
@@ -724,18 +757,15 @@
             });
           });
 
-          // Клик по точке — мульти-попап с дедупликацией
+          // Клик по обычной точке — мульти-попап
           map.on('click','unclustered',(e)=>{
             const clicked = e.features[0];
             const coord = clicked.geometry.coordinates;
-
-            const buf = 6; // пикселей
+            const buf = 6; // px
             const box = [[e.point.x-buf, e.point.y-buf],[e.point.x+buf, e.point.y+buf]];
             const inBox = map.queryRenderedFeatures(box, { layers:['unclustered'] });
-
             const nearSame = inBox.filter(f => sameCoord(f.geometry.coordinates, coord));
             const features = dedupeFeatures(nearSame.length ? nearSame : [clicked]);
-
             showMultiPopup(features, coord);
           });
 
@@ -750,53 +780,35 @@
           map.on('mouseleave','unclustered',()=>map.getCanvas().style.cursor='');
         }
 
-        /* ==== Слои городских точек (поверх обычных) ==== */
-        if (!map.getLayer('roaster-cities')){
+        /* ==== Слой единых городских точек ==== */
+        if (!map.getLayer('city-points')){
           map.addLayer({
-            id:'roaster-cities',
+            id:'city-points',
             type:'circle',
-            source:'roaster-cities',
+            source:'city-points',
             paint:{
-              'circle-color':'#006d2c',
-              'circle-opacity':0.7,
+              'circle-color': [
+                'match', ['get','kind'],
+                'both',     '#8e44ad',   /* фиолетовый для «и обжарка, и пил» */
+                'roaster',  '#006d2c',   /* зелёный — обжарщики */
+                'consumed', '#08519c',   /* синий — где пил */
+                /* default */ '#666666'
+              ],
+              'circle-opacity':0.75,
               'circle-stroke-color':'#ffffff',
               'circle-stroke-width':1.2,
-              'circle-radius':['interpolate',['linear'],['get','count'],1,5,3,7,5,9,10,12]
+              'circle-radius':['interpolate',['linear'],['get','size'],1,6,3,8,6,11,10,14]
             }
           });
-          map.on('click','roaster-cities',(e)=>{
+          map.on('click','city-points',(e)=>{
             const f = e.features[0];
             new mapboxgl.Popup({offset:10})
               .setLngLat(f.geometry.coordinates)
-              .setHTML(`<div class="popup-card"><div class="popup-body"><div class="popup-title">🏭 ${escapeHtml(f.properties.city)}</div><div class="row"><span class="row-emoji">☕</span><span>${f.properties.count} запис.</span></div></div></div>`)
+              .setHTML(cityPopupHTML(f.properties))
               .addTo(map);
           });
-          map.on('mouseenter','roaster-cities',()=>map.getCanvas().style.cursor='pointer');
-          map.on('mouseleave','roaster-cities',()=>map.getCanvas().style.cursor='');
-        }
-
-        if (!map.getLayer('consumed-cities')){
-          map.addLayer({
-            id:'consumed-cities',
-            type:'circle',
-            source:'consumed-cities',
-            paint:{
-              'circle-color':'#08519c',
-              'circle-opacity':0.7,
-              'circle-stroke-color':'#ffffff',
-              'circle-stroke-width':1.2,
-              'circle-radius':['interpolate',['linear'],['get','count'],1,5,3,7,5,9,10,12]
-            }
-          });
-          map.on('click','consumed-cities',(e)=>{
-            const f = e.features[0];
-            new mapboxgl.Popup({offset:10})
-              .setLngLat(f.geometry.coordinates)
-              .setHTML(`<div class="popup-card"><div class="popup-body"><div class="popup-title">📍 ${escapeHtml(f.properties.city)}</div><div class="row"><span class="row-emoji">☕</span><span>${f.properties.count} запис.</span></div></div></div>`)
-              .addTo(map);
-          });
-          map.on('mouseenter','consumed-cities',()=>map.getCanvas().style.cursor='pointer');
-          map.on('mouseleave','consumed-cities',()=>map.getCanvas().style.cursor='');
+          map.on('mouseenter','city-points',()=>map.getCanvas().style.cursor='pointer');
+          map.on('mouseleave','city-points',()=>map.getCanvas().style.cursor='');
         }
 
         fitToData(geojsonPoints);

@@ -35,36 +35,43 @@
       --muted: #c9cdc8;
     }
 
-    /* Общие utility для безопасных зон */
-    .safe-pad-top    { padding-top:    calc(8px + var(--safe-top)); }
-    .safe-pad-right  { padding-right:  calc(8px + var(--safe-right)); }
-    .safe-pad-bottom { padding-bottom: calc(8px + var(--safe-bottom)); }
-    .safe-pad-left   { padding-left:   calc(8px + var(--safe-left)); }
+    /* Заголовок коллекции */
+    .collection-title{
+      position:absolute; top:12px; left:50%; transform:translateX(-50%);
+      background:var(--glass); color:var(--text); padding:8px 14px; border-radius:12px; border:1px solid var(--glass-br);
+      z-index:6; max-width:80vw; overflow:hidden; text-overflow:ellipsis; font:600 16px/1.2 system-ui;
+      white-space:nowrap;
+    }
 
-    /* Левое стеклянное меню (становится компактным на мобильных) */
+    /* Панель фильтров */
     .badge{
-      position:absolute;top:12px;left:12px;z-index:6;
+      position:absolute;z-index:6;
       background:var(--glass);border:1px solid var(--glass-br);color:var(--text);
-      padding:8px 10px;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);
+      border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);
       font:13px/1.2 system-ui;backdrop-filter: blur(4px);
-      max-width:min(92vw,420px);
     }
-    .badge .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .badge .row + .row{margin-top:6px}
-    .badge label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
-    .badge input[type="checkbox"]{
-      width:20px;height:20px;accent-color:#567a58; /* крупнее тап-таргет */
+    .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--glass-br)}
+    label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+    input[type="checkbox"]{width:18px;height:18px;accent-color:#567a58}
+
+    /* десктоп */
+    .desktop-controls{ display:block; padding:8px 10px; }
+    .desktop-controls .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .desktop-controls .row + .row{margin-top:6px}
+    #filtersDetails{display:none}
+
+    /* ачивки */
+    .achievements{
+      position:absolute;top:12px;right:12px;z-index:6;
+      display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:46vw;
     }
-    .badge .chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:999px;border:1px solid var(--glass-br)}
+    .ach-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--glass-br);font:12px/1.1 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+    .ach-emoji{font-size:14px}
+    .ach-title{font-weight:600}
 
-    /* Компактная версия панели — <details> */
-    .badge details{display:none}
-    .badge summary{list-style:none;cursor:pointer}
-    .badge summary::-webkit-details-marker{display:none}
-
+    /* Попапы/карточки */
     .mapboxgl-popup-content{ background:transparent; padding:0; border-radius:20px; box-shadow:none }
     .mapboxgl-popup-tip{ display:none }
-
     .popup-card{
       position:relative; width:320px; max-width:92vw; border-radius:20px; overflow:hidden;
       background:var(--card-bg); border:1px solid var(--card-border); font:14px/1.35 system-ui
@@ -73,8 +80,9 @@
     .popup-cover{ width:100%; height:100%; object-fit:cover; display:block }
     .popup-body{ padding:14px }
     .popup-title{ font-weight:800; font-size:18px; margin:2px 0 6px; color:var(--title) }
-
-    /* бейдж процесса */
+    .row{margin:2px 0; display:flex; align-items:baseline; gap:8px}
+    .row-emoji{width:1.2em; text-align:center}
+    .meta{margin-bottom:6px;color:var(--muted)}
     .process-badge{
       position:absolute; top:10px; right:10px; z-index:2;
       font-size:12px; padding:6px 12px; border-radius:999px;
@@ -82,115 +90,57 @@
       backdrop-filter: blur(2px);
     }
 
-    /* строки с эмодзи */
-    .row{margin:2px 0; display:flex; align-items:baseline; gap:8px}
-    .row-emoji{width:1.2em; text-align:center}
-    .meta{margin-bottom:6px;color:var(--muted)}
-
-    .collection-title{
-      position:absolute; top:12px; left:50%; transform:translateX(-50%);
-      background:var(--glass); color:var(--text); padding:8px 14px; border-radius:12px; border:1px solid var(--glass-br);
-      z-index:6; max-width:80vw; overflow:hidden; text-overflow:ellipsis; font:600 16px/1.2 system-ui;
-      white-space:nowrap;
-    }
-    a{color:#2b6cb0;text-decoration:none} a:hover{text-decoration:underline}
-
-    /* Виджет ачивок (справа) — на мобиле делаем горизонтальный скролл */
-    .achievements{
-      position:absolute;top:12px;right:12px;z-index:6;display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;
-      max-width:46vw;
-    }
-    .ach-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border-radius:999px;border:1px solid var(--glass-br);font:12px/1.1 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.06)}
-    .ach-emoji{font-size:14px}
-    .ach-title{font-weight:600}
-
-    /* навигация по совпадающим точкам */
-    .popup-nav{display:flex;align-items:center;justify-content:space-between;margin:8px 14px 14px;gap:8px}
-    .popup-nav button{padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation}
-    .popup-nav .idx{font:12px/1.1 system-ui;color:var(--muted)}
-
-    /* ====== АДАПТИВ ====== */
-    /* Планшеты */
-    @media (max-width: 1024px){
+    /* мобильная адаптация */
+    @media (max-width:1024px){
       .collection-title{ max-width:70vw; }
-      .achievements{ max-width:50vw; }
       .popup-card{ width:360px; }
       .popup-cover-box{ height:220px; }
     }
-    /* Телефоны */
-    @media (max-width: 680px){
-      html,body{ font-size:15px; }
-      .collection-title{
-        top: calc(8px + var(--safe-top));
-        font-size:15px; padding:8px 12px; max-width:72vw;
-      }
+    @media (max-width:680px){
+      .collection-title{top:calc(8px + var(--safe-top));font-size:15px;max-width:72vw}
 
-      /* Ачивки — в одну строку, скроллятся горизонтально */
       .achievements{
-        top: auto; bottom: calc(12px + var(--safe-bottom));
-        right: calc(12px + var(--safe-right));
-        left: calc(12px + var(--safe-left));
-        gap:10px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none;
-        -ms-overflow-style:none;
+        top:auto; bottom:calc(12px + var(--safe-bottom));
+        left:calc(12px + var(--safe-left));
+        right:calc(12px + var(--safe-right));
+        flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none;
       }
-      .achievements::-webkit-scrollbar{ display:none; }
-      .ach-badge{ padding:8px 10px; }
+      .achievements::-webkit-scrollbar{display:none}
 
-      /* Панель фильтров уезжает вниз-слева и сворачивается */
       .badge{
-        top: auto; bottom: calc(12px + var(--safe-bottom));
-        left: calc(12px + var(--safe-left));
-        right: auto; padding:0; border-radius:14px; max-width: min(86vw, 420px);
+        bottom:calc(12px + var(--safe-bottom));
+        left:calc(12px + var(--safe-left));
+        right:auto; top:auto; padding:0; max-width:min(88vw, 420px);
       }
-      .badge .row{ display:none } /* скрываем обычную раскладку */
-      .badge details{ display:block; }
-      .badge details[open] .panel{ display:block; }
-      .badge summary{
-        padding:10px 12px; background:var(--glass);
-        border-radius:14px; border:1px solid var(--glass-br);
-        display:flex; align-items:center; gap:8px;
+      .desktop-controls{display:none}
+      #filtersDetails{display:block}
+      #filtersDetails summary{
+        padding:10px 12px;background:var(--glass);border-radius:14px;border:1px solid var(--glass-br);
+        display:flex;align-items:center;gap:8px;cursor:pointer
       }
-      .badge .panel{
-        padding:10px 12px; border-top:1px solid var(--glass-br);
-        display:none;
-      }
-      .badge .chip{ padding:6px 10px; }
+      #filtersDetails .panel{padding:10px 12px;border-top:1px solid var(--glass-br)}
 
-      /* Попап — почти на весь экран по ширине, картинка ниже */
-      .mapboxgl-popup{
-        max-width: 96vw !important;
-      }
-      .popup-card{ width: min(96vw, 520px); }
+      .mapboxgl-ctrl-bottom-right{bottom:calc(56px + var(--safe-bottom)) !important}
+      .popup-card{ width:min(96vw, 520px); }
       .popup-cover-box{ height: 34vh; min-height: 160px; }
       .popup-title{ font-size:17px; }
       .process-badge{ font-size:12px; padding:6px 10px; }
-
-      /* Чтобы контролы Mapbox не налезали на панель */
-      .mapboxgl-ctrl-bottom-right{
-        bottom: calc(56px + var(--safe-bottom)) !important;
-        right: calc(8px + var(--safe-right)) !important;
-      }
-    }
-
-    /* Очень узкие телефоны */
-    @media (max-width: 380px){
-      .popup-cover-box{ height:30vh; }
-      .ach-badge{ font-size:11px; }
-      .collection-title{ font-size:14px; }
     }
   </style>
 </head>
 <body>
   <div id="map"></div>
-  <div class="badge safe-pad-left safe-pad-bottom" id="badge">
-    <!-- Мобильная сворачиваемая версия заполняется ниже в JS тем же контентом -->
-    <details>
+  <div class="collection-title" id="collectionTitle">My coffee experience</div>
+
+  <div class="badge" id="badge">
+    <div class="desktop-controls" id="desktopControls"></div>
+    <details id="filtersDetails">
       <summary>☕ Панель</summary>
-      <div class="panel"></div>
+      <div class="panel" id="mobileControls"></div>
     </details>
   </div>
-  <div class="achievements safe-pad-right safe-pad-bottom" id="achievements"></div>
-  <div class="collection-title safe-pad-top" id="collectionTitle">My coffee experience</div>
+
+  <div class="achievements" id="achievements"></div>
 
 <script>
   /* ==== настройки ==== */
@@ -212,9 +162,6 @@
     renderWorldCopies: false
   });
   map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-
-  // Убираем зум по двойному тапу внутри попапов (чтобы листать контент)
-  map.scrollZoom.enable();
   map.doubleClickZoom.disable();
 
   map.on('load', () => {
@@ -293,7 +240,7 @@
   function driveImgFallback(img, list){ if (!list || !list.length) { img.remove(); return; } img.src = list.shift(); }
   window.driveImgFallback = driveImgFallback;
 
-  // флаг: emoji → ISO2 PNG при необходимости
+  // флаг: emoji (если ?flag=emoji) → ISO2 PNG
   function flagFromRow(flagEmojiCell, iso2Cell){
     const emoji = String(flagEmojiCell||'').trim();
     if (FLAG_MODE==='emoji' && emoji) return emoji;
@@ -381,7 +328,7 @@
     map.fitBounds(b, { padding: 40, duration: 700, maxZoom: 10 });
   }
 
-  /* ==== карточка ==== */
+  /* ==== карточка с эмодзи для обычных точек ==== */
   function popupHTML(p) {
     const flag = flagFromRow(p.flagEmoji, p.countryIso2);
     const country = p.originCountry ? ((flag ? flag + ' ' : '') + escapeHtml(p.originCountry)) : '';
@@ -431,7 +378,7 @@
     }
   }
 
-  /* ==== линии/города/страны и пр. (без изменений в логике) ==== */
+  /* ==== линии до городов: геокодинг + кеш ==== */
   const CITY_CACHE_NS = 'coffee_city_cache_v1';
   const cityCache = JSON.parse(localStorage.getItem(CITY_CACHE_NS) || '{}');
   const cacheSave = () => localStorage.setItem(CITY_CACHE_NS, JSON.stringify(cityCache));
@@ -493,6 +440,7 @@
     return lines;
   }
 
+  // подсветка маршрутов
   function highlightRouteFor(p){
     if (!map.getLayer('route-highlight')) return;
     const filt = ['any'];
@@ -517,7 +465,8 @@
     }
   }
 
-  const EPS = 1e-6;
+  /* ==== мульти-попап для точек с одинаковыми координатами ==== */
+  const EPS = 1e-6; // ~0.1 м по широте
   const sameCoord = (a,b) => Math.abs(a[0]-b[0])<EPS && Math.abs(a[1]-b[1])<EPS;
 
   function dedupeFeatures(arr){
@@ -547,10 +496,10 @@
     const render = () => {
       const p = features[i].properties;
       const nav = (features.length>1)
-        ? `<div class="popup-nav">
-             <button type="button" data-prev>◀</button>
-             <div class="idx">${i+1} из ${features.length}</div>
-             <button type="button" data-next>▶</button>
+        ? `<div class="popup-nav" style="display:flex;align-items:center;justify-content:space-between;margin:8px 14px 14px;gap:8px">
+             <button type="button" data-prev style="padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation">◀</button>
+             <div class="idx" style="font:12px/1.1 system-ui;color:var(--muted)">${i+1} из ${features.length}</div>
+             <button type="button" data-next style="padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation">▶</button>
            </div>` : '';
       popup.setHTML(popupHTML(p) + nav);
 
@@ -568,6 +517,7 @@
     render();
   }
 
+  /* ==== страны-заливка ==== */
   const WORLDVIEW = 'US';
   function getVisitedCountriesIso2(pointFeatures){
     const set = new Set();
@@ -617,14 +567,16 @@
     if (map.getLayer('countries-visited-outline'))map.setLayoutProperty('countries-visited-outline','visibility', vis);
   }
 
+  /* ==== ЕДИНЫЕ городские точки (обжарка/употребление) ==== */
   const HOME_RE = /(home|дом|house|дома)/i;
   const normalizeName = s => String(s||'').replace(/\s+/g,' ').trim();
 
   function buildCityPoints(pointFeatures, cityMap){
-    const agg = new Map();
+    const agg = new Map(); // key = city lower
     for (const f of pointFeatures){
       const p = f.properties;
 
+      // Обжарщики
       if (p.roasterCity){
         const city = normalizeName(p.roasterCity);
         const pt = cityMap[city];
@@ -632,10 +584,11 @@
           const key = city.toLowerCase();
           const o = agg.get(key) || { city, lng:pt.lng, lat:pt.lat, roasters:new Set(), places:new Set(), home:false };
           const rn = normalizeName(p.roasterName);
-          if (rn) o.roasters.add(rn.toLowerCase());
+          if (rn) o.roasters.add(rn.toLowerCase()); // dedupe
           agg.set(key, o);
         }
       }
+      // Где пил
       if (p.consumedCity){
         const city = normalizeName(p.consumedCity);
         const pt = cityMap[city];
@@ -650,9 +603,10 @@
       }
     }
 
+    // Преобразуем в FeatureCollection c человекочитаемыми массивами
     const features = [];
     for (const o of agg.values()){
-      const roasters = [...o.roasters].map(s => s.replace(/\b\w/g, c=>c.toUpperCase()));
+      const roasters = [...o.roasters].map(s => s.replace(/\b\w/g, c=>c.toUpperCase())); // простая капитализация
       const places   = [...o.places].map(s => s.replace(/\b\w/g, c=>c.toUpperCase()));
       const kind = roasters.length && (places.length || o.home) ? 'both' : (roasters.length ? 'roaster' : 'consumed');
       const size = Math.max(roasters.length + places.length + (o.home?1:0), 1);
@@ -689,6 +643,7 @@
     }
   }
 
+  /* ==== Переключатель линий ==== */
   function setRoutesVisibility(state){
     const vis = state ? 'visible' : 'none';
     ['route-farm-roaster','route-roaster-consumed','route-highlight'].forEach(id=>{
@@ -697,6 +652,7 @@
     if (!state) clearRouteHighlight();
   }
 
+  /* ==== Ачивки ==== */
   const ACHIEVEMENTS = [
     { id:'first_sip',   emoji:'☕️', title:'Первый глоток', color:{ bg:'#d1fae5', br:'#99f6e4', txt:'#065f46' }, earned:(m)=> m.total>=1 },
     { id:'countries_3', emoji:'🌍', title:'Страны ×3',     color:{ bg:'#fef3c7', br:'#fde68a', txt:'#92400e' }, earned:(m)=> m.countries>=3 },
@@ -720,6 +676,64 @@
        </div>`
     ).join('');
   }
+
+  /* ==== состояние для чекбоксов ==== */
+  let visitedFilterList = []; // список ISO2 для стран
+  let controlsRoot = null;   // единый узел контролов (создаётся один раз)
+
+  function buildControlsHTML(pointsCount, countriesCount){
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+      <div class="row">
+        <span class="chip" title="Точек">☕ ${pointsCount}</span>
+        <span class="chip" title="Стран">🌍 ${countriesCount}</span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label title="Показывать маршруты"><input type="checkbox" id="toggleRoutes"> 🧵 Маршруты</label>
+        <label title="Закрашивать страны"><input type="checkbox" id="toggleVisited"> 🎨🌍 Страны</label>
+      </div>
+    `;
+    return wrap;
+  }
+
+  function bindControlHandlers(rootDoc){
+    const routes = rootDoc.querySelector('#toggleRoutes');
+    const visited = rootDoc.querySelector('#toggleVisited');
+    if (routes && !routes._bound){
+      routes.addEventListener('change', (e)=> setRoutesVisibility(e.target.checked), {passive:true});
+      routes._bound = true;
+    }
+    if (visited && !visited._bound){
+      visited.addEventListener('change', (e)=> setCountriesVisibility(e.target.checked), {passive:true});
+      visited._bound = true;
+    }
+  }
+
+  function isMobile(){ return window.matchMedia('(max-width: 680px)').matches; }
+
+  // Перекладываем ОДИН и тот же узел контролов между контейнерами на resize
+  function placeControls(){
+    const desktop = document.getElementById('desktopControls');
+    const mobile = document.getElementById('mobileControls');
+    if (!controlsRoot) return;
+    if (isMobile()){
+      if (controlsRoot.parentElement !== mobile){
+        mobile.innerHTML = '';
+        mobile.appendChild(controlsRoot);
+      }
+    } else {
+      if (controlsRoot.parentElement !== desktop){
+        desktop.innerHTML = '';
+        desktop.appendChild(controlsRoot);
+      }
+    }
+    bindControlHandlers(controlsRoot);
+  }
+
+  function debounce(fn, ms=150){
+    let t=0; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); };
+  }
+  window.addEventListener('resize', debounce(placeControls, 150));
 
   /* ==== загрузка CSV → точки + линии + страны + ачивки ==== */
   Papa.parse(CSV_URL, {
@@ -746,25 +760,11 @@
       const cityPoints = buildCityPoints(pointFeatures, cityCoordsMap);
 
       // Страны
-      const visitedList = [...getVisitedCountriesIso2(pointFeatures)];
+      visitedFilterList = [...getVisitedCountriesIso2(pointFeatures)];
 
-      // Меню слева (без счётчика линий)
-      const badgeEl = document.getElementById('badge');
-      const panelHTML = `
-        <div class="row">
-          <span class="chip" title="Точек">☕ ${pointFeatures.length}</span>
-          <span class="chip" title="Стран">🌍 ${visitedList.length}</span>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <label title="Показывать маршруты"><input type="checkbox" id="toggleRoutes"> 🧵 Маршруты</label>
-          <label title="Закрашивать страны"><input type="checkbox" id="toggleVisited"> 🎨🌍 Страны</label>
-        </div>
-      `;
-      // desktop/tablet раскладка
-      badgeEl.insertAdjacentHTML('beforeend', panelHTML);
-      // мобильная панель внутрь <details>
-      const detailsPanel = badgeEl.querySelector('.panel');
-      if (detailsPanel) detailsPanel.innerHTML = panelHTML;
+      // Инициализация/перемещение панели (один экземпляр!)
+      controlsRoot = buildControlsHTML(pointFeatures.length, visitedFilterList.length);
+      placeControls(); // вставит в нужный контейнер и привяжет обработчики
 
       // Ачивки (справа)
       renderAchievements(computeMetrics(pointFeatures));
@@ -789,10 +789,10 @@
 
         // страны
         ensureCountriesLayers();
-        const filt = buildVisitedFilter(visitedList);
+        const filt = buildVisitedFilter(visitedFilterList);
         map.setFilter('countries-visited-fill', filt);
         map.setFilter('countries-visited-outline', filt);
-        setCountriesVisibility(false);
+        setCountriesVisibility(false); // по умолчанию скрыто
 
         // линии (по умолчанию скрыты — включаются чекбоксом)
         if (!map.getLayer('route-farm-roaster')){
@@ -812,7 +812,7 @@
         }
         setRoutesVisibility(false);
 
-        // кластеры и точки
+        // кластеры и точки (цвет по process_norm)
         if (!map.getLayer('clusters')){
           map.addLayer({
             id:'clusters', type:'circle', source:'brews', filter:['has','point_count'],
@@ -883,9 +883,9 @@
             paint:{
               'circle-color': [
                 'match', ['get','kind'],
-                'both',     '#8e44ad',
-                'roaster',  '#006d2c',
-                'consumed', '#08519c',
+                'both',     '#8e44ad',   /* фиолетовый для «и обжарка, и пил» */
+                'roaster',  '#006d2c',   /* зелёный — обжарщики */
+                'consumed', '#08519c',   /* синий — где пил */
                 /* default */ '#666666'
               ],
               'circle-opacity':0.75,
@@ -910,17 +910,10 @@
 
       if (map.isStyleLoaded && map.isStyleLoaded()) addLayers();
       else map.on('load', addLayers);
-
-      // чекбоксы — и на десктопной панели, и внутри мобильного <details>
-      function bindToggles(root=document){
-        root.getElementById('toggleVisited')?.addEventListener('change', (e)=> setCountriesVisibility(e.target.checked), {passive:true});
-        root.getElementById('toggleRoutes')?.addEventListener('change', (e)=> setRoutesVisibility(e.target.checked), {passive:true});
-      }
-      bindToggles(document);
-      if (detailsPanel) bindToggles(detailsPanel.ownerDocument || document);
     },
     error: (err) => {
-      document.getElementById('badge').textContent = 'Ошибка загрузки CSV';
+      const b = document.getElementById('badge');
+      b.innerHTML = '<div style="padding:10px 12px">Ошибка загрузки CSV</div>';
       console.error('CSV error:', err);
     }
   });

@@ -43,9 +43,10 @@
       white-space:nowrap;
     }
 
-    /* Панель фильтров */
+    /* Панель фильтров (фикс: всегда вверху слева + высокий z-index) */
     .badge{
-      position:absolute;z-index:6;
+      position:absolute; z-index:9999;
+      top:12px; left:12px;
       background:var(--glass);border:1px solid var(--glass-br);color:var(--text);
       border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);
       font:13px/1.2 system-ui;backdrop-filter: blur(4px);
@@ -60,12 +61,12 @@
     .desktop-controls .row + .row{margin-top:6px}
     #filtersDetails{display:none}
 
-    /* ачивки */
+    /* ачивки (фикс: гибкая сетка, не накладываются) */
     .achievements{
-      position:absolute;top:12px;right:12px;z-index:6;
+      position:absolute;top:12px;right:12px;z-index:10000;
       display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:46vw;
     }
-    .ach-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--glass-br);font:12px/1.1 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.06)}
+    .ach-badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--glass-br);font:12px/1.1 system-ui;box-shadow:0 2px 10px rgba(0,0,0,.06); white-space:nowrap;}
     .ach-emoji{font-size:14px}
     .ach-title{font-weight:600}
 
@@ -99,18 +100,20 @@
     @media (max-width:680px){
       .collection-title{top:calc(8px + var(--safe-top));font-size:15px;max-width:72vw}
 
+      /* ачивки: внизу справа, перенос строк — без наложений */
       .achievements{
         top:auto; bottom:calc(12px + var(--safe-bottom));
-        left:calc(12px + var(--safe-left));
         right:calc(12px + var(--safe-right));
-        flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none;
+        left:auto;
+        flex-wrap:wrap; overflow-x:visible; max-width:68vw;
+        justify-content:flex-end;
       }
-      .achievements::-webkit-scrollbar{display:none}
 
+      /* панель: внизу слева */
       .badge{
+        top:auto; left:calc(12px + var(--safe-left));
         bottom:calc(12px + var(--safe-bottom));
-        left:calc(12px + var(--safe-left));
-        right:auto; top:auto; padding:0; max-width:min(88vw, 420px);
+        right:auto; padding:0; max-width:min(88vw, 420px);
       }
       .desktop-controls{display:none}
       #filtersDetails{display:block}
@@ -193,7 +196,7 @@
   }
 
   const toNumber = (v) => (typeof v==='number') ? v : (typeof v==='string' ? parseFloat(v.replace(',', '.')) : NaN);
-  const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])[m]);
   const escapeAttr = (s) => String(s||'').replace(/"/g,'&quot;');
 
   // === нормализация процесса + цвета ===
@@ -672,7 +675,7 @@
     const el = document.getElementById('achievements');
     el.innerHTML = earned.map(a =>
       `<div class="ach-badge" style="background:${a.color.bg};border-color:${a.color.br};color:${a.color.txt}" title="${escapeAttr(a.title)}">
-         <span class="ach-emoji">${a.emoji}</span><span class="ach-title">${escapeHtml(a.title)}</span>
+         <span class="ach-emoji">${a.emoji}</span><span class="ach-title">${a.title}</span>
        </div>`
     ).join('');
   }

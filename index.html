@@ -35,7 +35,6 @@
       --muted: #c9cdc8;
     }
 
-    /* Заголовок коллекции */
     .collection-title{
       position:absolute; top:12px; left:50%; transform:translateX(-50%);
       background:var(--glass); color:var(--text); padding:8px 14px; border-radius:12px; border:1px solid var(--glass-br);
@@ -43,10 +42,8 @@
       white-space:nowrap;
     }
 
-    /* Панель фильтров (фикс: всегда вверху слева + высокий z-index) */
     .badge{
-      position:absolute; z-index:9999;
-      top:12px; left:12px;
+      position:absolute; z-index:9999; top:12px; left:12px;
       background:var(--glass);border:1px solid var(--glass-br);color:var(--text);
       border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,.06);
       font:13px/1.2 system-ui;backdrop-filter: blur(4px);
@@ -55,13 +52,11 @@
     label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
     input[type="checkbox"]{width:18px;height:18px;accent-color:#567a58}
 
-    /* десктоп */
     .desktop-controls{ display:block; padding:8px 10px; }
     .desktop-controls .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     .desktop-controls .row + .row{margin-top:6px}
     #filtersDetails{display:none}
 
-    /* ачивки (фикс: гибкая сетка, не накладываются) */
     .achievements{
       position:absolute;top:12px;right:12px;z-index:10000;
       display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:46vw;
@@ -70,7 +65,6 @@
     .ach-emoji{font-size:14px}
     .ach-title{font-weight:600}
 
-    /* Попапы/карточки */
     .mapboxgl-popup-content{ background:transparent; padding:0; border-radius:20px; box-shadow:none }
     .mapboxgl-popup-tip{ display:none }
     .popup-card{
@@ -91,7 +85,6 @@
       backdrop-filter: blur(2px);
     }
 
-    /* мобильная адаптация */
     @media (max-width:1024px){
       .collection-title{ max-width:70vw; }
       .popup-card{ width:360px; }
@@ -100,7 +93,6 @@
     @media (max-width:680px){
       .collection-title{top:calc(8px + var(--safe-top));font-size:15px;max-width:72vw}
 
-      /* ачивки: внизу справа, перенос строк — без наложений */
       .achievements{
         top:auto; bottom:calc(12px + var(--safe-bottom));
         right:calc(12px + var(--safe-right));
@@ -109,7 +101,6 @@
         justify-content:flex-end;
       }
 
-      /* панель: внизу слева */
       .badge{
         top:auto; left:calc(12px + var(--safe-left));
         bottom:calc(12px + var(--safe-bottom));
@@ -159,10 +150,7 @@
   const map = new mapboxgl.Map({
     container: 'map',
     style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
-    center: [12, 20],
-    zoom: 2.2,
-    attributionControl: true,
-    renderWorldCopies: false
+    center: [12, 20], zoom: 2.2, attributionControl: true, renderWorldCopies: false
   });
   map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
   map.doubleClickZoom.disable();
@@ -180,6 +168,10 @@
 
   /* ==== утилиты ==== */
   const normKey = (k) => String(k||'').toLowerCase().replace(/\s+/g,' ').trim();
+  const normalizeName = (s) => String(s||'').replace(/\s+/g,' ').trim();
+  const toNumber = (v) => (typeof v==='number') ? v : (typeof v==='string' ? parseFloat(v.replace(',', '.')) : NaN);
+  const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])[m]);
+  const escapeAttr = (s) => String(s||'').replace(/"/g,'&quot;');
 
   function pickSmart(row, candidates){
     for (const k of candidates) if (row[k] !== undefined && row[k] !== '') return row[k];
@@ -195,11 +187,6 @@
     return '';
   }
 
-  const toNumber = (v) => (typeof v==='number') ? v : (typeof v==='string' ? parseFloat(v.replace(',', '.')) : NaN);
-  const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])[m]);
-  const escapeAttr = (s) => String(s||'').replace(/"/g,'&quot;');
-
-  // === нормализация процесса + цвета ===
   function normalizeProcessName(raw){
     const s = String(raw||'').toLowerCase();
     if (!s) return 'other';
@@ -221,7 +208,6 @@
     }
   }
 
-  // Drive helpers
   function extractDriveId(url){
     const m = String(url||'').match(/(?:\/d\/|id=)([-\w]{25,})/);
     return m ? m[1] : null;
@@ -243,7 +229,6 @@
   function driveImgFallback(img, list){ if (!list || !list.length) { img.remove(); return; } img.src = list.shift(); }
   window.driveImgFallback = driveImgFallback;
 
-  // флаг: emoji (если ?flag=emoji) → ISO2 PNG
   function flagFromRow(flagEmojiCell, iso2Cell){
     const emoji = String(flagEmojiCell||'').trim();
     if (FLAG_MODE==='emoji' && emoji) return emoji;
@@ -253,7 +238,6 @@
       : (FLAG_MODE==='emoji' ? emoji : '');
   }
 
-  /* ==== заголовки CSV ==== */
   const HEADERS = {
     timestamp:       ['Timestamp'],
     email:           ['Email Address'],
@@ -331,7 +315,6 @@
     map.fitBounds(b, { padding: 40, duration: 700, maxZoom: 10 });
   }
 
-  /* ==== карточка с эмодзи для обычных точек ==== */
   function popupHTML(p) {
     const flag = flagFromRow(p.flagEmoji, p.countryIso2);
     const country = p.originCountry ? ((flag ? flag + ' ' : '') + escapeHtml(p.originCountry)) : '';
@@ -381,7 +364,7 @@
     }
   }
 
-  /* ==== линии до городов: геокодинг + кеш ==== */
+  /* ==== геокодинг городов (кеш, кейсы) ==== */
   const CITY_CACHE_NS = 'coffee_city_cache_v1';
   const cityCache = JSON.parse(localStorage.getItem(CITY_CACHE_NS) || '{}');
   const cacheSave = () => localStorage.setItem(CITY_CACHE_NS, JSON.stringify(cityCache));
@@ -408,34 +391,53 @@
 
   async function geocodeCities(names){
     const out = {};
-    for (const name of names){ out[name] = await geocodeCityName(name); }
+    for (const raw of names){
+      const name = String(raw||'').trim();
+      if (!name) continue;
+      const pt = await geocodeCityName(name);
+      if (pt){
+        out[name] = pt;                                     // исходный ключ
+        out[normalizeName(name).toLowerCase()] = pt;        // нормализованный ключ
+      }
+    }
     return out;
   }
 
+  /* ==== линии: теперь с «идентификатором фермы» через координаты ==== */
   function buildRouteFeatures(pointFeatures, cityMap){
     const lines = [];
     for (const f of pointFeatures){
       const p = f.properties;
       const [farmLng, farmLat] = f.geometry.coordinates;
+      const farmLng5 = +farmLng.toFixed(5);
+      const farmLat5 = +farmLat.toFixed(5);
 
       if (p.roasterCity){
-        const rc = cityMap[p.roasterCity];
+        const rc = cityMap[p.roasterCity] || cityMap[normalizeName(p.roasterCity).toLowerCase()];
         if (rc){
           lines.push({
             type:'Feature',
             geometry:{ type:'LineString', coordinates:[[farmLng,farmLat],[rc.lng,rc.lat]] },
-            properties:{ kind:'farm_to_roaster', farm:p.farmName||'', roasterCity:p.roasterCity||'' }
+            properties:{
+              kind:'farm_to_roaster',
+              roasterCity:String(p.roasterCity),
+              farmLng5, farmLat5
+            }
           });
         }
       }
       if (p.roasterCity && p.consumedCity){
-        const rc = cityMap[p.roasterCity];
-        const uc = cityMap[p.consumedCity];
+        const rc = cityMap[p.roasterCity] || cityMap[normalizeName(p.roasterCity).toLowerCase()];
+        const uc = cityMap[p.consumedCity] || cityMap[normalizeName(p.consumedCity).toLowerCase()];
         if (rc && uc){
           lines.push({
             type:'Feature',
             geometry:{ type:'LineString', coordinates:[[rc.lng,rc.lat],[uc.lng,uc.lat]] },
-            properties:{ kind:'roaster_to_consumed', roasterCity:p.roasterCity||'', consumedCity:p.consumedCity||'' }
+            properties:{
+              kind:'roaster_to_consumed',
+              roasterCity:String(p.roasterCity),
+              consumedCity:String(p.consumedCity)
+            }
           });
         }
       }
@@ -443,24 +445,106 @@
     return lines;
   }
 
-  // подсветка маршрутов
-  function highlightRouteFor(p){
-    if (!map.getLayer('route-highlight')) return;
-    const filt = ['any'];
-    if (p.roasterCity){
-      filt.push(['all',
-        ['==',['get','kind'],'farm_to_roaster'],
-        ['==',['get','roasterCity'], String(p.roasterCity)]
-      ]);
+  /* ==== точечные «городские» фичи (обжарщики/где пил) ==== */
+  const HOME_RE = /(home|дом|house|дома)/i;
+  function buildCityPoints(pointFeatures, cityMap){
+    const agg = new Map();
+    for (const f of pointFeatures){
+      const p = f.properties;
+
+      if (p.roasterCity){
+        const city = normalizeName(p.roasterCity);
+        const pt = cityMap[city] || cityMap[city.toLowerCase()];
+        if (pt){
+          const key = city.toLowerCase();
+          const o = agg.get(key) || { city, lng:pt.lng, lat:pt.lat, roasters:new Set(), places:new Set(), home:false };
+          const rn = normalizeName(p.roasterName);
+          if (rn) o.roasters.add(rn.toLowerCase());
+          agg.set(key, o);
+        }
+      }
       if (p.consumedCity){
-        filt.push(['all',
-          ['==',['get','kind'],'roaster_to_consumed'],
-          ['==',['get','roasterCity'], String(p.roasterCity)],
-          ['==',['get','consumedCity'], String(p.consumedCity)]
-        ]);
+        const city = normalizeName(p.consumedCity);
+        const pt = cityMap[city] || cityMap[city.toLowerCase()];
+        if (pt){
+          const key = city.toLowerCase();
+          const o = agg.get(key) || { city, lng:pt.lng, lat:pt.lat, roasters:new Set(), places:new Set(), home:false };
+          const cafe = normalizeName(p.cafeName);
+          if (cafe) o.places.add(cafe.toLowerCase());
+          if (p.whereConsumed && HOME_RE.test(p.whereConsumed)) o.home = true;
+          agg.set(key, o);
+        }
       }
     }
-    map.setFilter('route-highlight', filt.length>1 ? filt : ['==', ['get','kind'], '___nope___']);
+
+    const features = [];
+    for (const o of agg.values()){
+      const roasters = [...o.roasters].map(s => s.replace(/\b\w/g, c=>c.toUpperCase()));
+      const places   = [...o.places].map(s => s.replace(/\b\w/g, c=>c.ToUpperCase?.() ?? c.toUpperCase())).map(s=>s); // safe
+      const kind = roasters.length && (places.length || o.home) ? 'both' : (roasters.length ? 'roaster' : 'consumed');
+      const size = Math.max(roasters.length + places.length + (o.home?1:0), 1);
+      features.push({
+        type:'Feature',
+        geometry:{ type:'Point', coordinates:[o.lng,o.lat] },
+        properties:{ city:o.city, roasters, places, home:o.home, kind, size }
+      });
+    }
+    return { type:'FeatureCollection', features };
+  }
+
+  function cityPopupHTML(props){
+    const rows = [];
+    if (props.roasters && props.roasters.length){
+      rows.push(row('🏭', props.roasters.join(', ')));
+    }
+    const placeBits = [];
+    if (props.places && props.places.length) placeBits.push(...props.places);
+    if (props.home) placeBits.push('дом');
+    if (placeBits.length){
+      rows.push(row('🔻', placeBits.join(', '))); // «воронка» для мест, где пил
+    }
+    return `
+      <div class="popup-card">
+        <div class="popup-body">
+          <div class="popup-title">${escapeHtml(props.city)}</div>
+          ${rows.join('')}
+        </div>
+      </div>
+    `;
+    function row(emoji, text){
+      return `<div class="row"><span class="row-emoji">${emoji}</span><span>${escapeHtml(text)}</span></div>`;
+    }
+  }
+
+  /* ==== подсветка маршрутов: ТОЛЬКО текущая точка ==== */
+  function highlightRouteFor(p, coord){
+    if (!map.getLayer('route-highlight')) return;
+    const filters = ['any'];
+
+    const [lng, lat] = Array.isArray(coord) ? coord : [];
+    const lng5 = Number.isFinite(lng) ? +lng.toFixed(5) : null;
+    const lat5 = Number.isFinite(lat) ? +lat.toFixed(5) : null;
+
+    // Линия «ферма → обжарка» совпадает по координатам фермы и городу обжарки
+    if (p.roasterCity && lng5!==null && lat5!==null){
+      filters.push(['all',
+        ['==',['get','kind'],'farm_to_roaster'],
+        ['==',['get','roasterCity'], String(p.roasterCity)],
+        ['==',['get','farmLng5'], lng5],
+        ['==',['get','farmLat5'], lat5]
+      ]);
+    }
+
+    // Линия «обжарка → где пил» совпадает по паре городов
+    if (p.roasterCity && p.consumedCity){
+      filters.push(['all',
+        ['==',['get','kind'],'roaster_to_consumed'],
+        ['==',['get','roasterCity'], String(p.roasterCity)],
+        ['==',['get','consumedCity'], String(p.consumedCity)]
+      ]);
+    }
+
+    map.setFilter('route-highlight', filters.length>1 ? filters : ['==', ['get','kind'], '___nope___']);
   }
   function clearRouteHighlight(){
     if (map.getLayer('route-highlight')){
@@ -468,8 +552,8 @@
     }
   }
 
-  /* ==== мульти-попап для точек с одинаковыми координатами ==== */
-  const EPS = 1e-6; // ~0.1 м по широте
+  /* ==== мульти-попап ==== */
+  const EPS = 1e-6;
   const sameCoord = (a,b) => Math.abs(a[0]-b[0])<EPS && Math.abs(a[1]-b[1])<EPS;
 
   function dedupeFeatures(arr){
@@ -497,7 +581,8 @@
     const popup = new mapboxgl.Popup({ offset:12, maxWidth:'360px' }).setLngLat(coord);
 
     const render = () => {
-      const p = features[i].properties;
+      const f = features[i];
+      const p = f.properties;
       const nav = (features.length>1)
         ? `<div class="popup-nav" style="display:flex;align-items:center;justify-content:space-between;margin:8px 14px 14px;gap:8px">
              <button type="button" data-prev style="padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation">◀</button>
@@ -508,11 +593,16 @@
 
       setTimeout(()=> {
         const el = popup.getElement();
-        el?.querySelector('[data-prev]')?.addEventListener('click', ()=>{ i=(i-1+features.length)%features.length; render(); highlightRouteFor(features[i].properties); }, {passive:true});
-        el?.querySelector('[data-next]')?.addEventListener('click', ()=>{ i=(i+1)%features.length; render(); highlightRouteFor(features[i].properties); }, {passive:true});
+        el?.querySelector('[data-prev]')?.addEventListener('click', ()=>{
+          i=(i-1+features.length)%features.length; render();
+        }, {passive:true});
+        el?.querySelector('[data-next]')?.addEventListener('click', ()=>{
+          i=(i+1)%features.length; render();
+        }, {passive:true});
       }, 0);
 
-      highlightRouteFor(p);
+      // подсветка строго для текущего элемента
+      highlightRouteFor(p, f.geometry.coordinates);
     };
 
     popup.on('close', clearRouteHighlight);
@@ -545,9 +635,7 @@
     const beforeId = 'admin-1-boundary-bg';
     if (!map.getLayer('countries-visited-fill')){
       map.addLayer({
-        id:'countries-visited-fill',
-        type:'fill',
-        source:'countries',
+        id:'countries-visited-fill', type:'fill', source:'countries',
         'source-layer':'country_boundaries',
         paint:{ 'fill-color':'#76a96b', 'fill-opacity':0.35 }
       }, beforeId);
@@ -555,9 +643,7 @@
     }
     if (!map.getLayer('countries-visited-outline')){
       map.addLayer({
-        id:'countries-visited-outline',
-        type:'line',
-        source:'countries',
+        id:'countries-visited-outline', type:'line', source:'countries',
         'source-layer':'country_boundaries',
         paint:{ 'line-color':'#567a58', 'line-width':0.8, 'line-opacity':0.85 }
       }, beforeId);
@@ -570,83 +656,55 @@
     if (map.getLayer('countries-visited-outline'))map.setLayoutProperty('countries-visited-outline','visibility', vis);
   }
 
-  /* ==== ЕДИНЫЕ городские точки (обжарка/употребление) ==== */
-  const HOME_RE = /(home|дом|house|дома)/i;
-  const normalizeName = s => String(s||'').replace(/\s+/g,' ').trim();
+  /* ==== переключатели ==== */
+  let visitedFilterList = [];
+  let controlsRoot = null;
 
-  function buildCityPoints(pointFeatures, cityMap){
-    const agg = new Map(); // key = city lower
-    for (const f of pointFeatures){
-      const p = f.properties;
-
-      // Обжарщики
-      if (p.roasterCity){
-        const city = normalizeName(p.roasterCity);
-        const pt = cityMap[city];
-        if (pt){
-          const key = city.toLowerCase();
-          const o = agg.get(key) || { city, lng:pt.lng, lat:pt.lat, roasters:new Set(), places:new Set(), home:false };
-          const rn = normalizeName(p.roasterName);
-          if (rn) o.roasters.add(rn.toLowerCase()); // dedupe
-          agg.set(key, o);
-        }
-      }
-      // Где пил
-      if (p.consumedCity){
-        const city = normalizeName(p.consumedCity);
-        const pt = cityMap[city];
-        if (pt){
-          const key = city.toLowerCase();
-          const o = agg.get(key) || { city, lng:pt.lng, lat:pt.lat, roasters:new Set(), places:new Set(), home:false };
-          const cafe = normalizeName(p.cafeName);
-          if (cafe) o.places.add(cafe.toLowerCase());
-          if (p.whereConsumed && HOME_RE.test(p.whereConsumed)) o.home = true;
-          agg.set(key, o);
-        }
-      }
-    }
-
-    // Преобразуем в FeatureCollection c человекочитаемыми массивами
-    const features = [];
-    for (const o of agg.values()){
-      const roasters = [...o.roasters].map(s => s.replace(/\b\w/g, c=>c.toUpperCase())); // простая капитализация
-      const places   = [...o.places].map(s => s.replace(/\b\w/g, c=>c.toUpperCase()));
-      const kind = roasters.length && (places.length || o.home) ? 'both' : (roasters.length ? 'roaster' : 'consumed');
-      const size = Math.max(roasters.length + places.length + (o.home?1:0), 1);
-      features.push({
-        type:'Feature',
-        geometry:{ type:'Point', coordinates:[o.lng,o.lat] },
-        properties:{ city:o.city, roasters, places, home:o.home, kind, size }
-      });
-    }
-    return { type:'FeatureCollection', features };
-  }
-
-  function cityPopupHTML(props){
-    const rows = [];
-    if (props.roasters && props.roasters.length){
-      rows.push(row('🏭', props.roasters.join(', ')));
-    }
-    const placeBits = [];
-    if (props.places && props.places.length) placeBits.push(...props.places);
-    if (props.home) placeBits.push('дом');
-    if (placeBits.length){
-      rows.push(row('🔻', placeBits.join(', ')));
-    }
-    return `
-      <div class="popup-card">
-        <div class="popup-body">
-          <div class="popup-title">${escapeHtml(props.city)}</div>
-          ${rows.join('')}
-        </div>
+  function buildControlsHTML(pointsCount, countriesCount){
+    const wrap = document.createElement('div');
+    wrap.innerHTML = `
+      <div class="row">
+        <span class="chip" title="Точек">☕ ${pointsCount}</span>
+        <span class="chip" title="Стран">🌍 ${countriesCount}</span>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label title="Показывать маршруты"><input type="checkbox" id="toggleRoutes"> 🧵</label>
+        <label title="Закрашивать страны"><input type="checkbox" id="toggleVisited"> 🎨🌍</label>
       </div>
     `;
-    function row(emoji, text){
-      return `<div class="row"><span class="row-emoji">${emoji}</span><span>${escapeHtml(text)}</span></div>`;
+    return wrap;
+  }
+  function bindControlHandlers(rootDoc){
+    const routes = rootDoc.querySelector('#toggleRoutes');
+    const visited = rootDoc.querySelector('#toggleVisited');
+    if (routes && !routes._bound){
+      routes.addEventListener('change', (e)=> setRoutesVisibility(e.target.checked), {passive:true});
+      routes._bound = true;
+    }
+    if (visited && !visited._bound){
+      visited.addEventListener('change', (e)=> setCountriesVisibility(e.target.checked), {passive:true});
+      visited._bound = true;
     }
   }
+  function isMobile(){ return window.matchMedia('(max-width: 680px)').matches; }
+  function placeControls(){
+    const desktop = document.getElementById('desktopControls');
+    const mobile = document.getElementById('mobileControls');
+    if (!controlsRoot) return;
+    if (isMobile()){
+      if (controlsRoot.parentElement !== mobile){
+        mobile.innerHTML = ''; mobile.appendChild(controlsRoot);
+      }
+    } else {
+      if (controlsRoot.parentElement !== desktop){
+        desktop.innerHTML = ''; desktop.appendChild(controlsRoot);
+      }
+    }
+    bindControlHandlers(controlsRoot);
+  }
+  function debounce(fn, ms=150){ let t=0; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
+  window.addEventListener('resize', debounce(placeControls, 150));
 
-  /* ==== Переключатель линий ==== */
   function setRoutesVisibility(state){
     const vis = state ? 'visible' : 'none';
     ['route-farm-roaster','route-roaster-consumed','route-highlight'].forEach(id=>{
@@ -655,7 +713,7 @@
     if (!state) clearRouteHighlight();
   }
 
-  /* ==== Ачивки ==== */
+  /* ==== ачивки ==== */
   const ACHIEVEMENTS = [
     { id:'first_sip',   emoji:'☕️', title:'Первый глоток', color:{ bg:'#d1fae5', br:'#99f6e4', txt:'#065f46' }, earned:(m)=> m.total>=1 },
     { id:'countries_3', emoji:'🌍', title:'Страны ×3',     color:{ bg:'#fef3c7', br:'#fde68a', txt:'#92400e' }, earned:(m)=> m.countries>=3 },
@@ -680,77 +738,19 @@
     ).join('');
   }
 
-  /* ==== состояние для чекбоксов ==== */
-  let visitedFilterList = []; // список ISO2 для стран
-  let controlsRoot = null;   // единый узел контролов (создаётся один раз)
-
-  function buildControlsHTML(pointsCount, countriesCount){
-    const wrap = document.createElement('div');
-    wrap.innerHTML = `
-      <div class="row">
-        <span class="chip" title="Точек">☕ ${pointsCount}</span>
-        <span class="chip" title="Стран">🌍 ${countriesCount}</span>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <label title="Показывать маршруты"><input type="checkbox" id="toggleRoutes"> 🧵 Маршруты</label>
-        <label title="Закрашивать страны"><input type="checkbox" id="toggleVisited"> 🎨🌍 Страны</label>
-      </div>
-    `;
-    return wrap;
-  }
-
-  function bindControlHandlers(rootDoc){
-    const routes = rootDoc.querySelector('#toggleRoutes');
-    const visited = rootDoc.querySelector('#toggleVisited');
-    if (routes && !routes._bound){
-      routes.addEventListener('change', (e)=> setRoutesVisibility(e.target.checked), {passive:true});
-      routes._bound = true;
-    }
-    if (visited && !visited._bound){
-      visited.addEventListener('change', (e)=> setCountriesVisibility(e.target.checked), {passive:true});
-      visited._bound = true;
-    }
-  }
-
-  function isMobile(){ return window.matchMedia('(max-width: 680px)').matches; }
-
-  // Перекладываем ОДИН и тот же узел контролов между контейнерами на resize
-  function placeControls(){
-    const desktop = document.getElementById('desktopControls');
-    const mobile = document.getElementById('mobileControls');
-    if (!controlsRoot) return;
-    if (isMobile()){
-      if (controlsRoot.parentElement !== mobile){
-        mobile.innerHTML = '';
-        mobile.appendChild(controlsRoot);
-      }
-    } else {
-      if (controlsRoot.parentElement !== desktop){
-        desktop.innerHTML = '';
-        desktop.appendChild(controlsRoot);
-      }
-    }
-    bindControlHandlers(controlsRoot);
-  }
-
-  function debounce(fn, ms=150){
-    let t=0; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); };
-  }
-  window.addEventListener('resize', debounce(placeControls, 150));
-
-  /* ==== загрузка CSV → точки + линии + страны + ачивки ==== */
+  /* ==== загрузка CSV и добавление слоёв ==== */
   Papa.parse(CSV_URL, {
     download: true, header: true, dynamicTyping: false,
     complete: async (results) => {
       const geojsonPoints = rowsToGeoJSON(results.data || []);
       const pointFeatures = geojsonPoints.features;
 
-      // Имя(ена) загрузчика(ов) в шапку
+      // uploader в шапку
       const uploaders = [...new Set(pointFeatures.map(f => (f.properties?.uploader||'').trim()).filter(Boolean))];
       const owner = uploaders[0] ? (uploaders.length>1 ? `${uploaders[0]} +${uploaders.length-1}` : uploaders[0]) : '';
       document.getElementById('collectionTitle').textContent = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
 
-      // Города для линий/точек
+      // города
       const want = new Set();
       for (const f of pointFeatures){
         const p = f.properties;
@@ -762,18 +762,17 @@
       const lineFeatures = buildRouteFeatures(pointFeatures, cityCoordsMap);
       const cityPoints = buildCityPoints(pointFeatures, cityCoordsMap);
 
-      // Страны
+      // страны
       visitedFilterList = [...getVisitedCountriesIso2(pointFeatures)];
 
-      // Инициализация/перемещение панели (один экземпляр!)
+      // панель
       controlsRoot = buildControlsHTML(pointFeatures.length, visitedFilterList.length);
-      placeControls(); // вставит в нужный контейнер и привяжет обработчики
+      placeControls();
 
-      // Ачивки (справа)
+      // ачивки
       renderAchievements(computeMetrics(pointFeatures));
 
       function addLayers(){
-        // источники
         if (!map.getSource('brews')) {
           map.addSource('brews', { type:'geojson', data:geojsonPoints, cluster:true, clusterMaxZoom:14, clusterRadius:50 });
         } else {
@@ -790,14 +789,12 @@
           map.getSource('city-points').setData(cityPoints);
         }
 
-        // страны
         ensureCountriesLayers();
         const filt = buildVisitedFilter(visitedFilterList);
         map.setFilter('countries-visited-fill', filt);
         map.setFilter('countries-visited-outline', filt);
-        setCountriesVisibility(false); // по умолчанию скрыто
+        setCountriesVisibility(false);
 
-        // линии (по умолчанию скрыты — включаются чекбоксом)
         if (!map.getLayer('route-farm-roaster')){
           map.addLayer({ id:'route-farm-roaster', type:'line', source:'routes',
             filter:['==',['get','kind'],'farm_to_roaster'],
@@ -815,7 +812,6 @@
         }
         setRoutesVisibility(false);
 
-        // кластеры и точки (цвет по process_norm)
         if (!map.getLayer('clusters')){
           map.addLayer({
             id:'clusters', type:'circle', source:'brews', filter:['has','point_count'],
@@ -854,11 +850,10 @@
             });
           });
 
-          // Клик по обычной точке — мульти-попап
           map.on('click','unclustered',(e)=>{
             const clicked = e.features[0];
             const coord = clicked.geometry.coordinates;
-            const buf = 6; // px
+            const buf = 6;
             const box = [[e.point.x-buf, e.point.y-buf],[e.point.x+buf, e.point.y+buf]];
             const inBox = map.queryRenderedFeatures(box, { layers:['unclustered'] });
             const nearSame = inBox.filter(f => sameCoord(f.geometry.coordinates, coord));
@@ -877,7 +872,6 @@
           map.on('mouseleave','unclustered',()=>map.getCanvas().style.cursor='');
         }
 
-        /* ==== Слой единых городских точек ==== */
         if (!map.getLayer('city-points')){
           map.addLayer({
             id:'city-points',
@@ -886,10 +880,10 @@
             paint:{
               'circle-color': [
                 'match', ['get','kind'],
-                'both',     '#8e44ad',   /* фиолетовый для «и обжарка, и пил» */
-                'roaster',  '#006d2c',   /* зелёный — обжарщики */
-                'consumed', '#08519c',   /* синий — где пил */
-                /* default */ '#666666'
+                'both',     '#8e44ad',
+                'roaster',  '#006d2c',
+                'consumed', '#08519c',
+                '#666666'
               ],
               'circle-opacity':0.75,
               'circle-stroke-color':'#ffffff',

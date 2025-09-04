@@ -404,46 +404,51 @@
   }
 
   /* ==== линии: теперь с «идентификатором фермы» через координаты ==== */
-  function buildRouteFeatures(pointFeatures, cityMap){
-    const lines = [];
-    for (const f of pointFeatures){
-      const p = f.properties;
-      const [farmLng, farmLat] = f.geometry.coordinates;
-      const farmLng5 = +farmLng.toFixed(5);
-      const farmLat5 = +farmLat.toFixed(5);
+function buildRouteFeatures(pointFeatures, cityMap){
+  const lines = [];
+  for (const f of pointFeatures){
+    const p = f.properties;
+    const [farmLng, farmLat] = f.geometry.coordinates;
+    const farmLng5 = +farmLng.toFixed(5);
+    const farmLat5 = +farmLat.toFixed(5);
 
-      if (p.roasterCity){
-        const rc = cityMap[p.roasterCity] || cityMap[normalizeName(p.roasterCity).toLowerCase()];
-        if (rc){
-          lines.push({
-            type:'Feature',
-            geometry:{ type:'LineString', coordinates:[[farmLng,farmLat],[rc.lng,rc.lat]] },
-            properties:{
-              kind:'farm_to_roaster',
-              roasterCity:String(p.roasterCity),
-              farmLng5, farmLat5
-            }
-          });
+    const rCityRaw = p.roasterCity || '';
+    const uCityRaw = p.consumedCity || '';
+    const rCityNorm = normalizeName(rCityRaw).toLowerCase();
+    const uCityNorm = normalizeName(uCityRaw).toLowerCase();
+
+    const rc = rCityNorm && (cityMap[rCityNorm] || cityMap[rCityRaw] || cityMap[rCityRaw.toLowerCase()]);
+    const uc = uCityNorm && (cityMap[uCityNorm] || cityMap[uCityRaw] || cityMap[uCityRaw.toLowerCase()]);
+
+    if (rc){
+      lines.push({
+        type:'Feature',
+        geometry:{ type:'LineString', coordinates:[[farmLng, farmLat],[rc.lng, rc.lat]] },
+        properties:{
+          kind:'farm_to_roaster',
+          roasterCity: rCityRaw,
+          roasterCity_norm: rCityNorm,
+          farmLng5, farmLat5
         }
-      }
-      if (p.roasterCity && p.consumedCity){
-        const rc = cityMap[p.roasterCity] || cityMap[normalizeName(p.roasterCity).toLowerCase()];
-        const uc = cityMap[p.consumedCity] || cityMap[normalizeName(p.consumedCity).toLowerCase()];
-        if (rc && uc){
-          lines.push({
-            type:'Feature',
-            geometry:{ type:'LineString', coordinates:[[rc.lng,rc.lat],[uc.lng,uc.lat]] },
-            properties:{
-              kind:'roaster_to_consumed',
-              roasterCity:String(p.roasterCity),
-              consumedCity:String(p.consumedCity)
-            }
-          });
-        }
-      }
+      });
     }
-    return lines;
+    if (rc && uc){
+      lines.push({
+        type:'Feature',
+        geometry:{ type:'LineString', coordinates:[[rc.lng, rc.lat],[uc.lng, uc.lat]] },
+        properties:{
+          kind:'roaster_to_consumed',
+          roasterCity: rCityRaw,
+          consumedCity: uCityRaw,
+          roasterCity_norm: rCityNorm,
+          consumedCity_norm: uCityNorm
+        }
+      });
+    }
   }
+  return lines;
+}
+
 
   /* ==== точечные «городские» фичи (обжарщики/где пил) ==== */
   const HOME_RE = /(home|дом|house|дома)/i;
@@ -517,40 +522,55 @@
   }
 
   /* ==== подсветка маршрутов: ТОЛЬКО текущая точка ==== */
-  function highlightRouteFor(p, coord){
-    if (!map.getLayer('route-highlight')) return;
-    const filters = ['any'];
+function highlightRouteFor(p, coord){
+  if (!map.getLayer('route-highlight')) return;
 
-    const [lng, lat] = Array.isArray(coord) ? coord : [];
-    const lng5 = Number.isFinite(lng) ? +lng.toFixed(5) : null;
-    const lat5 = Number.isFinite(lat) ? +lat.toFixed(5) : null;
-
-    // Линия «ферма → обжарка» совпадает по координатам фермы и городу обжарки
-    if (p.roasterCity && lng5!==null && lat5!==null){
-      filters.push(['all',
-        ['==',['get','kind'],'farm_to_roaster'],
-        ['==',['get','roasterCity'], String(p.roasterCity)],
-        ['==',['get','farmLng5'], lng5],
-        ['==',['get','farmLat5'], lat5]
-      ]);
-    }
-
-    // Линия «обжарка → где пил» совпадает по паре городов
-    if (p.roasterCity && p.consumedCity){
-      filters.push(['all',
-        ['==',['get','kind'],'roaster_to_consumed'],
-        ['==',['get','roasterCity'], String(p.roasterCity)],
-        ['==',['get','consumedCity'], String(p.consumedCity)]
-      ]);
-    }
-
-    map.setFilter('route-highlight', filters.length>1 ? filters : ['==', ['get','kind'], '___nope___']);
+  // всегда показываем слой подсветки при выборе точки
+  if (map.getLayoutProperty('route-highlight','visibility') !== 'visible'){
+    map.setLayoutProperty('route-highlight','visibility','visible');
   }
-  function clearRouteHighlight(){
-    if (map.getLayer('route-highlight')){
-      map.setFilter('route-highlight', ['==', ['get','kind'], '___nope___']);
-    }
+
+  const filters = ['any'];
+
+  const [lng, lat] = Array.isArray(coord) ? coord : [];
+  const lng5 = Number.isFinite(lng) ? +lng.toFixed(5) : null;
+  const lat5 = Number.isFinite(lat) ? +lat.toFixed(5) : null;
+
+  const rCityNorm = p.roasterCity ? normalizeName(p.roasterCity).toLowerCase() : '';
+  const uCityNorm = p.consumedCity ? normalizeName(p.consumedCity).toLowerCase() : '';
+
+  // ферма → обжарка: совпадают нормализованный город обжарки + координаты фермы
+  if (rCityNorm && lng5!==null && lat5!==null){
+    filters.push(['all',
+      ['==',['get','kind'],'farm_to_roaster'],
+      ['==',['get','roasterCity_norm'], rCityNorm],
+      ['==',['get','farmLng5'], lng5],
+      ['==',['get','farmLat5'], lat5]
+    ]);
   }
+
+  // обжарка → где пил: пара нормализованных городов
+  if (rCityNorm && uCityNorm){
+    filters.push(['all',
+      ['==',['get','kind'],'roaster_to_consumed'],
+      ['==',['get','roasterCity_norm'], rCityNorm],
+      ['==',['get','consumedCity_norm'], uCityNorm]
+    ]);
+  }
+
+  map.setFilter('route-highlight', filters.length>1 ? filters : ['==',['get','kind'],'___nope___']);
+}
+
+function clearRouteHighlight(){
+  if (!map.getLayer('route-highlight')) return;
+  map.setFilter('route-highlight', ['==',['get','kind'],'___nope___']);
+  // если переключатель "🧵" выключен — снова прячем слой подсветки
+  const t = document.querySelector('#toggleRoutes');
+  if (!t || !t.checked){
+    map.setLayoutProperty('route-highlight','visibility','none');
+  }
+}
+
 
   /* ==== мульти-попап ==== */
   const EPS = 1e-6;

@@ -266,47 +266,55 @@
     flagEmoji:       ['Flag emoji']
   };
 
-  function rowsToGeoJSON(rows) {
-    const features = [];
-    for (const row of rows) {
-      const lat = toNumber(pickSmart(row, HEADERS.lat));
-      const lng = toNumber(pickSmart(row, HEADERS.lng));
-      if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+function rowsToGeoJSON(rows) {
+  const features = [];
+  for (const row of rows) {
+    const lat = toNumber(pickSmart(row, HEADERS.lat));
+    const lng = toNumber(pickSmart(row, HEADERS.lng));
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
-      let photo = pickSmart(row, HEADERS.photoUrl);
-      if (!photo) photo = pickSmart(row, HEADERS.fileUpload);
+    const farmLng5 = +lng.toFixed(5);
+    const farmLat5 = +lat.toFixed(5);
 
-      const processRaw  = pickSmart(row, HEADERS.process);
-      const processNorm = normalizeProcessName(processRaw);
+    let photo = pickSmart(row, HEADERS.photoUrl);
+    if (!photo) photo = pickSmart(row, HEADERS.fileUpload);
 
-      const p = {
-        timestamp:       pickSmart(row, HEADERS.timestamp),
-        email:           pickSmart(row, HEADERS.email),
-        uploader:        pickSmart(row, HEADERS.uploader),
-        originCountry:   pickSmart(row, HEADERS.originCountry),
-        originRegion:    pickSmart(row, HEADERS.originRegion),
-        farmName:        pickSmart(row, HEADERS.farmName),
-        process:         processRaw,
-        process_norm:    processNorm,
-        brewMethod:      pickSmart(row, HEADERS.brewMethod),
-        whereConsumed:   pickSmart(row, HEADERS.whereConsumed),
-        cafeName:        pickSmart(row, HEADERS.cafeName),
-        cafeUrl:         pickSmart(row, HEADERS.cafeUrl),
-        consumedCity:    pickSmart(row, HEADERS.consumedCity),
-        consumedAddr:    pickSmart(row, HEADERS.consumedAddr),
-        recipe:          pickSmart(row, HEADERS.recipe),
-        roasterName:     pickSmart(row, HEADERS.roasterName),
-        roasterCity:     pickSmart(row, HEADERS.roasterCity),
-        photoUrl:        photo,
-        matchedName:     pickSmart(row, HEADERS.matchedName),
-        countryIso2:     pickSmart(row, HEADERS.countryIso2),
-        flagEmoji:       pickSmart(row, HEADERS.flagEmoji)
-      };
+    const processRaw  = pickSmart(row, HEADERS.process);
+    const processNorm = normalizeProcessName(processRaw);
 
-      features.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lng,lat] }, properties:p });
-    }
-    return { type:'FeatureCollection', features };
+    const p = {
+      timestamp:       pickSmart(row, HEADERS.timestamp),
+      email:           pickSmart(row, HEADERS.email),
+      uploader:        pickSmart(row, HEADERS.uploader),
+      originCountry:   pickSmart(row, HEADERS.originCountry),
+      originRegion:    pickSmart(row, HEADERS.originRegion),
+      farmName:        pickSmart(row, HEADERS.farmName),
+      process:         processRaw,
+      process_norm:    processNorm,
+      brewMethod:      pickSmart(row, HEADERS.brewMethod),
+      whereConsumed:   pickSmart(row, HEADERS.whereConsumed),
+      cafeName:        pickSmart(row, HEADERS.cafeName),
+      cafeUrl:         pickSmart(row, HEADERS.cafeUrl),
+      consumedCity:    pickSmart(row, HEADERS.consumedCity),
+      consumedAddr:    pickSmart(row, HEADERS.consumedAddr),
+      recipe:          pickSmart(row, HEADERS.recipe),
+      roasterName:     pickSmart(row, HEADERS.roasterName),
+      roasterCity:     pickSmart(row, HEADERS.roasterCity),
+      photoUrl:        photo,
+      matchedName:     pickSmart(row, HEADERS.matchedName),
+      countryIso2:     pickSmart(row, HEADERS.countryIso2),
+      flagEmoji:       pickSmart(row, HEADERS.flagEmoji),
+
+      // ✅ идентификатор фермы для точного мэчинга
+      farmLng5,
+      farmLat5
+    };
+
+    features.push({ type:'Feature', geometry:{ type:'Point', coordinates:[lng,lat] }, properties:p });
   }
+  return { type:'FeatureCollection', features };
+}
+
 
   function fitToData(geojson){
     if (!geojson.features.length) return;
@@ -413,45 +421,49 @@
   }
 
   /* ==== линии: свойства хранят округлённые коор-ты городов ==== */
-  function buildRouteFeatures(pointFeatures, cityMap){
-    const lines = [];
-    for (const f of pointFeatures){
-      const p = f.properties;
-      const [farmLng, farmLat] = f.geometry.coordinates;
-      const farmLng5 = +farmLng.toFixed(5);
-      const farmLat5 = +farmLat.toFixed(5);
+function buildRouteFeatures(pointFeatures, cityMap){
+  const lines = [];
+  for (const f of pointFeatures){
+    const p = f.properties;
 
-      const rc = getCityPt(p.roasterCity,  cityMap);
-      const uc = getCityPt(p.consumedCity, cityMap);
+    // Берём «ид» фермы из свойств (а не из geometry кликнутой фичи)
+    const farmLng5 = +p.farmLng5;
+    const farmLat5 = +p.farmLat5;
 
-      if (rc){
-        const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
-        lines.push({
-          type:'Feature',
-          geometry:{ type:'LineString', coordinates:[[farmLng, farmLat],[rc.lng, rc.lat]] },
-          properties:{
-            kind:'farm_to_roaster',
-            farmLng5, farmLat5,
-            roasterLng5: rLng5, roasterLat5: rLat5
-          }
-        });
-      }
-      if (rc && uc){
-        const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
-        const uLng5 = +uc.lng.toFixed(5), uLat5 = +uc.lat.toFixed(5);
-        lines.push({
-          type:'Feature',
-          geometry:{ type:'LineString', coordinates:[[rc.lng, rc.lat],[uc.lng, uc.lat]] },
-          properties:{
-            kind:'roaster_to_consumed',
-            roasterLng5: rLng5, roasterLat5: rLat5,
-            consumedLng5: uLng5, consumedLat5: uLat5
-          }
-        });
-      }
+    const [farmLng, farmLat] = f.geometry.coordinates;
+
+    const rc = getCityPt(p.roasterCity,  cityMap);
+    const uc = getCityPt(p.consumedCity, cityMap);
+
+    if (rc){
+      const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
+      lines.push({
+        type:'Feature',
+        geometry:{ type:'LineString', coordinates:[[farmLng, farmLat],[rc.lng, rc.lat]] },
+        properties:{
+          kind:'farm_to_roaster',
+          farmLng5, farmLat5,
+          roasterLng5: rLng5, roasterLat5: rLat5
+        }
+      });
     }
-    return lines;
+    if (rc && uc){
+      const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
+      const uLng5 = +uc.lng.toFixed(5), uLat5 = +uc.lat.toFixed(5);
+      lines.push({
+        type:'Feature',
+        geometry:{ type:'LineString', coordinates:[[rc.lng, rc.lat],[uc.lng, uc.lat]] },
+        properties:{
+          kind:'roaster_to_consumed',
+          roasterLng5: rLng5, roasterLat5: rLat5,
+          consumedLng5: uLng5, consumedLat5: uLat5
+        }
+      });
+    }
   }
+  return lines;
+}
+
 
   /* ==== точечные «городские» фичи (обжарщики/где пил) ==== */
   const HOME_RE = /(home|дом|house|дома)/i;
@@ -525,49 +537,54 @@
   }
 
   /* ==== подсветка маршрутов: матч по координатам ==== */
-  function highlightRouteFor(p, coord){
-    if (!map.getLayer('route-highlight')) return;
+function highlightRouteFor(p, coord){
+  if (!map.getLayer('route-highlight')) return;
 
-    // всегда показываем слой подсветки при выборе точки
-    if (map.getLayoutProperty('route-highlight','visibility') !== 'visible'){
-      map.setLayoutProperty('route-highlight','visibility','visible');
-    }
-
-    const filters = ['any'];
-
-    const [lng, lat] = Array.isArray(coord) ? coord : [];
-    const farmLng5 = Number.isFinite(lng) ? +lng.toFixed(5) : null;
-    const farmLat5 = Number.isFinite(lat) ? +lat.toFixed(5) : null;
-
-    // достаём координаты городов из глобального кеша
-    const rc = getCityPt(p.roasterCity,  CITY_COORDS);
-    const uc = getCityPt(p.consumedCity, CITY_COORDS);
-
-    if (rc && farmLng5!==null && farmLat5!==null){
-      const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
-      filters.push(['all',
-        ['==',['get','kind'],'farm_to_roaster'],
-        ['==',['get','farmLng5'], farmLng5],
-        ['==',['get','farmLat5'], farmLat5],
-        ['==',['get','roasterLng5'], rLng5],
-        ['==',['get','roasterLat5'], rLat5],
-      ]);
-    }
-
-    if (rc && uc){
-      const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
-      const uLng5 = +uc.lng.toFixed(5), uLat5 = +uc.lat.toFixed(5);
-      filters.push(['all',
-        ['==',['get','kind'],'roaster_to_consumed'],
-        ['==',['get','roasterLng5'], rLng5],
-        ['==',['get','roasterLat5'], rLat5],
-        ['==',['get','consumedLng5'], uLng5],
-        ['==',['get','consumedLat5'], uLat5],
-      ]);
-    }
-
-    map.setFilter('route-highlight', filters.length>1 ? filters : ['==',['get','kind'],'___nope___']);
+  if (map.getLayoutProperty('route-highlight','visibility') !== 'visible'){
+    map.setLayoutProperty('route-highlight','visibility','visible');
   }
+
+  const filters = ['any'];
+
+  // ✅ сначала пробуем идентификатор из свойств (из CSV)
+  let farmLng5 = Number.isFinite(p.farmLng5) ? +p.farmLng5 : null;
+  let farmLat5 = Number.isFinite(p.farmLat5) ? +p.farmLat5 : null;
+
+  // fallback: если вдруг нет — округлим координату geometry клика
+  if ((farmLng5===null || farmLat5===null) && Array.isArray(coord)){
+    farmLng5 = +coord[0].toFixed(5);
+    farmLat5 = +coord[1].toFixed(5);
+  }
+
+  const rc = getCityPt(p.roasterCity,  CITY_COORDS);
+  const uc = getCityPt(p.consumedCity, CITY_COORDS);
+
+  if (rc && farmLng5!==null && farmLat5!==null){
+    const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
+    filters.push(['all',
+      ['==',['get','kind'],'farm_to_roaster'],
+      ['==',['get','farmLng5'], farmLng5],
+      ['==',['get','farmLat5'], farmLat5],
+      ['==',['get','roasterLng5'], rLng5],
+      ['==',['get','roasterLat5'], rLat5],
+    ]);
+  }
+
+  if (rc && uc){
+    const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
+    const uLng5 = +uc.lng.toFixed(5), uLat5 = +uc.lat.toFixed(5);
+    filters.push(['all',
+      ['==',['get','kind'],'roaster_to_consumed'],
+      ['==',['get','roasterLng5'], rLng5],
+      ['==',['get','roasterLat5'], rLat5],
+      ['==',['get','consumedLng5'], uLng5],
+      ['==',['get','consumedLat5'], uLat5],
+    ]);
+  }
+
+  map.setFilter('route-highlight', filters.length>1 ? filters : ['==',['get','kind'],'___nope___']);
+}
+
 
   function clearRouteHighlight(){
     if (!map.getLayer('route-highlight')) return;

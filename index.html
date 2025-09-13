@@ -714,6 +714,7 @@ function highlightRouteFor(p, coord){
   let controlsRoot = null;
   let allPointFeatures = [];
   let ownerName = '';
+  let initialTitle = 'My coffee experience';
 
   function buildControlsHTML(pointsCount, countriesCount){
     const wrap = document.createElement('div');
@@ -776,6 +777,12 @@ function highlightRouteFor(p, coord){
     map.setFilter('countries-visited-fill', filt);
     map.setFilter('countries-visited-outline', filt);
     updateCounts(features.length, visitedFilterList.length);
+    const titleEl = document.getElementById('collectionTitle');
+    if (titleEl) {
+      titleEl.textContent = state
+        ? (ownerName ? `My coffee experience — ${ownerName}` : 'My coffee experience')
+        : initialTitle;
+    }
   }
   function isMobile(){ return window.matchMedia('(max-width: 680px)').matches; }
   function placeControls(){
@@ -841,7 +848,8 @@ function highlightRouteFor(p, coord){
       const uploaders = [...new Set(pointFeatures.map(f => (f.properties?.uploader||'').trim()).filter(Boolean))];
       ownerName = uploaders[0] || '';
       const owner = uploaders[0] ? (uploaders.length>1 ? `${uploaders[0]} +${uploaders.length-1}` : uploaders[0]) : '';
-      document.getElementById('collectionTitle').textContent = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
+      initialTitle = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
+      document.getElementById('collectionTitle').textContent = initialTitle;
 
       // города
       const want = new Set();

@@ -1,0 +1,8 @@
+{
+  "name": "coffeemap",
+  "version": "1.0.0",
+  "description": "Coffeemap mapbox project",
+  "scripts": {
+    "test": "echo 'No tests'"
+  }
+}

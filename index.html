@@ -423,6 +423,16 @@ function rowsToGeoJSON(rows) {
   /* ==== линии: свойства хранят округлённые коор-ты городов ==== */
 function buildRouteFeatures(pointFeatures, cityMap){
   const lines = [];
+
+  // Helper to push new line feature
+  function addLine(kind, coordinates, extraProps){
+    lines.push({
+      type: 'Feature',
+      geometry: { type: 'LineString', coordinates },
+      properties: { kind, ...extraProps }
+    });
+  }
+
   for (const f of pointFeatures){
     const p = f.properties;
 
@@ -436,31 +446,30 @@ function buildRouteFeatures(pointFeatures, cityMap){
     const uc = getCityPt(p.consumedCity, cityMap);
 
     if (rc){
-      const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
-      lines.push({
-        type:'Feature',
-        geometry:{ type:'LineString', coordinates:[[farmLng, farmLat],[rc.lng, rc.lat]] },
-        properties:{
-          kind:'farm_to_roaster',
-          farmLng5, farmLat5,
-          roasterLng5: rLng5, roasterLat5: rLat5
-        }
+      const rLng5 = +rc.lng.toFixed(5);
+      const rLat5 = +rc.lat.toFixed(5);
+
+      addLine('farm_to_roaster', [[farmLng, farmLat], [rc.lng, rc.lat]], {
+        farmLng5,
+        farmLat5,
+        roasterLng5: rLng5,
+        roasterLat5: rLat5
       });
-    }
-    if (rc && uc){
-      const rLng5 = +rc.lng.toFixed(5), rLat5 = +rc.lat.toFixed(5);
-      const uLng5 = +uc.lng.toFixed(5), uLat5 = +uc.lat.toFixed(5);
-      lines.push({
-        type:'Feature',
-        geometry:{ type:'LineString', coordinates:[[rc.lng, rc.lat],[uc.lng, uc.lat]] },
-        properties:{
-          kind:'roaster_to_consumed',
-          roasterLng5: rLng5, roasterLat5: rLat5,
-          consumedLng5: uLng5, consumedLat5: uLat5
-        }
-      });
+
+      if (uc){
+        const uLng5 = +uc.lng.toFixed(5);
+        const uLat5 = +uc.lat.toFixed(5);
+
+        addLine('roaster_to_consumed', [[rc.lng, rc.lat], [uc.lng, uc.lat]], {
+          roasterLng5: rLng5,
+          roasterLat5: rLat5,
+          consumedLng5: uLng5,
+          consumedLat5: uLat5
+        });
+      }
     }
   }
+
   return lines;
 }
 

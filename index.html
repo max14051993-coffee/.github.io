@@ -712,17 +712,20 @@ function highlightRouteFor(p, coord){
   /* ==== переключатели ==== */
   let visitedFilterList = [];
   let controlsRoot = null;
+  let allPointFeatures = [];
+  let ownerName = '';
 
   function buildControlsHTML(pointsCount, countriesCount){
     const wrap = document.createElement('div');
     wrap.innerHTML = `
       <div class="row">
-        <span class="chip" title="Точек">☕ ${pointsCount}</span>
-        <span class="chip" title="Стран">🌍 ${countriesCount}</span>
+        <span class="chip" title="Точек">☕ <span id="pointsCount">${pointsCount}</span></span>
+        <span class="chip" title="Стран">🌍 <span id="countriesCount">${countriesCount}</span></span>
       </div>
       <div class="row" style="margin-top:8px">
         <label title="Показывать маршруты"><input type="checkbox" id="toggleRoutes"> 🧵</label>
         <label title="Закрашивать страны"><input type="checkbox" id="toggleVisited"> 🎨🌍</label>
+        <label title="Только мои записи"><input type="checkbox" id="toggleMine"> 🙋</label>
       </div>
     `;
     return wrap;
@@ -730,6 +733,7 @@ function highlightRouteFor(p, coord){
   function bindControlHandlers(rootDoc){
     const routes = rootDoc.querySelector('#toggleRoutes');
     const visited = rootDoc.querySelector('#toggleVisited');
+    const mine = rootDoc.querySelector('#toggleMine');
     if (routes && !routes._bound){
       routes.addEventListener('change', (e)=> setRoutesVisibility(e.target.checked), {passive:true});
       routes._bound = true;
@@ -738,6 +742,40 @@ function highlightRouteFor(p, coord){
       visited.addEventListener('change', (e)=> setCountriesVisibility(e.target.checked), {passive:true});
       visited._bound = true;
     }
+    if (mine && !mine._bound){
+      mine.addEventListener('change', (e)=> setMineFilter(e.target.checked), {passive:true});
+      mine._bound = true;
+    }
+  }
+  function updateCounts(pointsCount, countriesCount){
+    const p = controlsRoot?.querySelector('#pointsCount');
+    if (p) p.textContent = pointsCount;
+    const c = controlsRoot?.querySelector('#countriesCount');
+    if (c) c.textContent = countriesCount;
+  }
+  function setMineFilter(state){
+    const srcBrews = map.getSource('brews');
+    if (!srcBrews) return;
+    const features = state
+      ? allPointFeatures.filter(f => (f.properties?.uploader||'').trim() === ownerName)
+      : allPointFeatures;
+    const geo = { type:'FeatureCollection', features };
+    srcBrews.setData(geo);
+    const routesSrc = map.getSource('routes');
+    if (routesSrc) {
+      const lineFeatures = buildRouteFeatures(features, CITY_COORDS);
+      routesSrc.setData({ type:'FeatureCollection', features: lineFeatures });
+    }
+    const citySrc = map.getSource('city-points');
+    if (citySrc) {
+      const cityPoints = buildCityPoints(features, CITY_COORDS);
+      citySrc.setData(cityPoints);
+    }
+    visitedFilterList = [...getVisitedCountriesIso2(features)];
+    const filt = buildVisitedFilter(visitedFilterList);
+    map.setFilter('countries-visited-fill', filt);
+    map.setFilter('countries-visited-outline', filt);
+    updateCounts(features.length, visitedFilterList.length);
   }
   function isMobile(){ return window.matchMedia('(max-width: 680px)').matches; }
   function placeControls(){
@@ -797,9 +835,11 @@ function highlightRouteFor(p, coord){
     complete: async (results) => {
       const geojsonPoints = rowsToGeoJSON(results.data || []);
       const pointFeatures = geojsonPoints.features;
+      allPointFeatures = pointFeatures;
 
       // uploader в шапку
       const uploaders = [...new Set(pointFeatures.map(f => (f.properties?.uploader||'').trim()).filter(Boolean))];
+      ownerName = uploaders[0] || '';
       const owner = uploaders[0] ? (uploaders.length>1 ? `${uploaders[0]} +${uploaders.length-1}` : uploaders[0]) : '';
       document.getElementById('collectionTitle').textContent = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
 

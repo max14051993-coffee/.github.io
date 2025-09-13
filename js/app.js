@@ -34,18 +34,24 @@
   const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])[m]);
   const escapeAttr = (s) => String(s||'').replace(/"/g,'&quot;');
 
-  function pickSmart(row, candidates){
-    for (const k of candidates) if (row[k] !== undefined && row[k] !== '') return row[k];
-    const nRow = {}; for (const key in row) nRow[normKey(key)] = row[key];
-    for (const cand of candidates){ const nCand = normKey(cand); if (nRow[nCand] !== undefined && nRow[nCand] !== '') return nRow[nCand]; }
-    const allKeys = Object.keys(row);
-    for (const cand of candidates){
-      const nCand = normKey(cand);
-      for (const key of allKeys){
-        if (normKey(key).startsWith(nCand) && row[key] !== '') return row[key];
+  function makeRowPicker(row){
+    const nRow = {};
+    for (const key in row) nRow[normKey(key)] = row[key];
+    const allKeys = Object.keys(nRow);
+    return function(candidates){
+      for (const k of candidates) if (row[k] !== undefined && row[k] !== '') return row[k];
+      for (const cand of candidates){
+        const nCand = normKey(cand);
+        if (nRow[nCand] !== undefined && nRow[nCand] !== '') return nRow[nCand];
       }
-    }
-    return '';
+      for (const cand of candidates){
+        const nCand = normKey(cand);
+        for (const key of allKeys){
+          if (key.startsWith(nCand) && nRow[key] !== '') return nRow[key];
+        }
+      }
+      return '';
+    };
   }
 
   function normalizeProcessName(raw){
@@ -130,41 +136,42 @@
 function rowsToGeoJSON(rows) {
   const features = [];
   for (const row of rows) {
-    const lat = toNumber(pickSmart(row, HEADERS.lat));
-    const lng = toNumber(pickSmart(row, HEADERS.lng));
+    const pick = makeRowPicker(row);
+    const lat = toNumber(pick(HEADERS.lat));
+    const lng = toNumber(pick(HEADERS.lng));
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
     const farmLng5 = +lng.toFixed(5);
     const farmLat5 = +lat.toFixed(5);
 
-    let photo = pickSmart(row, HEADERS.photoUrl);
-    if (!photo) photo = pickSmart(row, HEADERS.fileUpload);
+    let photo = pick(HEADERS.photoUrl);
+    if (!photo) photo = pick(HEADERS.fileUpload);
 
-    const processRaw  = pickSmart(row, HEADERS.process);
+    const processRaw  = pick(HEADERS.process);
     const processNorm = normalizeProcessName(processRaw);
 
     const p = {
-      timestamp:       pickSmart(row, HEADERS.timestamp),
-      email:           pickSmart(row, HEADERS.email),
-      uploader:        pickSmart(row, HEADERS.uploader),
-      originCountry:   pickSmart(row, HEADERS.originCountry),
-      originRegion:    pickSmart(row, HEADERS.originRegion),
-      farmName:        pickSmart(row, HEADERS.farmName),
+      timestamp:       pick(HEADERS.timestamp),
+      email:           pick(HEADERS.email),
+      uploader:        pick(HEADERS.uploader),
+      originCountry:   pick(HEADERS.originCountry),
+      originRegion:    pick(HEADERS.originRegion),
+      farmName:        pick(HEADERS.farmName),
       process:         processRaw,
       process_norm:    processNorm,
-      brewMethod:      pickSmart(row, HEADERS.brewMethod),
-      whereConsumed:   pickSmart(row, HEADERS.whereConsumed),
-      cafeName:        pickSmart(row, HEADERS.cafeName),
-      cafeUrl:         pickSmart(row, HEADERS.cafeUrl),
-      consumedCity:    pickSmart(row, HEADERS.consumedCity),
-      consumedAddr:    pickSmart(row, HEADERS.consumedAddr),
-      recipe:          pickSmart(row, HEADERS.recipe),
-      roasterName:     pickSmart(row, HEADERS.roasterName),
-      roasterCity:     pickSmart(row, HEADERS.roasterCity),
+      brewMethod:      pick(HEADERS.brewMethod),
+      whereConsumed:   pick(HEADERS.whereConsumed),
+      cafeName:        pick(HEADERS.cafeName),
+      cafeUrl:         pick(HEADERS.cafeUrl),
+      consumedCity:    pick(HEADERS.consumedCity),
+      consumedAddr:    pick(HEADERS.consumedAddr),
+      recipe:          pick(HEADERS.recipe),
+      roasterName:     pick(HEADERS.roasterName),
+      roasterCity:     pick(HEADERS.roasterCity),
       photoUrl:        photo,
-      matchedName:     pickSmart(row, HEADERS.matchedName),
-      countryIso2:     pickSmart(row, HEADERS.countryIso2),
-      flagEmoji:       pickSmart(row, HEADERS.flagEmoji),
+      matchedName:     pick(HEADERS.matchedName),
+      countryIso2:     pick(HEADERS.countryIso2),
+      flagEmoji:       pick(HEADERS.flagEmoji),
 
       // ✅ идентификатор фермы для точного мэчинга
       farmLng5,
@@ -259,15 +266,19 @@ function rowsToGeoJSON(rows) {
   }
 
   async function geocodeCities(names){
-    const out = {};
-    for (const raw of names){
+    const tasks = names.map(async raw => {
       const name = String(raw||'').trim();
-      if (!name) continue;
+      if (!name) return null;
       const pt = await geocodeCityName(name);
-      if (pt){
-        out[name] = pt;                                     // исходный ключ
-        out[normalizeName(name).toLowerCase()] = pt;        // нормализованный ключ
-      }
+      return pt ? { name, pt } : null;
+    });
+    const results = await Promise.all(tasks);
+    const out = {};
+    for (const r of results){
+      if (!r) continue;
+      const {name, pt} = r;
+      out[name] = pt;                                     // исходный ключ
+      out[normalizeName(name).toLowerCase()] = pt;        // нормализованный ключ
     }
     return out;
   }

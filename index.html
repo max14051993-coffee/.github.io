@@ -714,6 +714,8 @@ function highlightRouteFor(p, coord){
   let controlsRoot = null;
   let allPointFeatures = [];
   let ownerName = '';
+  let initialTitle = 'My coffee experience';
+  let mineTitle = 'My coffee experience';
 
   function buildControlsHTML(pointsCount, countriesCount){
     const wrap = document.createElement('div');
@@ -754,28 +756,31 @@ function highlightRouteFor(p, coord){
     if (c) c.textContent = countriesCount;
   }
   function setMineFilter(state){
-    const srcBrews = map.getSource('brews');
-    if (!srcBrews) return;
     const features = state
       ? allPointFeatures.filter(f => (f.properties?.uploader||'').trim() === ownerName)
       : allPointFeatures;
-    const geo = { type:'FeatureCollection', features };
-    srcBrews.setData(geo);
-    const routesSrc = map.getSource('routes');
-    if (routesSrc) {
-      const lineFeatures = buildRouteFeatures(features, CITY_COORDS);
-      routesSrc.setData({ type:'FeatureCollection', features: lineFeatures });
+    const srcBrews = map.getSource('brews');
+    if (srcBrews) {
+      const geo = { type:'FeatureCollection', features };
+      srcBrews.setData(geo);
+      const routesSrc = map.getSource('routes');
+      if (routesSrc) {
+        const lineFeatures = buildRouteFeatures(features, CITY_COORDS);
+        routesSrc.setData({ type:'FeatureCollection', features: lineFeatures });
+      }
+      const citySrc = map.getSource('city-points');
+      if (citySrc) {
+        const cityPoints = buildCityPoints(features, CITY_COORDS);
+        citySrc.setData(cityPoints);
+      }
+      visitedFilterList = [...getVisitedCountriesIso2(features)];
+      const filt = buildVisitedFilter(visitedFilterList);
+      if (map.getLayer('countries-visited-fill'))   map.setFilter('countries-visited-fill', filt);
+      if (map.getLayer('countries-visited-outline'))map.setFilter('countries-visited-outline', filt);
+      updateCounts(features.length, visitedFilterList.length);
     }
-    const citySrc = map.getSource('city-points');
-    if (citySrc) {
-      const cityPoints = buildCityPoints(features, CITY_COORDS);
-      citySrc.setData(cityPoints);
-    }
-    visitedFilterList = [...getVisitedCountriesIso2(features)];
-    const filt = buildVisitedFilter(visitedFilterList);
-    map.setFilter('countries-visited-fill', filt);
-    map.setFilter('countries-visited-outline', filt);
-    updateCounts(features.length, visitedFilterList.length);
+    const titleEl = document.getElementById('collectionTitle');
+    if (titleEl) titleEl.textContent = state ? mineTitle : initialTitle;
   }
   function isMobile(){ return window.matchMedia('(max-width: 680px)').matches; }
   function placeControls(){
@@ -841,7 +846,9 @@ function highlightRouteFor(p, coord){
       const uploaders = [...new Set(pointFeatures.map(f => (f.properties?.uploader||'').trim()).filter(Boolean))];
       ownerName = uploaders[0] || '';
       const owner = uploaders[0] ? (uploaders.length>1 ? `${uploaders[0]} +${uploaders.length-1}` : uploaders[0]) : '';
-      document.getElementById('collectionTitle').textContent = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
+      initialTitle = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
+      mineTitle = ownerName ? `My coffee experience — ${ownerName}` : 'My coffee experience';
+      document.getElementById('collectionTitle').textContent = initialTitle;
 
       // города
       const want = new Set();
@@ -865,6 +872,8 @@ function highlightRouteFor(p, coord){
       // панель
       controlsRoot = buildControlsHTML(pointFeatures.length, visitedFilterList.length);
       placeControls();
+      const mineToggle = controlsRoot.querySelector('#toggleMine');
+      if (mineToggle && mineToggle.checked) setMineFilter(true);
 
       // ачивки
       renderAchievements(computeMetrics(pointFeatures));

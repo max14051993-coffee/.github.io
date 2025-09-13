@@ -660,7 +660,10 @@ function highlightRouteFor(p, coord){
     bindControlHandlers(controlsRoot);
   }
   function debounce(fn, ms=150){ let t=0; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; }
-  window.addEventListener('resize', debounce(placeControls, 150));
+  window.addEventListener('resize', debounce(() => {
+    placeControls();
+    map.resize();
+  }, 150));
 
   function setRoutesVisibility(state){
     const vis = state ? 'visible' : 'none';

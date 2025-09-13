@@ -1,4 +1,7 @@
-    html,body,#map{height:100%;margin:0}
+    html,body,#map{height:100vh;margin:0}
+    @supports(height:100dvh){
+      html,body,#map{height:100dvh}
+    }
     html,body{
       font:14px/1.35 system-ui,-apple-system,"Segoe UI",Roboto,Arial,
             "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji";

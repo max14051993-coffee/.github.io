@@ -686,9 +686,9 @@ function highlightRouteFor(p, coord){
 
   /* ==== ачивки ==== */
   const ACHIEVEMENTS = [
-    { id:'first_sip',   emoji:'☕️', title:'Первый глоток', color:{ bg:'#d1fae5', br:'#99f6e4', txt:'#065f46' }, earned:(m)=> m.total>=1 },
-    { id:'countries_3', emoji:'🌍', title:'Страны ×3',     color:{ bg:'#fef3c7', br:'#fde68a', txt:'#92400e' }, earned:(m)=> m.countries>=3 },
-    { id:'processes_3', emoji:'🧪', title:'Процессы ×3',   color:{ bg:'#ede9fe', br:'#ddd6fe', txt:'#4c1d95' }, earned:(m)=> m.processTypes>=3 }
+    { id:'first_sip',   emoji:'🎉', title:'Первая отметка',          color:{ bg:'#d1fae5', br:'#99f6e4', txt:'#065f46' }, earned:(m)=> m.total>=1 },
+    { id:'countries_3', emoji:'🧭', title:'Три страны в коллекции',  color:{ bg:'#fef3c7', br:'#fde68a', txt:'#92400e' }, earned:(m)=> m.countries>=3 },
+    { id:'processes_3', emoji:'🔬', title:'Три способа обработки',    color:{ bg:'#ede9fe', br:'#ddd6fe', txt:'#4c1d95' }, earned:(m)=> m.processTypes>=3 }
   ];
   function computeMetrics(pointFeatures){
     const countriesSet = getVisitedCountriesIso2(pointFeatures);

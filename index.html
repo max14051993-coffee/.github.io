@@ -10,21 +10,62 @@
   <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div id="map"></div>
-  <div class="collection-title" id="collectionTitle">My coffee experience</div>
+  <div class="app-shell">
+    <aside class="side-panel">
+      <div class="brand-card glass-card">
+        <div class="brand-icon">☕</div>
+        <div class="brand-copy">
+          <span class="brand-eyebrow">Coffee log</span>
+          <p>Личная карта впечатлений от кофе, собранных по всему миру.</p>
+        </div>
+      </div>
 
-  <div class="badge" id="badge">
-    <div class="desktop-controls" id="desktopControls"></div>
-    <details id="filtersDetails">
-      <summary>☕ Панель</summary>
-      <div class="panel" id="mobileControls"></div>
-    </details>
+      <div class="collection-card glass-card">
+        <span class="eyebrow">Коллекция</span>
+        <h1 class="collection-title" id="collectionTitle">My coffee experience</h1>
+        <p class="collection-description">Живая карта с точками происхождения зерна, обжарщиков и заведений, где был выпит каждый напиток.</p>
+      </div>
+
+      <div class="panel-card glass-card" id="badge">
+        <div class="panel-intro">
+          <span class="eyebrow">Интерактивные фильтры</span>
+          <h2>Настройте отображение</h2>
+          <p>Используйте переключатели, чтобы подсветить маршруты, закрасить страны и увидеть только свои записи.</p>
+        </div>
+        <div class="desktop-controls" id="desktopControls"></div>
+        <details id="filtersDetails">
+          <summary>☕ Панель</summary>
+          <div class="panel" id="mobileControls"></div>
+        </details>
+      </div>
+
+      <section class="achievements-card glass-card">
+        <div class="achievements-header">
+          <span class="eyebrow">Достижения</span>
+          <h2>Прогресс дегустаций</h2>
+        </div>
+        <div class="achievements" id="achievements"></div>
+      </section>
+    </aside>
+
+    <main class="map-panel">
+      <div class="map-shell glass-card">
+        <div class="map-header">
+          <div class="map-title">Глобальная карта вкусов</div>
+          <p class="map-subtitle">Передвигайте карту и кликайте на маркеры, чтобы увидеть путь зерна от фермы до чашки.</p>
+        </div>
+        <div class="map-frame">
+          <div id="map"></div>
+        </div>
+      </div>
+    </main>
   </div>
-
-  <div class="achievements" id="achievements"></div>
 
   <script src="js/app.js"></script>
 </body>

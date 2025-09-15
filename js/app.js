@@ -75,6 +75,18 @@
     }
   }
 
+  const PROCESS_FILTERS = [
+    { value:'all',          label:'Все',           title:'Показывать все процессы',           dot:'var(--accent)' },
+    { value:'washed',       label:'Мытый',         title:'Мытый / washed процесс',           dot:processColors('washed').point },
+    { value:'natural',      label:'Натуральный',   title:'Natural / сухая обработка',        dot:processColors('natural').point },
+    { value:'honey',        label:'Хани',          title:'Honey / pulped natural',           dot:processColors('honey').point },
+    { value:'anaerobic',    label:'Анаэроб',       title:'Анаэробные ферментации',           dot:processColors('anaerobic').point },
+    { value:'experimental', label:'Эксперименты',  title:'Экспериментальные обработки',      dot:processColors('experimental').point },
+    { value:'other',        label:'Другое',        title:'Редкие или неуказанные методы',    dot:processColors('other').point }
+  ];
+
+  const PROCESS_FILTER_VALUES = new Set(PROCESS_FILTERS.map(p => p.value));
+
   function extractDriveId(url){
     const m = String(url||'').match(/(?:\/d\/|id=)([-\w]{25,})/);
     return m ? m[1] : null;
@@ -588,18 +600,63 @@ function highlightRouteFor(p, coord){
   let ownerName = '';
   let initialTitle = 'My coffee experience';
   let mineTitle = 'My coffee experience';
+  const filterState = { mine:false, process:'all' };
 
-  function buildControlsHTML(pointsCount, countriesCount){
+  function buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel=''){
     const wrap = document.createElement('div');
+    wrap.className = 'filters-stack';
+    const mineLabelClass = hasOwner ? 'toggle-control' : 'toggle-control is-disabled';
+    const ownerLabelSafe = String(ownerLabel || '').trim();
+    const mineLabelText = hasOwner
+      ? (ownerLabelSafe ? `Мои записи (${ownerLabelSafe})` : 'Мои записи')
+      : 'Мои записи';
+    const mineTitleText = hasOwner
+      ? (ownerLabelSafe ? `Показывать только свои записи — ${ownerLabelSafe}` : 'Показывать только свои записи')
+      : 'Фильтр появится, когда в данных указан автор';
+    const mineDisabledAttr = hasOwner ? '' : ' disabled';
+    const mineAriaDisabled = hasOwner ? '' : ' aria-disabled="true"';
+    const processButtons = PROCESS_FILTERS.map(opt => {
+      const isActive = filterState.process === opt.value;
+      const title = opt.title ? ` title="${escapeAttr(opt.title)}"` : '';
+      const dot = opt.dot ? ` style="--dot-color:${escapeAttr(opt.dot)}"` : '';
+      const cls = isActive ? 'filter-chip is-active' : 'filter-chip';
+      return `
+        <button type="button" class="${cls}" data-process="${escapeAttr(opt.value)}" aria-pressed="${isActive ? 'true' : 'false'}"${title}>
+          <span class="filter-dot"${dot}></span>
+          <span>${escapeHtml(opt.label)}</span>
+        </button>
+      `;
+    }).join('');
     wrap.innerHTML = `
-      <div class="row">
-        <span class="chip" title="Точек">☕ <span id="pointsCount">${pointsCount}</span></span>
-        <span class="chip" title="Стран">🌍 <span id="countriesCount">${countriesCount}</span></span>
+      <div class="filters-stats">
+        <span class="chip" title="Точек на карте">☕ <span id="pointsCount">${pointsCount}</span></span>
+        <span class="chip" title="Стран в коллекции">🌍 <span id="countriesCount">${countriesCount}</span></span>
       </div>
-      <div class="row" style="margin-top:8px">
-        <label title="Показывать маршруты"><input type="checkbox" id="toggleRoutes"> 🧵</label>
-        <label title="Закрашивать страны"><input type="checkbox" id="toggleVisited"> 🎨🌍</label>
-        <label title="Только мои записи"><input type="checkbox" id="toggleMine"> 🙋</label>
+      <div class="filters-section">
+        <span class="filters-label">Отображение</span>
+        <div class="filters-toggles">
+          <label class="toggle-control" title="Показывать маршруты ферма → обжарщик → кофейня">
+            <input type="checkbox" id="toggleRoutes">
+            <span class="toggle-emoji">🧵</span>
+            <span class="toggle-text">Маршруты</span>
+          </label>
+          <label class="toggle-control" title="Закрашивать страны происхождения на карте">
+            <input type="checkbox" id="toggleVisited">
+            <span class="toggle-emoji">🎨</span>
+            <span class="toggle-text">Страны</span>
+          </label>
+          <label class="${mineLabelClass}" title="${escapeAttr(mineTitleText)}"${mineAriaDisabled}>
+            <input type="checkbox" id="toggleMine"${mineDisabledAttr}>
+            <span class="toggle-emoji">🙋</span>
+            <span class="toggle-text">${escapeHtml(mineLabelText)}</span>
+          </label>
+        </div>
+      </div>
+      <div class="filters-section">
+        <span class="filters-label">Обработка зерна</span>
+        <div class="filters-chips" role="group" aria-label="Фильтр по обработке">
+          ${processButtons}
+        </div>
       </div>
     `;
     return wrap;
@@ -608,6 +665,7 @@ function highlightRouteFor(p, coord){
     const routes = rootDoc.querySelector('#toggleRoutes');
     const visited = rootDoc.querySelector('#toggleVisited');
     const mine = rootDoc.querySelector('#toggleMine');
+    const processButtons = rootDoc.querySelectorAll('[data-process]');
     if (routes && !routes._bound){
       routes.addEventListener('change', (e)=> setRoutesVisibility(e.target.checked), {passive:true});
       routes._bound = true;
@@ -620,6 +678,17 @@ function highlightRouteFor(p, coord){
       mine.addEventListener('change', (e)=> setMineFilter(e.target.checked), {passive:true});
       mine._bound = true;
     }
+    processButtons.forEach(btn => {
+      if (btn._bound) return;
+      btn.addEventListener('click', () => {
+        const raw = btn.getAttribute('data-process') || 'all';
+        const normalized = PROCESS_FILTER_VALUES.has(raw) ? raw : 'all';
+        const next = (filterState.process === normalized && normalized !== 'all') ? 'all' : normalized;
+        setProcessFilter(next);
+      }, {passive:true});
+      btn._bound = true;
+    });
+    updateProcessButtons(filterState.process);
   }
   function updateCounts(pointsCount, countriesCount){
     const p = controlsRoot?.querySelector('#pointsCount');
@@ -627,32 +696,78 @@ function highlightRouteFor(p, coord){
     const c = controlsRoot?.querySelector('#countriesCount');
     if (c) c.textContent = countriesCount;
   }
-  function setMineFilter(state){
-    const features = state
-      ? allPointFeatures.filter(f => (f.properties?.uploader||'').trim() === ownerName)
-      : allPointFeatures;
+  function updateProcessButtons(activeValue){
+    if (!controlsRoot) return;
+    controlsRoot.querySelectorAll('[data-process]').forEach(btn => {
+      const value = btn.getAttribute('data-process') || 'all';
+      const isActive = value === activeValue;
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      btn.classList.toggle('is-active', isActive);
+    });
+  }
+  function getFilteredFeatures(){
+    return allPointFeatures.filter(f => {
+      if (filterState.mine && ownerName){
+        const uploader = (f.properties?.uploader || '').trim();
+        if (uploader !== ownerName) return false;
+      }
+      if (filterState.process !== 'all'){
+        const norm = (f.properties?.process_norm || '').trim() || 'other';
+        if (filterState.process === 'other'){
+          if (norm && norm !== 'other') return false;
+        } else if (norm !== filterState.process){
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+  function applyFilters(){
+    const features = getFilteredFeatures();
+    const geo = { type:'FeatureCollection', features };
     const srcBrews = map.getSource('brews');
-    if (srcBrews) {
-      const geo = { type:'FeatureCollection', features };
-      srcBrews.setData(geo);
-      const routesSrc = map.getSource('routes');
-      if (routesSrc) {
-        const lineFeatures = buildRouteFeatures(features, CITY_COORDS);
-        routesSrc.setData({ type:'FeatureCollection', features: lineFeatures });
-      }
-      const citySrc = map.getSource('city-points');
-      if (citySrc) {
-        const cityPoints = buildCityPoints(features, CITY_COORDS);
-        citySrc.setData(cityPoints);
-      }
-      visitedFilterList = [...getVisitedCountriesIso2(features)];
-      const filt = buildVisitedFilter(visitedFilterList);
-      if (map.getLayer('countries-visited-fill'))   map.setFilter('countries-visited-fill', filt);
-      if (map.getLayer('countries-visited-outline'))map.setFilter('countries-visited-outline', filt);
-      updateCounts(features.length, visitedFilterList.length);
+    if (srcBrews) srcBrews.setData(geo);
+    const routesSrc = map.getSource('routes');
+    if (routesSrc) {
+      const lineFeatures = buildRouteFeatures(features, CITY_COORDS);
+      routesSrc.setData({ type:'FeatureCollection', features: lineFeatures });
+    }
+    const citySrc = map.getSource('city-points');
+    if (citySrc) {
+      const cityPoints = buildCityPoints(features, CITY_COORDS);
+      citySrc.setData(cityPoints);
+    }
+    visitedFilterList = [...getVisitedCountriesIso2(features)];
+    const filt = buildVisitedFilter(visitedFilterList);
+    if (map.getLayer('countries-visited-fill'))   map.setFilter('countries-visited-fill', filt);
+    if (map.getLayer('countries-visited-outline'))map.setFilter('countries-visited-outline', filt);
+    updateCounts(features.length, visitedFilterList.length);
+    clearRouteHighlight();
+    return features;
+  }
+  function setProcessFilter(value){
+    const normalized = PROCESS_FILTER_VALUES.has(value) ? value : 'all';
+    if (filterState.process === normalized){
+      updateProcessButtons(normalized);
+      return;
+    }
+    filterState.process = normalized;
+    updateProcessButtons(normalized);
+    applyFilters();
+  }
+  function setMineFilter(state){
+    const nextState = state && Boolean(ownerName);
+    filterState.mine = nextState;
+    const mineToggle = controlsRoot?.querySelector('#toggleMine');
+    if (mineToggle && mineToggle.checked !== nextState){
+      mineToggle.checked = nextState;
     }
     const titleEl = document.getElementById('collectionTitle');
-    if (titleEl) titleEl.textContent = state ? mineTitle : initialTitle;
+    if (titleEl) titleEl.textContent = nextState ? mineTitle : initialTitle;
+    const filtered = applyFilters();
+    if (nextState && filtered.length){
+      fitToData({ type:'FeatureCollection', features: filtered });
+    }
   }
   function isMobile(){ return window.matchMedia('(max-width: 680px)').matches; }
   function placeControls(){
@@ -716,11 +831,14 @@ function highlightRouteFor(p, coord){
       const geojsonPoints = rowsToGeoJSON(results.data || []);
       const pointFeatures = geojsonPoints.features;
       allPointFeatures = pointFeatures;
+      filterState.mine = false;
+      filterState.process = 'all';
 
       // uploader в шапку
       const uploaders = [...new Set(pointFeatures.map(f => (f.properties?.uploader||'').trim()).filter(Boolean))];
-      ownerName = uploaders[0] || '';
-      const owner = uploaders[0] ? (uploaders.length>1 ? `${uploaders[0]} +${uploaders.length-1}` : uploaders[0]) : '';
+      const primaryUploader = (uploaders[0] || '').trim();
+      ownerName = primaryUploader;
+      const owner = primaryUploader ? (uploaders.length>1 ? `${primaryUploader} +${uploaders.length-1}` : primaryUploader) : '';
       initialTitle = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
       mineTitle = ownerName ? `My coffee experience — ${ownerName}` : 'My coffee experience';
       document.getElementById('collectionTitle').textContent = initialTitle;
@@ -745,7 +863,7 @@ function highlightRouteFor(p, coord){
       visitedFilterList = [...getVisitedCountriesIso2(pointFeatures)];
 
       // панель
-      controlsRoot = buildControlsHTML(pointFeatures.length, visitedFilterList.length);
+      controlsRoot = buildControlsHTML(pointFeatures.length, visitedFilterList.length, Boolean(ownerName), ownerName);
       placeControls();
       const mineToggle = controlsRoot.querySelector('#toggleMine');
       if (mineToggle && mineToggle.checked) setMineFilter(true);
@@ -792,6 +910,7 @@ function highlightRouteFor(p, coord){
             paint:{ 'line-color':'#ff7f00', 'line-width':5, 'line-opacity':0.9 } });
         }
         setRoutesVisibility(false);
+        applyFilters();
 
         if (!map.getLayer('clusters')){
           map.addLayer({

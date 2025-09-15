@@ -10,7 +10,7 @@ html,body{
 
 body{
   margin:0;
-  font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';
+  font-family:var(--font-base);
   line-height:1.55;
   background:var(--page-bg);
   color:var(--text);
@@ -43,6 +43,9 @@ a:hover{
 }
 
 :root{
+  --font-base:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';
+  --font-card:'Golos Text',var(--font-base);
+  --font-ui:'Onest',var(--font-base);
   --page-bg:radial-gradient(circle at top left,#fdf4ec 0%,#f5f8ff 40%,#eef1f8 100%);
   --surface:rgba(255,255,255,0.72);
   --surface-strong:rgba(255,255,255,0.85);
@@ -81,6 +84,7 @@ body[data-theme="dark"]{
   border:1px solid var(--surface-border);
   box-shadow:var(--surface-shadow);
   padding:24px;
+  font-family:var(--font-card);
 }
 
 .app-shell{
@@ -218,6 +222,7 @@ body[data-theme="dark"]{
   background:var(--surface-strong);
   font-weight:600;
   color:var(--text);
+  font-family:var(--font-ui);
   list-style:none;
   display:flex;
   align-items:center;
@@ -272,6 +277,7 @@ label{
   cursor:pointer;
   color:var(--text);
   font-weight:500;
+  font-family:var(--font-ui);
 }
 
 input[type="checkbox"]{
@@ -376,7 +382,7 @@ input[type="checkbox"]{
   overflow:hidden;
   background:var(--surface-strong);
   border:1px solid var(--surface-border);
-  font:14px/1.4 'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+  font:14px/1.4 var(--font-card);
   color:var(--text);
 }
 

@@ -853,7 +853,8 @@ function highlightRouteFor(p, coord){
       const owner = primaryUploader ? (uploaders.length>1 ? `${primaryUploader} +${uploaders.length-1}` : primaryUploader) : '';
       initialTitle = owner ? `My coffee experience — ${owner}` : 'My coffee experience';
       mineTitle = ownerName ? `My coffee experience — ${ownerName}` : 'My coffee experience';
-      document.getElementById('collectionTitle').textContent = initialTitle;
+      const titleEl = document.getElementById('collectionTitle');
+      if (titleEl) titleEl.textContent = initialTitle;
 
       // города
       const want = new Set();

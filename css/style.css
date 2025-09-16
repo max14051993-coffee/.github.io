@@ -107,6 +107,7 @@ body[data-theme="dark"]{
 .map-panel{
   grid-area:map;
   display:flex;
+  align-items:flex-start;
 }
 
 .brand-card{

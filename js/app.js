@@ -769,7 +769,19 @@ function highlightRouteFor(p, coord){
       fitToData({ type:'FeatureCollection', features: filtered });
     }
   }
-  function isMobile(){ return window.matchMedia('(max-width: 680px)').matches; }
+  function isMobile(){
+    const desktop = document.getElementById('desktopControls');
+    if (desktop){
+      const desktopDisplay = window.getComputedStyle(desktop).display;
+      if (desktopDisplay && desktopDisplay !== 'none') return false;
+    }
+    const details = document.getElementById('filtersDetails');
+    if (details){
+      const detailsDisplay = window.getComputedStyle(details).display;
+      if (detailsDisplay && detailsDisplay !== 'none') return true;
+    }
+    return window.matchMedia('(max-width: 720px)').matches;
+  }
   function placeControls(){
     const desktop = document.getElementById('desktopControls');
     const mobile = document.getElementById('mobileControls');

@@ -25,6 +25,7 @@
       map.addLayer({ id: 'sky', type: 'sky', paint: { 'sky-type':'atmosphere', 'sky-atmosphere-sun':[10,25], 'sky-atmosphere-sun-intensity': 10 } });
     }
     map.setFog({ range:[0.6, 12], color:'#f6efe7', 'high-color':'#d4c7b8', 'horizon-blend':0.2, 'star-intensity':0 });
+    map.resize();
   });
 
   /* ==== утилиты ==== */
@@ -878,6 +879,7 @@ function highlightRouteFor(p, coord){
       // панель
       controlsRoot = buildControlsHTML(pointFeatures.length, visitedFilterList.length, Boolean(ownerName), ownerName);
       placeControls();
+      map.resize();
       const mineToggle = controlsRoot.querySelector('#toggleMine');
       if (mineToggle && mineToggle.checked) setMineFilter(true);
 

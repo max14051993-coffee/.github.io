@@ -521,8 +521,8 @@ input[type="checkbox"]{
 .map-frame{
   position:relative;
   flex:1 1 auto;
-  min-height:460px;
-  height:100%;
+  min-height:clamp(320px, 65vh, 600px);
+  height:clamp(360px, 75vh, 720px);
   border-radius:22px;
   overflow:hidden;
   box-shadow:var(--map-shadow);
@@ -654,9 +654,6 @@ input[type="checkbox"]{
     grid-template-areas:'map' 'side';
   }
 
-  .map-frame{
-    min-height:400px;
-  }
 }
 
 @media (max-width:720px){
@@ -683,10 +680,6 @@ input[type="checkbox"]{
 
   .map-shell{
     padding:20px;
-  }
-
-  .map-frame{
-    min-height:340px;
   }
 
   .panel-card{
@@ -757,8 +750,9 @@ input[type="checkbox"]{
   }
 }
 
-@media (max-width:480px){
+@media (orientation:landscape) and (max-height:600px){
   .map-frame{
-    min-height:300px;
+    min-height:clamp(240px, 90vh, 520px);
+    height:clamp(260px, 100vh, 560px);
   }
 }

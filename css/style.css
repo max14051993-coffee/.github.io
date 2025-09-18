@@ -94,10 +94,10 @@ body[data-theme="dark"]{
 
 .app-shell{
   flex:1 1 0;
-  max-width:1200px;
+  max-width:min(1600px,95vw);
   width:100%;
   display:grid;
-  grid-template-columns:minmax(240px,300px) minmax(0,1fr);
+  grid-template-columns:minmax(260px,320px) minmax(0,1fr);
   grid-template-areas:"side map";
   gap:28px;
   align-items:stretch;
@@ -641,6 +641,15 @@ input[type="checkbox"]{
 
   .map-shell{
     padding:24px;
+  }
+}
+
+@media (min-width:1200px){
+  body{
+    padding-top:40px;
+    padding-bottom:40px;
+    padding-left:clamp(24px,4vw,56px);
+    padding-right:clamp(24px,4vw,56px);
   }
 }
 

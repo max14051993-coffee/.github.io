@@ -680,6 +680,13 @@ input[type="checkbox"]{
 
   .map-shell{
     padding:20px;
+    flex:0 0 auto;
+  }
+
+  .map-frame{
+    flex:0 0 auto;
+    min-height:clamp(260px, 55vh, 480px);
+    height:clamp(280px, 60vh, 520px);
   }
 
   .panel-card{

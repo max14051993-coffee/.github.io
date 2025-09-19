@@ -32,8 +32,9 @@
   const normKey = (k) => String(k||'').toLowerCase().replace(/\s+/g,' ').trim();
   const normalizeName = (s) => String(s||'').replace(/\s+/g,' ').trim();
   const toNumber = (v) => (typeof v==='number') ? v : (typeof v==='string' ? parseFloat(v.replace(',', '.')) : NaN);
-  const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])[m]);
-  const escapeAttr = (s) => String(s||'').replace(/"/g,'&quot;');
+  const ESCAPE_MAP = {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+  const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g, m => ESCAPE_MAP[m]);
+  const escapeAttr = (s) => escapeHtml(s);
 
   function makeRowPicker(row){
     const nRow = {};
@@ -102,12 +103,88 @@
       `https://drive.google.com/uc?export=view&id=${id}`,
       `https://drive.google.com/uc?export=download&id=${id}`
     ] : [url];
-    const first = chain.shift();
-    return `<img class="popup-cover" loading="lazy" src="${escapeAttr(first)}"
-             alt="photo" onerror="driveImgFallback(this, ${JSON.stringify(chain)})">`;
+    if (!chain.length) return '';
+    const [first, ...fallbacks] = chain;
+    if (!first) return '';
+    const attrs = [
+      'class="popup-cover"',
+      'loading="lazy"',
+      `src="${escapeAttr(first)}"`,
+      'alt="photo"'
+    ];
+    if (fallbacks.length) {
+      attrs.push(`data-fallback="${escapeAttr(JSON.stringify(fallbacks))}"`);
+    }
+    return `<img ${attrs.join(' ')}>`;
   }
-  function driveImgFallback(img, list){ if (!list || !list.length) { img.remove(); return; } img.src = list.shift(); }
-  window.driveImgFallback = driveImgFallback;
+
+  function parseDriveFallbackList(raw){
+    if (!raw) return [];
+    try {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed.map(v => typeof v === 'string' ? v.trim() : '').filter(Boolean);
+      }
+    } catch (err) {
+      /* ignore */
+    }
+    if (typeof raw === 'string') {
+      return raw.split('|').map(s => s.trim()).filter(Boolean);
+    }
+    return [];
+  }
+
+  function bindDriveImgFallbackHandlers(root){
+    if (!root || !root.querySelectorAll) return;
+    const images = root.querySelectorAll('img.popup-cover[data-fallback]');
+    images.forEach(img => {
+      if (img._driveFallbackBound) return;
+      const list = parseDriveFallbackList(img.dataset?.fallback || img.getAttribute('data-fallback'));
+      if (!list.length) {
+        img.removeAttribute('data-fallback');
+        return;
+      }
+      img._driveFallbackList = list.slice();
+      img.dataset.fallback = JSON.stringify(img._driveFallbackList);
+      img._driveFallbackBound = true;
+      img.addEventListener('error', () => driveImgFallback(img));
+      if (img.complete && img.naturalWidth === 0) {
+        driveImgFallback(img);
+      }
+    });
+  }
+
+  function driveImgFallback(img){
+    if (!img) return;
+    let list = Array.isArray(img._driveFallbackList) ? img._driveFallbackList : null;
+    if (!list) {
+      list = parseDriveFallbackList(img.dataset?.fallback || img.getAttribute('data-fallback'));
+    }
+    if (!Array.isArray(list) || !list.length) {
+      img.remove();
+      return;
+    }
+    let next = '';
+    while (list.length && !next) {
+      const candidate = list.shift();
+      if (typeof candidate === 'string' && candidate.trim()) {
+        next = candidate.trim();
+      }
+    }
+    if (!next) {
+      img.remove();
+      return;
+    }
+    img._driveFallbackList = list;
+    if (img.dataset) {
+      if (list.length) {
+        img.dataset.fallback = JSON.stringify(list);
+      } else {
+        img.removeAttribute('data-fallback');
+      }
+    }
+    img.src = next;
+  }
 
   function flagFromRow(flagEmojiCell, iso2Cell){
     const emoji = String(flagEmojiCell||'').trim();
@@ -528,9 +605,12 @@ function highlightRouteFor(p, coord){
              <button type="button" data-next style="padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation">▶</button>
            </div>` : '';
       popup.setHTML(popupHTML(p) + nav);
+      const popupEl = popup.getElement();
+      if (popupEl) bindDriveImgFallbackHandlers(popupEl);
 
       setTimeout(()=> {
         const el = popup.getElement();
+        if (el) bindDriveImgFallbackHandlers(el);
         el?.querySelector('[data-prev]')?.addEventListener('click', ()=>{
           i=(i-1+features.length)%features.length; render();
         }, {passive:true});

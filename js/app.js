@@ -32,8 +32,15 @@
   const normKey = (k) => String(k||'').toLowerCase().replace(/\s+/g,' ').trim();
   const normalizeName = (s) => String(s||'').replace(/\s+/g,' ').trim();
   const toNumber = (v) => (typeof v==='number') ? v : (typeof v==='string' ? parseFloat(v.replace(',', '.')) : NaN);
-  const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])[m]);
-  const escapeAttr = (s) => String(s||'').replace(/"/g,'&quot;');
+  const ESCAPE_ENTITIES = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  };
+  const escapeHtml = (s) => String(s||'').replace(/[&<>"']/g, m => ESCAPE_ENTITIES[m]);
+  const escapeAttr = (s) => String(s||'').replace(/[&<>"']/g, m => ESCAPE_ENTITIES[m]);
 
   function makeRowPicker(row){
     const nRow = {};
@@ -103,8 +110,9 @@
       `https://drive.google.com/uc?export=download&id=${id}`
     ] : [url];
     const first = chain.shift();
+    const fallbackChain = escapeAttr(JSON.stringify(chain));
     return `<img class="popup-cover" loading="lazy" src="${escapeAttr(first)}"
-             alt="photo" onerror="driveImgFallback(this, ${JSON.stringify(chain)})">`;
+             alt="photo" onerror="driveImgFallback(this, ${fallbackChain})">`;
   }
   function driveImgFallback(img, list){ if (!list || !list.length) { img.remove(); return; } img.src = list.shift(); }
   window.driveImgFallback = driveImgFallback;
@@ -233,7 +241,7 @@ function rowsToGeoJSON(rows) {
     const pType = p.process_norm || 'other';
     const col = processColors(pType);
     const badge = p.process
-      ? `<div class="process-badge" style="background:${col.bg};border-color:${col.br};color:${col.txt}">${escapeHtml(p.process)}</div>`
+      ? `<div class="process-badge" style="${escapeAttr(`background:${col.bg};border-color:${col.br};color:${col.txt}`)}">${escapeHtml(p.process)}</div>`
       : '';
 
     return `
@@ -831,7 +839,7 @@ function highlightRouteFor(p, coord){
     const earned = ACHIEVEMENTS.filter(a => a.earned(metrics));
     const el = document.getElementById('achievements');
     el.innerHTML = earned.map(a =>
-      `<div class="ach-badge" style="background:${a.color.bg};border-color:${a.color.br};color:${a.color.txt}" title="${escapeAttr(a.title)}">
+      `<div class="ach-badge" style="${escapeAttr(`background:${a.color.bg};border-color:${a.color.br};color:${a.color.txt}`)}" title="${escapeAttr(a.title)}">
          <span class="ach-emoji">${a.emoji}</span><span class="ach-title">${a.title}</span>
        </div>`
     ).join('');

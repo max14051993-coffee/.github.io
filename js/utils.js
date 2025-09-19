@@ -11,7 +11,7 @@ const ESCAPE_HTML_LOOKUP = {
 };
 
 export const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, (m) => ESCAPE_HTML_LOOKUP[m]);
-export const escapeAttr = (s) => String(s || '').replace(/"/g, '&quot;');
+export const escapeAttr = (s) => String(s || '').replace(/[&<>"']/g, (m) => ESCAPE_HTML_LOOKUP[m]);
 
 export function extractDriveId(url) {
   const match = String(url || '').match(/(?:\/d\/|id=)([-\w]{25,})/);

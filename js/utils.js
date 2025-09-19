@@ -31,19 +31,68 @@ export function driveImgHtml(url) {
     `https://drive.google.com/uc?export=download&id=${id}`,
   ] : [url];
   const [first, ...rest] = chain;
-  return `<img class="popup-cover" loading="lazy" src="${escapeAttr(first)}" alt="photo" onerror="driveImgFallback(this, ${JSON.stringify(rest)})">`;
+  const fallbackAttr = ` data-fallback="${escapeAttr(JSON.stringify(rest))}"`;
+  return `<img class="popup-cover" loading="lazy" src="${escapeAttr(first)}" alt="photo"${fallbackAttr}>`;
+}
+
+function readFallbackList(img, list) {
+  if (Array.isArray(list)) return list;
+  if (!img) return [];
+  let raw;
+  if (img.dataset && Object.prototype.hasOwnProperty.call(img.dataset, 'fallback')) {
+    raw = img.dataset.fallback;
+  } else if (typeof img.getAttribute === 'function') {
+    const attr = img.getAttribute('data-fallback');
+    raw = attr === null ? undefined : attr;
+  }
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function storeFallbackList(img, list) {
+  if (!img) return;
+  if (list && list.length) {
+    if (img.dataset) {
+      img.dataset.fallback = JSON.stringify(list);
+    } else {
+      img.setAttribute('data-fallback', JSON.stringify(list));
+    }
+  } else {
+    img.removeAttribute('data-fallback');
+  }
 }
 
 export function driveImgFallback(img, list) {
-  if (!list || !list.length) {
+  if (!img) return;
+  if (typeof window !== 'undefined' && typeof window.HTMLImageElement !== 'undefined' && !(img instanceof window.HTMLImageElement)) {
+    return;
+  }
+  const queue = readFallbackList(img, list);
+  if (!queue || !queue.length) {
+    img.removeAttribute('data-fallback');
     img.remove();
     return;
   }
-  img.src = list.shift();
+  const next = queue.shift();
+  storeFallbackList(img, queue);
+  img.src = next;
 }
 
 if (typeof window !== 'undefined') {
   window.driveImgFallback = driveImgFallback;
+  window.addEventListener('error', (event) => {
+    const target = event?.target;
+    if (!target || !(target instanceof window.HTMLImageElement)) return;
+    const hasDatasetFallback = target.dataset && Object.prototype.hasOwnProperty.call(target.dataset, 'fallback');
+    const hasAttrFallback = typeof target.getAttribute === 'function' && target.getAttribute('data-fallback') !== null;
+    if (!hasDatasetFallback && !hasAttrFallback) return;
+    driveImgFallback(target);
+  }, true);
 }
 
 export const debounce = (fn, ms = 150) => {

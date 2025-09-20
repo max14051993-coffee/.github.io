@@ -270,6 +270,8 @@ label.toggle-control{
   border-radius:999px;
   background:transparent;
   transition:background .2s ease, color .2s ease;
+  max-width:100%;
+  flex-wrap:wrap;
 }
 
 label.toggle-control:hover{
@@ -294,11 +296,14 @@ label.toggle-control input[type="checkbox"]{
   font-size:18px;
   line-height:1;
   transition:color .2s ease, transform .2s ease;
+  flex-shrink:0;
 }
 
 .toggle-text{
   font-size:14px;
   transition:color .2s ease;
+  white-space:normal;
+  overflow-wrap:anywhere;
 }
 
 label.toggle-control input:checked ~ .toggle-emoji,
@@ -330,6 +335,11 @@ label.toggle-control input:checked ~ .toggle-emoji{
   font-weight:500;
   cursor:pointer;
   transition:background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
+  max-width:100%;
+  flex-wrap:wrap;
+  justify-content:center;
+  text-align:center;
+  overflow-wrap:anywhere;
 }
 
 .filter-chip .filter-dot{
@@ -486,6 +496,11 @@ input[type="checkbox"]{
   line-height:1.2;
   color:var(--text);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06);
+  max-width:100%;
+  flex-wrap:wrap;
+  justify-content:center;
+  text-align:center;
+  overflow-wrap:anywhere;
 }
 
 .ach-emoji{

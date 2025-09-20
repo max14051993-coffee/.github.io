@@ -17,41 +17,39 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-  <div class="app-shell">
-    <aside class="side-panel">
-      <div class="panel-card glass-card" id="badge">
-        <div class="panel-intro">
-          <span class="eyebrow">Интерактивные фильтры</span>
-          <h2>Настройте карту под себя</h2>
-          <p>Выделяйте маршруты, подсвечивайте страны, показывайте свои заметки или выбирайте зерно по типу обработки.</p>
-        </div>
-        <div class="desktop-controls" id="desktopControls"></div>
-        <details id="filtersDetails">
-          <summary>☕ Панель</summary>
-          <div class="panel" id="mobileControls"></div>
+  <div class="map-stage">
+    <div id="map"></div>
+
+    <div class="map-ui">
+      <header class="map-banner">
+        <span class="eyebrow">Интерактивная карта</span>
+        <h1 class="map-title" id="collectionTitle">my coffee experience</h1>
+        <p class="map-subtitle">Передвигайте карту и кликайте на маркеры, чтобы увидеть путь зерна от фермы до чашки.</p>
+      </header>
+
+      <div class="map-overlays">
+        <details class="overlay-card" id="filtersMenu">
+          <summary class="overlay-summary">
+            <span class="overlay-icon">☕</span>
+            <span class="overlay-title">Фильтры и слои</span>
+            <span class="overlay-caret" aria-hidden="true"></span>
+          </summary>
+          <div class="overlay-body" id="filtersPanel"></div>
+        </details>
+
+        <details class="overlay-card" id="achievementsMenu">
+          <summary class="overlay-summary">
+            <span class="overlay-icon">🏆</span>
+            <span class="overlay-title">Достижения</span>
+            <span class="overlay-caret" aria-hidden="true"></span>
+          </summary>
+          <div class="overlay-body">
+            <p class="overlay-description">Следите за прогрессом дегустаций и открывайте новые бейджи.</p>
+            <div class="achievements" id="achievements"></div>
+          </div>
         </details>
       </div>
-
-      <section class="achievements-card glass-card">
-        <div class="achievements-header">
-          <span class="eyebrow">Достижения</span>
-          <h2>Прогресс дегустаций</h2>
-        </div>
-        <div class="achievements" id="achievements"></div>
-      </section>
-    </aside>
-
-    <main class="map-panel">
-      <div class="map-shell glass-card">
-        <div class="map-header">
-          <div class="map-title" id="collectionTitle">my coffee experience</div>
-          <p class="map-subtitle">Передвигайте карту и кликайте на маркеры, чтобы увидеть путь зерна от фермы до чашки.</p>
-        </div>
-        <div class="map-frame">
-          <div id="map"></div>
-        </div>
-      </div>
-    </main>
+    </div>
   </div>
 
   <script type="module" src="js/app.js"></script>

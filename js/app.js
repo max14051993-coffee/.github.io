@@ -11,6 +11,7 @@ document.body.dataset.theme = theme;
 const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase();
 
 const mapController = createMapController({ accessToken: MAPBOX_TOKEN, theme, flagMode });
+const overlayMedia = window.matchMedia('(max-width: 720px)');
 
 const filterState = { mine: false, process: 'all' };
 let allPointFeatures = [];
@@ -19,6 +20,30 @@ let ownerName = '';
 let initialTitle = 'My coffee experience';
 let mineTitle = 'My coffee experience';
 let controls = null;
+
+function syncOverlayMenus(force = false) {
+  const compact = overlayMedia.matches;
+  const mode = compact ? 'mobile' : 'desktop';
+  const menus = [
+    document.getElementById('filtersMenu'),
+    document.getElementById('achievementsMenu'),
+  ];
+  menus.forEach((menu) => {
+    if (!menu) return;
+    const prevMode = menu.dataset.overlayMode;
+    if (force || prevMode !== mode) {
+      menu.dataset.overlayMode = mode;
+      menu.open = mode === 'desktop';
+    }
+  });
+}
+
+const handleOverlayChange = () => syncOverlayMenus(true);
+if (typeof overlayMedia.addEventListener === 'function') {
+  overlayMedia.addEventListener('change', handleOverlayChange);
+} else if (typeof overlayMedia.addListener === 'function') {
+  overlayMedia.addListener(handleOverlayChange);
+}
 
 function getFilteredFeatures() {
   return allPointFeatures.filter((feature) => {
@@ -85,6 +110,7 @@ function handleMineToggle(state) {
 }
 
 async function init() {
+  syncOverlayMenus(true);
   try {
     const data = await loadData({ csvUrl: CSV_URL, mapboxToken: MAPBOX_TOKEN });
     allPointFeatures = data.pointFeatures;
@@ -108,6 +134,7 @@ async function init() {
       onProcessChange: handleProcessChange,
     });
     controls.placeControls();
+    syncOverlayMenus();
 
     renderAchievements(data.metrics);
 
@@ -126,11 +153,12 @@ async function init() {
     window.addEventListener('resize', debounce(() => {
       controls.placeControls();
       mapController.resize();
+      syncOverlayMenus();
     }, 150));
   } catch (err) {
-    const badge = document.getElementById('badge');
-    if (badge) {
-      badge.innerHTML = '<div style="padding:10px 12px">Ошибка загрузки CSV</div>';
+    const filtersPanel = document.getElementById('filtersPanel');
+    if (filtersPanel) {
+      filtersPanel.innerHTML = '<div class="overlay-error">Ошибка загрузки CSV</div>';
     }
     console.error('CSV error:', err);
   }

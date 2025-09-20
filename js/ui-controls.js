@@ -33,6 +33,10 @@ export function renderAchievements(metrics) {
   const earned = ACHIEVEMENTS.filter((achievement) => achievement.earned(metrics));
   const el = document.getElementById('achievements');
   if (!el) return;
+  if (!earned.length) {
+    el.innerHTML = '<p class="ach-empty">Продолжайте исследовать карту, чтобы открыть новые бейджи.</p>';
+    return;
+  }
   el.innerHTML = earned.map((achievement) => `
     <div class="ach-badge" style="background:${achievement.color.bg};border-color:${achievement.color.br};color:${achievement.color.txt}" title="${escapeAttr(achievement.title)}">
       <span class="ach-emoji">${achievement.emoji}</span><span class="ach-title">${achievement.title}</span>
@@ -66,6 +70,7 @@ function buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel = '
     `;
   }).join('');
   wrap.innerHTML = `
+    <p class="overlay-description">Выбирайте, что подсветить на карте.</p>
     <div class="filters-stats">
       <span class="chip" title="Точек на карте">☕ <span id="pointsCount">${pointsCount}</span></span>
       <span class="chip" title="Стран в коллекции">🌍 <span id="countriesCount">${countriesCount}</span></span>
@@ -98,20 +103,6 @@ function buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel = '
     </div>
   `;
   return wrap;
-}
-
-function isMobileLayout() {
-  const desktop = document.getElementById('desktopControls');
-  if (desktop) {
-    const desktopDisplay = window.getComputedStyle(desktop).display;
-    if (desktopDisplay && desktopDisplay !== 'none') return false;
-  }
-  const details = document.getElementById('filtersDetails');
-  if (details) {
-    const detailsDisplay = window.getComputedStyle(details).display;
-    if (detailsDisplay && detailsDisplay !== 'none') return true;
-  }
-  return window.matchMedia('(max-width: 720px)').matches;
 }
 
 export function createUIController({
@@ -172,19 +163,11 @@ export function createUIController({
   };
 
   const placeControls = () => {
-    const desktop = document.getElementById('desktopControls');
-    const mobile = document.getElementById('mobileControls');
-    if (!desktop || !mobile) return;
-    if (isMobileLayout()) {
-      if (root.parentElement !== mobile) {
-        mobile.innerHTML = '';
-        mobile.appendChild(root);
-      }
-    } else {
-      if (root.parentElement !== desktop) {
-        desktop.innerHTML = '';
-        desktop.appendChild(root);
-      }
+    const container = document.getElementById('filtersPanel');
+    if (!container) return;
+    if (root.parentElement !== container) {
+      container.innerHTML = '';
+      container.appendChild(root);
     }
   };
 
@@ -201,6 +184,5 @@ export function createUIController({
     updateProcessButtons,
     setMineState,
     isMineChecked,
-    isMobileLayout,
   };
 }

@@ -647,6 +647,7 @@ input[type="checkbox"]{
 @media (max-width:960px){
   body{
     padding:28px 18px;
+    display:block;
   }
 
   .app-shell{

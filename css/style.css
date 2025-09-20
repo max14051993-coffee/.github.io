@@ -18,10 +18,6 @@ body{
   -moz-osx-font-smoothing:grayscale;
   -webkit-tap-highlight-color:transparent;
   min-height:100vh;
-  display:flex;
-  justify-content:center;
-  align-items:stretch;
-  padding:32px 24px;
 }
 
 @supports(height:100dvh){
@@ -92,59 +88,80 @@ body[data-theme="dark"]{
   font-family:var(--font-card);
 }
 
-.app-shell{
-  flex:1 1 0;
-  max-width:1200px;
-  width:100%;
-  display:flex;
-  flex-direction:column;
-  gap:28px;
-}
-
-.map-shell{
-  width:100%;
-  display:flex;
-  flex-direction:column;
-  gap:20px;
-  padding:28px;
-  flex:1 1 auto;
-  min-height:0;
-}
-
-.map-header{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-}
-
-.map-frame{
+.map-stage{
   position:relative;
-  flex:1 1 auto;
-  min-height:clamp(320px, 65vh, 600px);
-  height:clamp(360px, 75vh, 720px);
-  border-radius:22px;
+  width:100%;
+  height:100vh;
+  min-height:100vh;
+  background:var(--page-bg);
   overflow:hidden;
-  box-shadow:var(--map-shadow);
-  border:1px solid var(--map-border);
 }
 
-.map-overlays{
+@supports(height:100dvh){
+  .map-stage{
+    height:100dvh;
+    min-height:100dvh;
+  }
+}
+
+.map-ui{
   position:absolute;
   top:24px;
   left:24px;
   right:24px;
   display:flex;
-  flex-direction:column;
   gap:16px;
   align-items:flex-start;
+  flex-wrap:wrap;
   pointer-events:none;
+  z-index:2;
+}
+
+.map-banner{
+  background:var(--surface);
+  border-radius:20px;
+  border:1px solid var(--surface-border);
+  box-shadow:var(--surface-shadow);
+  backdrop-filter:blur(18px);
+  padding:18px 20px;
+  font-family:var(--font-card);
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  max-width:360px;
+  width:min(360px,100%);
+  pointer-events:auto;
+}
+
+.map-banner .map-title{
+  font-size:28px;
+  font-weight:700;
+  color:var(--text);
+}
+
+.map-banner .map-subtitle{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:15px;
+  line-height:1.6;
+}
+
+.map-overlays{
+  margin-left:auto;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  width:min(260px,100%);
+  pointer-events:auto;
 }
 
 .overlay-card{
-  width:min(380px,100%);
+  width:100%;
+  max-width:260px;
   background:var(--surface);
   border:1px solid var(--surface-border);
-  border-radius:20px;
+  border-radius:18px;
+
   box-shadow:var(--surface-shadow);
   backdrop-filter:blur(18px);
   pointer-events:auto;
@@ -154,8 +171,8 @@ body[data-theme="dark"]{
 .overlay-summary{
   display:flex;
   align-items:center;
-  gap:12px;
-  padding:14px 18px;
+  gap:10px;
+  padding:12px 16px;
   font-family:var(--font-ui);
   font-weight:600;
   color:var(--text);
@@ -175,11 +192,11 @@ body[data-theme="dark"] .overlay-summary{
 }
 
 .overlay-icon{
-  font-size:18px;
+  font-size:16px;
 }
 
 .overlay-title{
-  font-size:15px;
+  font-size:14px;
 }
 
 .overlay-caret{
@@ -198,19 +215,18 @@ body[data-theme="dark"] .overlay-summary{
 }
 
 .overlay-body{
-  padding:20px 20px 22px;
+  padding:16px 16px 18px;
   border-top:1px solid var(--surface-border);
   background:var(--surface);
   display:flex;
   flex-direction:column;
-  gap:18px;
+  gap:14px;
 }
 
 .overlay-description{
   margin:0;
   color:var(--muted);
-  font-size:14px;
-  line-height:1.5;
+  font-size:13px;
 }
 
 .overlay-error{
@@ -567,18 +583,6 @@ input[type="checkbox"]{
   line-height:1.45;
 }
 
-.map-header .map-title{
-  font-size:26px;
-  font-weight:700;
-  color:var(--text);
-}
-
-.map-header .map-subtitle{
-  margin:8px 0 0;
-  color:var(--muted);
-  font-size:15px;
-}
-
 #map{
   position:absolute;
   top:0;
@@ -680,127 +684,71 @@ input[type="checkbox"]{
   background:var(--pill-bg);
 }
 
-@media (max-width:1200px){
-  body{
-    padding:32px 20px;
+@media (max-width:1024px){
+  .map-ui{
+    top:20px;
+    left:20px;
+    right:20px;
   }
 
-  .app-shell{
-    gap:24px;
-  }
-
-  .map-shell{
-    padding:24px;
-  }
-}
-
-@media (max-width:960px){
-  body{
-    padding:28px 18px;
-    display:block;
-  }
-
-  .app-shell{
-    max-width:100%;
-  }
-
-  .map-shell{
-    padding:24px;
+  .map-banner{
+    max-width:320px;
   }
 }
 
 @media (max-width:720px){
-  body{
-    padding:24px 16px 32px;
-  }
-
-  .app-shell{
-    gap:24px;
-  }
-
-  .glass-card{
-    border-radius:20px;
-    padding:20px;
-  }
-
-  .map-shell{
-    padding:20px;
-  }
-
-  .map-frame{
-    min-height:clamp(280px, 60vh, 520px);
-    height:clamp(300px, 65vh, 560px);
-  }
-
-  .map-overlays{
+  .map-ui{
     top:16px;
     left:16px;
     right:16px;
+    flex-direction:column;
     align-items:stretch;
+    gap:12px;
+  }
+
+  .map-banner{
+    max-width:none;
+  }
+
+  .map-overlays{
+    width:100%;
+    margin-left:0;
   }
 
   .overlay-card{
-    width:100%;
-  }
-
-  .overlay-summary{
-    padding:12px 16px;
-  }
-
-  .overlay-title{
-    font-size:14px;
+    max-width:none;
   }
 }
 
 @media (max-width:560px){
-  body{
-    padding:20px 12px 28px;
+  .map-ui{
+    top:14px;
+    left:14px;
+    right:14px;
   }
 
-  .app-shell{
-    gap:20px;
+  .map-banner{
+    padding:16px 18px;
   }
 
-  .map-shell{
-    padding:18px;
-    gap:16px;
-  }
-
-  .map-header .map-title{
+  .map-banner .map-title{
     font-size:24px;
   }
 
-  .map-header .map-subtitle{
+  .map-banner .map-subtitle{
     font-size:14px;
   }
 
   .overlay-summary{
-    padding:11px 14px;
-    gap:10px;
+    padding:10px 14px;
   }
 
-  .overlay-icon{
-    font-size:16px;
+  .overlay-title{
+    font-size:13px;
   }
 
   .overlay-body{
-    padding:16px 16px 18px;
-    gap:16px;
-  }
-
-  .achievements{
-    gap:8px;
-  }
-
-  .ach-badge{
-    padding:8px 12px;
-    font-size:12px;
-  }
-}
-
-@media (orientation:landscape) and (max-height:600px){
-  .map-frame{
-    min-height:clamp(240px, 90vh, 520px);
-    height:clamp(260px, 100vh, 560px);
+    padding:14px 14px 16px;
+    gap:12px;
   }
 }

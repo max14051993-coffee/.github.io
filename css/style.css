@@ -161,6 +161,7 @@ body[data-theme="dark"]{
   background:var(--surface);
   border:1px solid var(--surface-border);
   border-radius:18px;
+
   box-shadow:var(--surface-shadow);
   backdrop-filter:blur(18px);
   pointer-events:auto;
@@ -226,7 +227,6 @@ body[data-theme="dark"] .overlay-summary{
   margin:0;
   color:var(--muted);
   font-size:13px;
-  line-height:1.5;
 }
 
 .overlay-error{

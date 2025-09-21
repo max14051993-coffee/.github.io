@@ -198,6 +198,187 @@ body[data-theme="dark"] .brand-tag{
   font-weight:600;
 }
 
+.photo-card{
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+
+.photo-card__header{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.photo-card__header h2{
+  font-size:24px;
+  font-weight:700;
+  color:var(--text);
+}
+
+.photo-card__lead{
+  margin:0;
+  font-size:15px;
+  color:var(--muted);
+}
+
+.photo-upload{
+  position:relative;
+  border:1.5px dashed var(--pill-border);
+  border-radius:18px;
+  padding:18px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  gap:10px;
+  color:var(--muted);
+  cursor:pointer;
+  transition:border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.photo-upload__text{
+  font-family:var(--font-ui);
+  font-weight:600;
+  font-size:14px;
+}
+
+.photo-upload:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:var(--accent-soft);
+}
+
+.photo-upload input{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  opacity:0;
+  cursor:pointer;
+}
+
+.photo-status{
+  font-family:var(--font-ui);
+  font-size:14px;
+  color:var(--muted);
+}
+
+.photo-status[data-tone="success"]{color:#15803d;}
+.photo-status[data-tone="error"]{color:#dc2626;}
+.photo-status[data-tone="warning"]{color:#ca8a04;}
+.photo-status[data-tone="progress"]{color:var(--accent);}
+
+.photo-ocr-text{
+  width:100%;
+  resize:vertical;
+  min-height:120px;
+  border-radius:16px;
+  border:1px solid var(--pill-border);
+  padding:12px 14px;
+  font-family:'Golos Text',var(--font-base);
+  font-size:14px;
+  line-height:1.5;
+  background:var(--surface-strong);
+  color:var(--text);
+}
+
+.photo-form{
+  display:grid;
+  gap:12px;
+}
+
+.photo-field label{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  font-size:13px;
+  color:var(--muted);
+  font-weight:600;
+}
+
+.photo-field input,
+.photo-field textarea{
+  border-radius:14px;
+  border:1px solid var(--pill-border);
+  padding:10px 12px;
+  font-family:var(--font-ui);
+  font-size:14px;
+  background:var(--surface-strong);
+  color:var(--text);
+  transition:border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.photo-field input:focus,
+.photo-field textarea:focus{
+  outline:none;
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(194,109,67,0.25);
+}
+
+.photo-actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:12px;
+}
+
+.photo-btn{
+  flex:1 1 160px;
+  border-radius:12px;
+  border:1px solid var(--accent);
+  background:transparent;
+  color:var(--accent);
+  font-family:var(--font-ui);
+  font-weight:600;
+  font-size:14px;
+  padding:10px 16px;
+  cursor:pointer;
+  transition:background 0.2s ease, color 0.2s ease;
+}
+
+.photo-btn.primary{
+  background:var(--accent);
+  color:#fff;
+}
+
+.photo-btn:disabled{
+  opacity:0.5;
+  cursor:not-allowed;
+}
+
+.photo-btn:not(:disabled):hover{
+  background:var(--accent);
+  color:#fff;
+}
+
+.photo-btn.primary:not(:disabled):hover{
+  filter:brightness(0.95);
+}
+
+.photo-docs-hint{
+  margin:0;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.photo-hint{
+  margin:0;
+  font-size:13px;
+  color:var(--muted);
+}
+
+body[data-theme="dark"] .photo-upload{
+  border-color:rgba(148,163,184,0.35);
+}
+
+body[data-theme="dark"] .photo-field input,
+body[data-theme="dark"] .photo-field textarea,
+body[data-theme="dark"] .photo-ocr-text{
+  background:rgba(17,24,39,0.92);
+  border-color:rgba(148,163,184,0.25);
+  color:var(--text);
+}
+
 .panel-card{
   display:flex;
   flex-direction:column;

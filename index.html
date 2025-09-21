@@ -39,6 +39,64 @@
         </div>
         <div class="achievements" id="achievements"></div>
       </section>
+
+      <section class="photo-card glass-card" id="photoUploadCard">
+        <div class="photo-card__header">
+          <span class="eyebrow">Загрузка по фото</span>
+          <h2>Распознайте данные автоматически</h2>
+        </div>
+        <p class="photo-card__lead">Добавьте фото с описанием кофе, чтобы распознать текст и подготовить запись для Google Docs.</p>
+        <label class="photo-upload" for="photoUploadInput">
+          <input type="file" id="photoUploadInput" accept="image/*" />
+          <span class="photo-upload__text">Выберите файл или перетащите сюда</span>
+        </label>
+        <div class="photo-status" id="photoOcrStatus"></div>
+        <textarea class="photo-ocr-text" id="photoOcrText" rows="6" placeholder="Распознанный текст появится здесь" readonly></textarea>
+        <p class="photo-hint" id="photoProcessHint"></p>
+        <form class="photo-form" id="photoDetailsForm" autocomplete="off">
+          <div class="photo-field">
+            <label>
+              <span>Название кофе</span>
+              <input type="text" data-field="coffeeName" placeholder="Например, Ethiopia Chelbesa" />
+            </label>
+          </div>
+          <div class="photo-field">
+            <label>
+              <span>Ростер</span>
+              <input type="text" data-field="roasterName" placeholder="Ростер или обжарщик" />
+            </label>
+          </div>
+          <div class="photo-field">
+            <label>
+              <span>Происхождение</span>
+              <input type="text" data-field="origin" placeholder="Страна или регион" />
+            </label>
+          </div>
+          <div class="photo-field">
+            <label>
+              <span>Обработка</span>
+              <input type="text" data-field="process" placeholder="Natural, Washed, Honey…" />
+            </label>
+          </div>
+          <div class="photo-field">
+            <label>
+              <span>Метод заваривания</span>
+              <input type="text" data-field="brewMethod" placeholder="V60, Эспрессо и т.д." />
+            </label>
+          </div>
+          <div class="photo-field">
+            <label>
+              <span>Заметки</span>
+              <textarea rows="3" data-field="notes" placeholder="Вкус, оценка, дополнительные детали"></textarea>
+            </label>
+          </div>
+        </form>
+        <div class="photo-actions">
+          <button type="button" class="photo-btn" id="photoCopyData" disabled>Скопировать данные</button>
+          <button type="button" class="photo-btn primary" id="photoSendToDocs" disabled>Автозаполнить Google форму</button>
+        </div>
+        <p class="photo-docs-hint" id="photoDocsHint"></p>
+      </section>
     </aside>
 
     <main class="map-panel">

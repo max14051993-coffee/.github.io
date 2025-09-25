@@ -105,10 +105,23 @@ function parseFieldsFromText(rawText) {
   return extracted;
 }
 
+let tesseractModulePromise = null;
+
+async function loadTesseract() {
+  if (!tesseractModulePromise) {
+    tesseractModulePromise = import('https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.esm.min.js');
+  }
+  const module = await tesseractModulePromise;
+  return module?.default || module;
+}
+
 async function recognizeFile(file, onProgress) {
   if (!file) throw new Error('Файл не выбран');
-  const { recognize } = await import('https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.esm.min.js');
-  const result = await recognize(file, OCR_LANGUAGES, {
+  const Tesseract = await loadTesseract();
+  if (!Tesseract?.recognize) {
+    throw new Error('Tesseract.js не удалось загрузить');
+  }
+  const result = await Tesseract.recognize(file, OCR_LANGUAGES, {
     logger: (payload) => {
       if (payload.status === 'recognizing text' && typeof onProgress === 'function') {
         const progress = payload.progress ? Math.round(payload.progress * 100) : 0;

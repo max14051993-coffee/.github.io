@@ -10,6 +10,46 @@ const theme = (new URLSearchParams(location.search).get('style') || 'light').toL
 document.body.dataset.theme = theme;
 const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase();
 
+function setupInfoToggle() {
+  const toggle = document.querySelector('[data-map-info-toggle]');
+  const panel = document.querySelector('[data-map-info-panel]');
+  if (!toggle || !panel) return;
+
+  const closePanel = () => {
+    panel.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+  };
+
+  const openPanel = () => {
+    panel.hidden = false;
+    toggle.setAttribute('aria-expanded', 'true');
+  };
+
+  toggle.addEventListener('click', () => {
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      closePanel();
+    } else {
+      openPanel();
+    }
+  });
+
+  document.addEventListener('click', (event) => {
+    if (panel.hidden) return;
+    if (toggle.contains(event.target) || panel.contains(event.target)) return;
+    closePanel();
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape' || panel.hidden) return;
+    event.preventDefault();
+    closePanel();
+    toggle.focus();
+  });
+}
+
+setupInfoToggle();
+
 const mapController = createMapController({ accessToken: MAPBOX_TOKEN, theme, flagMode });
 const overlayMedia = window.matchMedia('(max-width: 720px)');
 

@@ -22,9 +22,14 @@
 
     <div class="map-ui">
       <header class="map-banner">
-        <span class="eyebrow">Интерактивная карта</span>
-        <h1 class="map-title" id="collectionTitle">my coffee experience</h1>
-        <p class="map-subtitle">Передвигайте карту и кликайте на маркеры, чтобы увидеть путь зерна от фермы до чашки.</p>
+        <div class="map-title-row">
+          <h1 class="map-title" id="collectionTitle">my coffee experience</h1>
+          <button class="map-info-toggle" type="button" aria-expanded="false" aria-controls="mapInfoText" data-map-info-toggle>
+            <span aria-hidden="true">ℹ️</span>
+            <span class="sr-only">Показать пояснения</span>
+          </button>
+        </div>
+        <p class="map-subtitle" id="mapInfoText" data-map-info-panel hidden>Передвигайте карту и кликайте на маркеры, чтобы увидеть путь зерна от фермы до чашки.</p>
       </header>
 
       <div class="map-overlays">

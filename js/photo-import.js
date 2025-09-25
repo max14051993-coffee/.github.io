@@ -16,6 +16,82 @@ function $(selector) {
   return document.querySelector(selector);
 }
 
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    };
+    img.src = url;
+  });
+}
+
+function enhanceImageData(imageData) {
+  const { data } = imageData;
+  const contrast = 1.25;
+  const brightness = 10;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    gray = (gray - 128) * contrast + 128 + brightness;
+    if (gray < 0) gray = 0;
+    if (gray > 255) gray = 255;
+    data[i] = gray;
+    data[i + 1] = gray;
+    data[i + 2] = gray;
+  }
+  return imageData;
+}
+
+async function prepareImageForOcr(file) {
+  const image = await loadImageFromFile(file);
+  const maxDimension = 1600;
+  const minDimension = 900;
+  const largestSide = Math.max(image.width, image.height) || 1;
+  let scale = 1;
+  if (largestSide > maxDimension) {
+    scale = maxDimension / largestSide;
+  } else if (largestSide < minDimension) {
+    scale = Math.min(2, minDimension / largestSide);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('Canvas context not available');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  try {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const enhanced = enhanceImageData(imageData);
+    ctx.putImageData(enhanced, 0, 0);
+  } catch (err) {
+    console.warn('Image enhancement skipped:', err);
+  }
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) {
+        resolve(result);
+      } else {
+        reject(new Error('Canvas toBlob returned null'));
+      }
+    }, 'image/png');
+  });
+
+  return blob;
+}
+
 function byField(field, root) {
   return root.querySelector(
     `input[data-field="${field}"], textarea[data-field="${field}"], select[data-field="${field}"]`,
@@ -155,7 +231,14 @@ async function recognizeFile(file, onProgress) {
   if (!Tesseract?.recognize) {
     throw new Error('Tesseract.js не удалось загрузить');
   }
-  const result = await Tesseract.recognize(file, OCR_LANGUAGES, {
+  let imageSource = file;
+  try {
+    imageSource = await prepareImageForOcr(file);
+  } catch (prepErr) {
+    console.warn('Image preprocessing failed, using original file:', prepErr);
+    imageSource = file;
+  }
+  const result = await Tesseract.recognize(imageSource, OCR_LANGUAGES, {
     logger: (payload) => {
       if (payload.status === 'recognizing text' && typeof onProgress === 'function') {
         const progress = payload.progress ? Math.round(payload.progress * 100) : 0;

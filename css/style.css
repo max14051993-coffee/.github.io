@@ -133,10 +133,49 @@ body[data-theme="dark"]{
   pointer-events:auto;
 }
 
+.map-title-row{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+
 .map-banner .map-title{
   font-size:28px;
   font-weight:700;
   color:var(--text);
+}
+
+.map-info-toggle{
+  border:0;
+  padding:6px;
+  border-radius:50%;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:18px;
+  line-height:1;
+  cursor:pointer;
+  transition:background-color 0.2s ease,color 0.2s ease;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+.map-info-toggle:hover,
+.map-info-toggle:focus-visible{
+  background:var(--accent);
+  color:#fff;
+  outline:none;
+}
+
+.map-info-toggle:focus:not(:focus-visible){
+  outline:none;
+}
+
+.map-info-toggle[aria-expanded="true"]{
+  background:var(--accent);
+  color:#fff;
 }
 
 .map-banner .map-subtitle{
@@ -144,6 +183,18 @@ body[data-theme="dark"]{
   color:var(--muted);
   font-size:15px;
   line-height:1.6;
+}
+
+.sr-only{
+  position:absolute;
+  width:1px;
+  height:1px;
+  padding:0;
+  margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
 }
 
 .map-overlays{

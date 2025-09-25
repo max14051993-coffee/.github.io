@@ -1,4 +1,4 @@
-import { escapeAttr, escapeHtml } from './utils.js';
+import { escapeAttr, escapeHtml, setupInfoDisclosure } from './utils.js';
 
 export function processColors(pType) {
   switch (pType) {
@@ -69,8 +69,15 @@ function buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel = '
       </button>
     `;
   }).join('');
+  const infoId = 'filtersInfoText';
   wrap.innerHTML = `
-    <p class="overlay-description">Выбирайте, что подсветить на карте.</p>
+    <div class="overlay-hint">
+      <button type="button" class="overlay-info-toggle" aria-expanded="false" aria-controls="${infoId}" data-overlay-info-toggle>
+        <span aria-hidden="true">ℹ️</span>
+        <span class="sr-only">Показать описание фильтров</span>
+      </button>
+      <p class="overlay-description" id="${infoId}" data-overlay-info-panel hidden>Выбирайте, что подсветить на карте.</p>
+    </div>
     <div class="filters-stats">
       <span class="chip" title="Точек на карте">☕ <span id="pointsCount">${pointsCount}</span></span>
       <span class="chip" title="Стран в коллекции">🌍 <span id="countriesCount">${countriesCount}</span></span>
@@ -122,6 +129,13 @@ export function createUIController({
   const visitedToggle = root.querySelector('#toggleVisited');
   const mineToggle = root.querySelector('#toggleMine');
   const processButtons = [...root.querySelectorAll('[data-process]')];
+  const filtersInfoToggle = root.querySelector('[data-overlay-info-toggle]');
+  const filtersInfoPanel = root.querySelector('[data-overlay-info-panel]');
+
+  setupInfoDisclosure({
+    toggle: filtersInfoToggle,
+    panel: filtersInfoPanel,
+  });
 
   if (routesToggle) {
     routesToggle.addEventListener('change', (e) => onRoutesToggle?.(e.target.checked), { passive: true });

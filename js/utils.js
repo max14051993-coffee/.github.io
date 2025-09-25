@@ -102,3 +102,57 @@ export const debounce = (fn, ms = 150) => {
     timer = window.setTimeout(() => fn(...args), ms);
   };
 };
+
+export function setupInfoDisclosure({ toggle, panel, closeOnOutside = true } = {}) {
+  if (!toggle || !panel) return () => {};
+
+  const close = () => {
+    panel.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+  };
+
+  const open = () => {
+    panel.hidden = false;
+    toggle.setAttribute('aria-expanded', 'true');
+  };
+
+  const handleToggleClick = (event) => {
+    event.stopPropagation();
+    const expanded = toggle.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      close();
+    } else {
+      open();
+    }
+  };
+
+  const handleDocumentClick = (event) => {
+    if (panel.hidden) return;
+    const target = event.target;
+    if (toggle.contains(target) || panel.contains(target)) return;
+    close();
+  };
+
+  const handleKeydown = (event) => {
+    if (event.key !== 'Escape' || panel.hidden) return;
+    event.preventDefault();
+    close();
+    if (typeof toggle.focus === 'function') {
+      toggle.focus();
+    }
+  };
+
+  toggle.addEventListener('click', handleToggleClick);
+  document.addEventListener('keydown', handleKeydown);
+  if (closeOnOutside) {
+    document.addEventListener('click', handleDocumentClick);
+  }
+
+  return () => {
+    toggle.removeEventListener('click', handleToggleClick);
+    document.removeEventListener('keydown', handleKeydown);
+    if (closeOnOutside) {
+      document.removeEventListener('click', handleDocumentClick);
+    }
+  };
+}

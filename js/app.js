@@ -2,6 +2,8 @@ import { debounce } from './utils.js';
 import { buildCityPoints, buildRouteFeatures, getVisitedCountriesIso2, loadData } from './data-loader.js';
 import { PROCESS_FILTER_VALUES, createUIController, renderAchievements } from './ui-controls.js';
 import { createMapController } from './map-init.js';
+import { initPhotoImport } from './photo-import.js';
+import { GOOGLE_FORM_CONFIG } from './config.js';
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbms6-9Pie6VdyXzbjiMwWeIF-mxMvMiyFHaRI1DJE0nPNkSG99lewaeeU8YIuj7Y8vxzJGOD2md1v/pub?gid=1055803810&single=true&output=csv';
@@ -11,6 +13,7 @@ document.body.dataset.theme = theme;
 const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase();
 
 const mapController = createMapController({ accessToken: MAPBOX_TOKEN, theme, flagMode });
+initPhotoImport({ googleFormConfig: GOOGLE_FORM_CONFIG });
 
 const filterState = { mine: false, process: 'all' };
 let allPointFeatures = [];

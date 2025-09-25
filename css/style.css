@@ -274,6 +274,44 @@ body[data-theme="dark"] .overlay-summary{
   gap:14px;
 }
 
+.overlay-hint{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+}
+
+.overlay-info-toggle{
+  border:0;
+  padding:6px;
+  border-radius:50%;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:16px;
+  line-height:1;
+  cursor:pointer;
+  transition:background-color 0.2s ease,color 0.2s ease;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+
+.overlay-info-toggle:hover,
+.overlay-info-toggle:focus-visible{
+  background:var(--accent);
+  color:#fff;
+  outline:none;
+}
+
+.overlay-info-toggle:focus:not(:focus-visible){
+  outline:none;
+}
+
+.overlay-info-toggle[aria-expanded="true"]{
+  background:var(--accent);
+  color:#fff;
+}
+
 .overlay-description{
   margin:0;
   color:var(--muted);

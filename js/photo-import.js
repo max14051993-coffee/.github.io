@@ -1,10 +1,12 @@
 const OCR_LANGUAGES = 'eng+rus';
-const FIELD_KEYS = ['coffeeName', 'roasterName', 'origin', 'process', 'brewMethod', 'notes'];
+const FIELD_KEYS = ['coffeeName', 'roasterName', 'country', 'region', 'farm', 'process', 'brewMethod', 'notes'];
 
 const FIELD_LABELS = {
   coffeeName: 'Название кофе',
   roasterName: 'Ростер',
-  origin: 'Происхождение',
+  country: 'Страна',
+  region: 'Регион',
+  farm: 'Ферма / кооператив',
   process: 'Обработка',
   brewMethod: 'Метод заваривания',
   notes: 'Заметки',
@@ -12,8 +14,214 @@ const FIELD_LABELS = {
 
 const PROCESS_HINTS = ['natural', 'washed', 'honey', 'anaerobic', 'carbonic', 'experimental'];
 
+const COUNTRY_MATCHERS = [
+  { name: 'Brazil', pattern: /(brazil|бразил)/i },
+  { name: 'Colombia', pattern: /(colomb|колумб)/i },
+  { name: 'Costa Rica', pattern: /(costa\s*rica|коста\s*рика)/i },
+  { name: 'El Salvador', pattern: /(el\s*salvador|сальвадор)/i },
+  { name: 'Ethiopia', pattern: /(ethiop|эфиоп)/i },
+  { name: 'Guatemala', pattern: /(guatemal|гватемал)/i },
+  { name: 'Honduras', pattern: /(hondur|гондурас)/i },
+  { name: 'Kenya', pattern: /(kenya|кени[яи])/i },
+  { name: 'Nicaragua', pattern: /(nicaragua|никараг)/i },
+  { name: 'Panama', pattern: /(panama|панам)/i },
+  { name: 'Peru', pattern: /(peru|перу)/i },
+  { name: 'Rwanda', pattern: /(rwanda|руанд)/i },
+  { name: 'Tanzania', pattern: /(tanzan|танзани)/i },
+  { name: 'Uganda', pattern: /(uganda|уганда)/i },
+  { name: 'Burundi', pattern: /(burundi|бурунд)/i },
+  { name: 'Mexico', pattern: /(mexic|мексик)/i },
+  { name: 'Yemen', pattern: /(yemen|йемен)/i },
+  { name: 'Indonesia', pattern: /(indones|индонез)/i },
+  { name: 'Sumatra', pattern: /(sumatr|суматр)/i },
+  { name: 'Papua New Guinea', pattern: /(papua|папуа|png)/i },
+  { name: 'China', pattern: /(china|китай)/i },
+  { name: 'India', pattern: /(india|индия)/i },
+  { name: 'Vietnam', pattern: /(vietnam|вьетнам)/i },
+  { name: 'Thailand', pattern: /(thailand|таиланд)/i },
+  { name: 'Laos', pattern: /(laos|лаос)/i },
+  { name: 'Myanmar', pattern: /(myanmar|бирма|мьянма)/i },
+  { name: 'Dominican Republic', pattern: /(dominican|доминикан)/i },
+  { name: 'Jamaica', pattern: /(jamaic|ямайк)/i },
+  { name: 'Cuba', pattern: /(cuba|куба)/i },
+  { name: 'Haiti', pattern: /(haiti|гаити)/i },
+  { name: 'Ecuador', pattern: /(ecuador|эквадор)/i },
+  { name: 'Bolivia', pattern: /(bolivi|боливи)/i },
+  { name: 'Guinea', pattern: /(guinea|гвиней)/i },
+  { name: 'Cameroon', pattern: /(cameroon|камерун)/i },
+  { name: 'Democratic Republic of the Congo', pattern: /(congo|конго|rdc|drc)/i },
+  { name: 'Zambia', pattern: /(zambi|замби)/i },
+  { name: 'Zimbabwe', pattern: /(zimbabw|зимбаб)/i },
+  { name: 'Malawi', pattern: /(malawi|малави)/i },
+  { name: 'Timor-Leste', pattern: /(timor|тимор)/i },
+  { name: 'Taiwan', pattern: /(taiwan|тайван)/i },
+  { name: 'Philippines', pattern: /(philippin|филиппин)/i },
+];
+
+const REGION_KEYWORDS = /(region|регион|province|провинц|county|округ|area|зона|district|дистрикт|state|штат|терруар|terroir|valley|долин)/i;
+const FARM_KEYWORDS = /(farm|estate|mill|station|washing|producer|cooperativ|coop|кооперат|ферм|станц|милл|хасиенд|finca|beneficio)/i;
+const VARIETY_KEYWORDS = /(sl\s*-?\d+|bourbon|бурбон|caturra|катур|typica|типик|heirloom|gesha|geisha|гейш|кастильо|catuai|катуаи|pacas|pacamara|maragogype|марагоджип|рубика|ruiru|batian|руиру|руиру\s*11|кофе\s*арабика)/i;
+
+function detectCountryName(text) {
+  if (!text) return '';
+  const value = String(text);
+  for (const { name, pattern } of COUNTRY_MATCHERS) {
+    if (pattern.test(value)) return name;
+  }
+  return '';
+}
+
+function isProcessDescriptor(text) {
+  return Boolean(detectProcessFromLine(text));
+}
+
+function splitOriginValue(value) {
+  const normalized = normalizeText(value);
+  if (!normalized) return { country: '', region: '', farm: '' };
+
+  const separators = /[,;\/\u2022]|\s+-\s+/;
+  const tokens = normalized
+    .split(separators)
+    .map((token) => normalizeText(token))
+    .filter(Boolean);
+
+  let country = detectCountryName(normalized);
+  const filtered = [];
+
+  tokens.forEach((token) => {
+    const tokenCountry = detectCountryName(token);
+    if (!country && tokenCountry) {
+      country = tokenCountry;
+      return;
+    }
+    if (country && tokenCountry && tokenCountry === country) {
+      return;
+    }
+    filtered.push(token);
+  });
+
+  let region = '';
+  let farm = '';
+
+  filtered.forEach((token) => {
+    if (!region && REGION_KEYWORDS.test(token)) {
+      const cleaned = normalizeText(token.replace(REGION_KEYWORDS, '').replace(/^[:\-\s]+/, ''));
+      region = cleaned || token;
+    }
+  });
+
+  if (!region && filtered.length) {
+    const candidate = filtered.find((token) => !isProcessDescriptor(token) && !FARM_KEYWORDS.test(token) && !VARIETY_KEYWORDS.test(token));
+    if (candidate) region = candidate;
+  }
+
+  filtered.forEach((token) => {
+    if (!farm && FARM_KEYWORDS.test(token)) {
+      const cleaned = normalizeText(token.replace(FARM_KEYWORDS, '').replace(/^[:\-\s]+/, ''));
+      farm = cleaned || token;
+    }
+  });
+
+  if (!farm && filtered.length > 1) {
+    const candidate = filtered.find(
+      (token) => token !== region && !isProcessDescriptor(token) && !VARIETY_KEYWORDS.test(token),
+    );
+    if (candidate) farm = candidate;
+  }
+
+  if (region && country && region.toLowerCase() === country.toLowerCase()) {
+    region = '';
+  }
+
+  if (farm && region && farm.toLowerCase() === region.toLowerCase()) {
+    farm = '';
+  }
+
+  if (farm && country && detectCountryName(farm) === country) {
+    farm = '';
+  }
+
+  return { country, region, farm };
+}
+
 function $(selector) {
   return document.querySelector(selector);
+}
+
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = (err) => {
+      URL.revokeObjectURL(url);
+      reject(err);
+    };
+    img.src = url;
+  });
+}
+
+function enhanceImageData(imageData) {
+  const { data } = imageData;
+  const contrast = 1.25;
+  const brightness = 10;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    let gray = 0.299 * r + 0.587 * g + 0.114 * b;
+    gray = (gray - 128) * contrast + 128 + brightness;
+    if (gray < 0) gray = 0;
+    if (gray > 255) gray = 255;
+    data[i] = gray;
+    data[i + 1] = gray;
+    data[i + 2] = gray;
+  }
+  return imageData;
+}
+
+async function prepareImageForOcr(file) {
+  const image = await loadImageFromFile(file);
+  const maxDimension = 1600;
+  const minDimension = 900;
+  const largestSide = Math.max(image.width, image.height) || 1;
+  let scale = 1;
+  if (largestSide > maxDimension) {
+    scale = maxDimension / largestSide;
+  } else if (largestSide < minDimension) {
+    scale = Math.min(2, minDimension / largestSide);
+  }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  if (!ctx) throw new Error('Canvas context not available');
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+
+  try {
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const enhanced = enhanceImageData(imageData);
+    ctx.putImageData(enhanced, 0, 0);
+  } catch (err) {
+    console.warn('Image enhancement skipped:', err);
+  }
+
+  const blob = await new Promise((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) {
+        resolve(result);
+      } else {
+        reject(new Error('Canvas toBlob returned null'));
+      }
+    }, 'image/png');
+  });
+
+  return blob;
 }
 
 function byField(field, root) {
@@ -77,7 +285,9 @@ function parseFieldsFromText(rawText) {
   const extracted = {
     coffeeName: '',
     roasterName: '',
-    origin: '',
+    country: '',
+    region: '',
+    farm: '',
     process: '',
     brewMethod: '',
     notes: '',
@@ -97,8 +307,25 @@ function parseFieldsFromText(rawText) {
     if (!extracted.roasterName && /(roaster|roastery|обжар|rost)/.test(label)) {
       extracted.roasterName = value;
       usedLines.add(i);
-    } else if (!extracted.origin && /(origin|страна|country|регион|region)/.test(label)) {
-      extracted.origin = value;
+    } else if (/(origin|страна|country)/.test(label)) {
+      const parsed = splitOriginValue(value);
+      if (parsed.country && !extracted.country) extracted.country = parsed.country;
+      if (parsed.region && !extracted.region) extracted.region = parsed.region;
+      if (parsed.farm && !extracted.farm) extracted.farm = parsed.farm;
+      if (!parsed.country && !parsed.region && !parsed.farm && !extracted.country) {
+        extracted.country = value;
+      }
+      usedLines.add(i);
+    } else if (!extracted.country && detectCountryName(value)) {
+      extracted.country = detectCountryName(value);
+      usedLines.add(i);
+    } else if (!extracted.region && (REGION_KEYWORDS.test(label) || REGION_KEYWORDS.test(value))) {
+      const cleaned = normalizeText(value.replace(REGION_KEYWORDS, '').replace(/^[:\-\s]+/, ''));
+      extracted.region = cleaned || value;
+      usedLines.add(i);
+    } else if (!extracted.farm && (FARM_KEYWORDS.test(label) || FARM_KEYWORDS.test(value))) {
+      const cleaned = normalizeText(value.replace(FARM_KEYWORDS, '').replace(/^[:\-\s]+/, ''));
+      extracted.farm = cleaned || value;
       usedLines.add(i);
     } else if (!extracted.process && /(process|обработ|method|метод)/.test(label)) {
       extracted.process = value;
@@ -122,6 +349,36 @@ function parseFieldsFromText(rawText) {
   if (!extracted.roasterName && lines[1] && !usedLines.has(1)) {
     extracted.roasterName = normalizeText(lines[1]);
     usedLines.add(1);
+  }
+
+  if (!extracted.country || !extracted.region || !extracted.farm) {
+    for (let i = 0; i < lines.length; i += 1) {
+      if (usedLines.has(i)) continue;
+      const line = lines[i];
+      if (isProcessDescriptor(line)) continue;
+      const parsed = splitOriginValue(line);
+      if (parsed.country && !extracted.country) {
+        extracted.country = parsed.country;
+      }
+      if (parsed.region && !extracted.region) {
+        extracted.region = parsed.region;
+      }
+      if (parsed.farm && !extracted.farm) {
+        extracted.farm = parsed.farm;
+      }
+      if (parsed.country || parsed.region || parsed.farm) {
+        usedLines.add(i);
+      }
+      if (extracted.country && extracted.region && extracted.farm) break;
+    }
+  }
+
+  if (extracted.region && extracted.country && extracted.region.toLowerCase() === extracted.country.toLowerCase()) {
+    extracted.region = '';
+  }
+
+  if (extracted.farm && extracted.region && extracted.farm.toLowerCase() === extracted.region.toLowerCase()) {
+    extracted.farm = '';
   }
 
   if (!extracted.process) {
@@ -155,7 +412,14 @@ async function recognizeFile(file, onProgress) {
   if (!Tesseract?.recognize) {
     throw new Error('Tesseract.js не удалось загрузить');
   }
-  const result = await Tesseract.recognize(file, OCR_LANGUAGES, {
+  let imageSource = file;
+  try {
+    imageSource = await prepareImageForOcr(file);
+  } catch (prepErr) {
+    console.warn('Image preprocessing failed, using original file:', prepErr);
+    imageSource = file;
+  }
+  const result = await Tesseract.recognize(imageSource, OCR_LANGUAGES, {
     logger: (payload) => {
       if (payload.status === 'recognizing text' && typeof onProgress === 'function') {
         const progress = payload.progress ? Math.round(payload.progress * 100) : 0;
@@ -376,7 +640,9 @@ export function initPhotoImport({ googleFormConfig } = {}) {
   fillForm(formEl, {
     coffeeName: '',
     roasterName: '',
-    origin: '',
+    country: '',
+    region: '',
+    farm: '',
     process: '',
     brewMethod: '',
     notes: '',

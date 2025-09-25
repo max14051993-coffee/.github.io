@@ -17,11 +17,44 @@ function $(selector) {
 }
 
 function byField(field, root) {
-  return root.querySelector(`[data-field="${field}"]`);
+  return root.querySelector(
+    `input[data-field="${field}"], textarea[data-field="${field}"], select[data-field="${field}"]`,
+  );
 }
 
 function normalizeText(value) {
   return (value || '').replace(/\s+/g, ' ').trim();
+}
+
+function normalizeOcrOutput(rawText) {
+  if (!rawText) return '';
+  let text = String(rawText)
+    .replace(/\r\n?/g, '\n')
+    .replace(/([:;])\s*\n\s*/g, '$1 ');
+
+  const replacements = [
+    { pattern: /[‘’´`]/g, replacement: "'" },
+    { pattern: /[“”«»]/g, replacement: '"' },
+    { pattern: /[–—]/g, replacement: '-' },
+    { pattern: /[і]/g, replacement: 'и' },
+    { pattern: /[ї]/g, replacement: 'и' },
+    { pattern: /[є]/g, replacement: 'е' },
+    { pattern: /[ґ]/g, replacement: 'г' },
+    { pattern: /[ӏ]/g, replacement: 'л' },
+  ];
+
+  replacements.forEach(({ pattern, replacement }) => {
+    text = text.replace(pattern, replacement);
+  });
+
+  text = text
+    .replace(/(^|[^0-9a-zа-яё])3([а-яё])/giu, (_, prefix, letter) => `${prefix}з${letter}`)
+    .replace(/([а-яё])3([^а-яё]|$)/giu, (_, letter, suffix) => `${letter}з${suffix}`)
+    .replace(/([а-яё])[0o]([а-яё])/giu, (_, left, right) => `${left}о${right}`)
+    .replace(/([а-яё])1([а-яё])/giu, (_, left, right) => `${left}л${right}`)
+    .replace(/\s{2,}/g, ' ');
+
+  return text.trim();
 }
 
 function detectProcessFromLine(line) {
@@ -35,7 +68,8 @@ function detectProcessFromLine(line) {
 }
 
 function parseFieldsFromText(rawText) {
-  const lines = String(rawText || '')
+  const normalized = normalizeOcrOutput(rawText);
+  const lines = normalized
     .split(/\r?\n/)
     .map((line) => line.replace(/[\u2014\u2013]/g, '-').trim())
     .filter(Boolean);
@@ -69,7 +103,7 @@ function parseFieldsFromText(rawText) {
     } else if (!extracted.process && /(process|обработ|method|метод)/.test(label)) {
       extracted.process = value;
       usedLines.add(i);
-    } else if (!extracted.brewMethod && /(brew|brew method|завар|способ)/.test(label)) {
+    } else if (!extracted.brewMethod && /(brew|brew method|завар|способ|обжар)/.test(label)) {
       extracted.brewMethod = value;
       usedLines.add(i);
     } else if (!extracted.notes && /(notes|вкус|flavor|tasting|profile)/.test(label)) {
@@ -381,7 +415,7 @@ export function initPhotoImport({ googleFormConfig } = {}) {
       const text = await recognizeFile(file, (progress) => {
         setStatus(statusEl, `Распознавание текста… ${progress}%`, 'progress');
       });
-      currentText = text.trim();
+      currentText = normalizeOcrOutput(text);
       textEl.value = currentText;
       const parsedFields = parseFieldsFromText(currentText);
       fillForm(formEl, parsedFields);

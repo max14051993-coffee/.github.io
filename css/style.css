@@ -283,6 +283,59 @@ body[data-theme="dark"] .brand-tag{
   color:var(--text);
 }
 
+.photo-summary{
+  border:1px solid var(--pill-border);
+  border-radius:16px;
+  padding:14px 16px;
+  background:var(--surface-strong);
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  font-family:var(--font-ui);
+  font-size:13px;
+  color:var(--muted);
+}
+
+.photo-summary__placeholder{
+  margin:0;
+}
+
+.photo-summary__sections{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.photo-summary__section{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.photo-summary__label{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-weight:600;
+  color:var(--text);
+}
+
+.photo-summary__label[data-tone="auto"]{color:#15803d;}
+.photo-summary__label[data-tone="manual"]{color:#1d4ed8;}
+.photo-summary__label[data-tone="empty"]{color:#ca8a04;}
+
+.photo-summary__list{
+  margin:0;
+  padding-left:18px;
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+
+.photo-summary__list li{
+  list-style:disc;
+}
+
 .photo-form{
   display:grid;
   gap:12px;
@@ -295,6 +348,42 @@ body[data-theme="dark"] .brand-tag{
   font-size:13px;
   color:var(--muted);
   font-weight:600;
+}
+
+.photo-field__status{
+  font-size:12px;
+  font-weight:500;
+  color:var(--muted);
+}
+
+.photo-field[data-state="auto"] .photo-field__status{
+  color:#15803d;
+}
+
+.photo-field[data-state="manual"] .photo-field__status{
+  color:#1d4ed8;
+}
+
+.photo-field[data-state="empty"] .photo-field__status{
+  color:#ca8a04;
+}
+
+.photo-field[data-state="auto"] input,
+.photo-field[data-state="auto"] textarea{
+  border-color:rgba(21,128,61,0.5);
+  box-shadow:0 0 0 2px rgba(21,128,61,0.15);
+}
+
+.photo-field[data-state="manual"] input,
+.photo-field[data-state="manual"] textarea{
+  border-color:rgba(29,78,216,0.5);
+  box-shadow:0 0 0 2px rgba(29,78,216,0.15);
+}
+
+.photo-field[data-state="empty"] input,
+.photo-field[data-state="empty"] textarea{
+  border-color:var(--pill-border);
+  box-shadow:none;
 }
 
 .photo-field input,
@@ -377,6 +466,11 @@ body[data-theme="dark"] .photo-ocr-text{
   background:rgba(17,24,39,0.92);
   border-color:rgba(148,163,184,0.25);
   color:var(--text);
+}
+
+body[data-theme="dark"] .photo-summary{
+  background:rgba(17,24,39,0.92);
+  border-color:rgba(148,163,184,0.25);
 }
 
 .panel-card{

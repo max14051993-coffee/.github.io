@@ -208,6 +208,7 @@ export function initPhotoImport({ googleFormConfig } = {}) {
   const input = $('#photoUploadInput');
   const statusEl = $('#photoOcrStatus');
   const textEl = $('#photoOcrText');
+  const summaryEl = $('#photoOcrSummary');
   const formEl = $('#photoDetailsForm');
   const processHintEl = $('#photoProcessHint');
   const copyBtn = $('#photoCopyData');
@@ -218,6 +219,110 @@ export function initPhotoImport({ googleFormConfig } = {}) {
 
   let currentText = '';
   let isProcessing = false;
+  let showFieldStatus = false;
+
+  const fieldWrappers = {};
+  const fieldStatusEls = {};
+  const fieldStates = {};
+  const recognizedValues = {};
+
+  FIELD_KEYS.forEach((field) => {
+    const fieldInput = formEl.querySelector(`[data-field="${field}"]`);
+    const wrapper = fieldInput?.closest('.photo-field');
+    if (wrapper) {
+      fieldWrappers[field] = wrapper;
+      fieldStatusEls[field] = wrapper.querySelector('.photo-field__status');
+    }
+    fieldStates[field] = 'empty';
+    recognizedValues[field] = '';
+  });
+
+  function resetFieldTracking() {
+    FIELD_KEYS.forEach((field) => {
+      fieldStates[field] = 'empty';
+      recognizedValues[field] = '';
+    });
+  }
+
+  function applyFieldStates() {
+    FIELD_KEYS.forEach((field) => {
+      const wrapper = fieldWrappers[field];
+      const statusNode = fieldStatusEls[field];
+      if (wrapper) {
+        if (showFieldStatus) {
+          wrapper.dataset.state = fieldStates[field];
+        } else {
+          delete wrapper.dataset.state;
+        }
+      }
+      if (statusNode) {
+        if (!showFieldStatus) {
+          statusNode.textContent = '';
+          statusNode.dataset.tone = '';
+        } else if (fieldStates[field] === 'auto') {
+          statusNode.textContent = 'Распознано автоматически';
+          statusNode.dataset.tone = 'auto';
+        } else if (fieldStates[field] === 'manual') {
+          statusNode.textContent = 'Заполнено вручную';
+          statusNode.dataset.tone = 'manual';
+        } else {
+          statusNode.textContent = 'Требуется ввод';
+          statusNode.dataset.tone = 'empty';
+        }
+      }
+    });
+  }
+
+  function updateSummary() {
+    if (!summaryEl) return;
+    if (!showFieldStatus) {
+      summaryEl.innerHTML = '<p class="photo-summary__placeholder">После распознавания здесь появится отчёт о том, какие поля заполнились автоматически.</p>';
+      return;
+    }
+
+    const autoFields = FIELD_KEYS.filter((field) => fieldStates[field] === 'auto');
+    const manualFields = FIELD_KEYS.filter((field) => fieldStates[field] === 'manual');
+    const emptyFields = FIELD_KEYS.filter((field) => fieldStates[field] === 'empty');
+
+    const sections = [];
+
+    if (autoFields.length) {
+      sections.push(`
+        <div class="photo-summary__section">
+          <span class="photo-summary__label" data-tone="auto">✅ Распознано автоматически</span>
+          <ul class="photo-summary__list">
+            ${autoFields.map((field) => `<li>${FIELD_LABELS[field]}</li>`).join('')}
+          </ul>
+        </div>
+      `);
+    }
+    if (manualFields.length) {
+      sections.push(`
+        <div class="photo-summary__section">
+          <span class="photo-summary__label" data-tone="manual">✏️ Изменено вручную</span>
+          <ul class="photo-summary__list">
+            ${manualFields.map((field) => `<li>${FIELD_LABELS[field]}</li>`).join('')}
+          </ul>
+        </div>
+      `);
+    }
+    if (emptyFields.length) {
+      sections.push(`
+        <div class="photo-summary__section">
+          <span class="photo-summary__label" data-tone="empty">⚠️ Нужно заполнить</span>
+          <ul class="photo-summary__list">
+            ${emptyFields.map((field) => `<li>${FIELD_LABELS[field]}</li>`).join('')}
+          </ul>
+        </div>
+      `);
+    }
+
+    if (!sections.length) {
+      summaryEl.innerHTML = '<p class="photo-summary__placeholder">Текст не распознан. Заполните поля вручную.</p>';
+    } else {
+      summaryEl.innerHTML = `<div class="photo-summary__sections">${sections.join('')}</div>`;
+    }
+  }
 
   setStatus(statusEl, 'Файл пока не выбран. Загрузите фото этикетки с данными.');
   textEl.value = '';
@@ -230,6 +335,9 @@ export function initPhotoImport({ googleFormConfig } = {}) {
     notes: '',
   });
   setButtonsState([copyBtn, sendBtn], false);
+  resetFieldTracking();
+  applyFieldStates();
+  updateSummary();
 
   if (hintEl) {
     if (googleFormConfig?.enabled && googleFormConfig.prefillBaseUrl) {
@@ -251,8 +359,12 @@ export function initPhotoImport({ googleFormConfig } = {}) {
     }
     try {
       isProcessing = true;
+      showFieldStatus = false;
       setStatus(statusEl, 'Распознавание текста…', 'progress');
       setButtonsState([copyBtn, sendBtn], false);
+      resetFieldTracking();
+      applyFieldStates();
+      updateSummary();
       const text = await recognizeFile(file, (progress) => {
         setStatus(statusEl, `Распознавание текста… ${progress}%`, 'progress');
       });
@@ -260,6 +372,14 @@ export function initPhotoImport({ googleFormConfig } = {}) {
       textEl.value = currentText;
       const parsedFields = parseFieldsFromText(currentText);
       fillForm(formEl, parsedFields);
+      FIELD_KEYS.forEach((field) => {
+        const value = normalizeText(parsedFields[field]);
+        recognizedValues[field] = value;
+        fieldStates[field] = value ? 'auto' : 'empty';
+      });
+      showFieldStatus = true;
+      applyFieldStates();
+      updateSummary();
       setStatus(statusEl, 'Распознавание завершено. Проверьте и отредактируйте данные при необходимости.', 'success');
       setButtonsState([copyBtn], Boolean(currentText));
       if (googleFormConfig?.enabled && googleFormConfig.prefillBaseUrl) {
@@ -270,22 +390,46 @@ export function initPhotoImport({ googleFormConfig } = {}) {
       setStatus(statusEl, 'Не удалось распознать изображение. Попробуйте другое фото.', 'error');
       textEl.value = '';
       currentText = '';
+      resetFieldTracking();
+      showFieldStatus = true;
+      applyFieldStates();
+      updateSummary();
       setButtonsState([copyBtn, sendBtn], false);
     } finally {
       isProcessing = false;
     }
   });
 
-  formEl.addEventListener('input', () => {
-    if (!currentText) return;
-    setButtonsState([copyBtn], true);
-    if (googleFormConfig?.enabled && googleFormConfig.prefillBaseUrl) {
-      setButtonsState([sendBtn], true);
+  formEl.addEventListener('input', (event) => {
+    const target = event.target;
+    const field = target?.dataset?.field;
+    if (field && FIELD_KEYS.includes(field)) {
+      const rawValue = target.value || '';
+      const normalizedValue = normalizeText(rawValue);
+      if (!normalizedValue) {
+        fieldStates[field] = 'empty';
+      } else if (recognizedValues[field] && normalizedValue === recognizedValues[field]) {
+        fieldStates[field] = 'auto';
+      } else {
+        fieldStates[field] = 'manual';
+      }
+      showFieldStatus = true;
+      applyFieldStates();
+      updateSummary();
+    }
+
+    if (currentText || FIELD_KEYS.some((key) => normalizeText(formEl.querySelector(`[data-field="${key}"]`)?.value))) {
+      setButtonsState([copyBtn], true);
+      if (googleFormConfig?.enabled && googleFormConfig.prefillBaseUrl) {
+        setButtonsState([sendBtn], true);
+      }
     }
   });
 
   copyBtn?.addEventListener('click', async () => {
-    if (!currentText && !isProcessing) return;
+    if (!currentText && !isProcessing && !FIELD_KEYS.some((key) => normalizeText(formEl.querySelector(`[data-field="${key}"]`)?.value))) {
+      return;
+    }
     const formData = collectForm(formEl);
     const payload = {
       ...formData,

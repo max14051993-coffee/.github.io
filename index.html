@@ -52,42 +52,49 @@
         </label>
         <div class="photo-status" id="photoOcrStatus"></div>
         <textarea class="photo-ocr-text" id="photoOcrText" rows="6" placeholder="Распознанный текст появится здесь" readonly></textarea>
+        <div class="photo-summary" id="photoOcrSummary"></div>
         <p class="photo-hint" id="photoProcessHint"></p>
         <form class="photo-form" id="photoDetailsForm" autocomplete="off">
-          <div class="photo-field">
+          <div class="photo-field" data-field="coffeeName">
             <label>
               <span>Название кофе</span>
               <input type="text" data-field="coffeeName" placeholder="Например, Ethiopia Chelbesa" />
+              <span class="photo-field__status" data-role="status"></span>
             </label>
           </div>
-          <div class="photo-field">
+          <div class="photo-field" data-field="roasterName">
             <label>
               <span>Ростер</span>
               <input type="text" data-field="roasterName" placeholder="Ростер или обжарщик" />
+              <span class="photo-field__status" data-role="status"></span>
             </label>
           </div>
-          <div class="photo-field">
+          <div class="photo-field" data-field="origin">
             <label>
               <span>Происхождение</span>
               <input type="text" data-field="origin" placeholder="Страна или регион" />
+              <span class="photo-field__status" data-role="status"></span>
             </label>
           </div>
-          <div class="photo-field">
+          <div class="photo-field" data-field="process">
             <label>
               <span>Обработка</span>
               <input type="text" data-field="process" placeholder="Natural, Washed, Honey…" />
+              <span class="photo-field__status" data-role="status"></span>
             </label>
           </div>
-          <div class="photo-field">
+          <div class="photo-field" data-field="brewMethod">
             <label>
               <span>Метод заваривания</span>
               <input type="text" data-field="brewMethod" placeholder="V60, Эспрессо и т.д." />
+              <span class="photo-field__status" data-role="status"></span>
             </label>
           </div>
-          <div class="photo-field">
+          <div class="photo-field" data-field="notes">
             <label>
               <span>Заметки</span>
               <textarea rows="3" data-field="notes" placeholder="Вкус, оценка, дополнительные детали"></textarea>
+              <span class="photo-field__status" data-role="status"></span>
             </label>
           </div>
         </form>

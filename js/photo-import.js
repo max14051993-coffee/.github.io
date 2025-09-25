@@ -17,7 +17,9 @@ function $(selector) {
 }
 
 function byField(field, root) {
-  return root.querySelector(`[data-field="${field}"]`);
+  return root.querySelector(
+    `input[data-field="${field}"], textarea[data-field="${field}"], select[data-field="${field}"]`,
+  );
 }
 
 function normalizeText(value) {

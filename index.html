@@ -39,7 +39,10 @@
             <span class="overlay-title">Фильтры и слои</span>
             <span class="overlay-caret" aria-hidden="true"></span>
           </summary>
-          <div class="overlay-body" id="filtersPanel"></div>
+          <div class="overlay-body" role="region" aria-labelledby="filtersHeading">
+            <h2 class="overlay-heading" id="filtersHeading">Фильтры и слои</h2>
+            <div id="filtersPanel"></div>
+          </div>
         </details>
 
         <details class="overlay-card" id="achievementsMenu">
@@ -48,7 +51,8 @@
             <span class="overlay-title">Достижения</span>
             <span class="overlay-caret" aria-hidden="true"></span>
           </summary>
-          <div class="overlay-body">
+          <div class="overlay-body" role="region" aria-labelledby="achievementsHeading">
+            <h2 class="overlay-heading" id="achievementsHeading">Достижения</h2>
             <p class="overlay-description">Следите за прогрессом дегустаций и открывайте новые бейджи.</p>
             <div class="achievements" id="achievements"></div>
           </div>

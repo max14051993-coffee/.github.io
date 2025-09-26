@@ -12,7 +12,9 @@ export const GOOGLE_FORM_CONFIG = {
   entryMap: {
     coffeeName: '',
     roasterName: '',
-    origin: '',
+    country: '',
+    region: '',
+    farm: '',
     process: '',
     brewMethod: '',
     notes: '',

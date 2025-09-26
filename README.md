@@ -35,7 +35,7 @@ Coffeemap-mapbox-googleshhets
 3. Отредактируйте `js/config.js`:
    - `enabled: true` — включить интеграцию.
    - `prefillBaseUrl` — ссылка вида `https://docs.google.com/forms/d/e/.../viewform`.
-   - `entryMap` — сопоставление ключей `coffeeName`, `roasterName`, `origin`, `process`, `brewMethod`, `notes`, `rawText` с идентификаторами полей формы.
+  - `entryMap` — сопоставление ключей `coffeeName`, `roasterName`, `country`, `region`, `farm`, `process`, `brewMethod`, `notes`, `rawText` с идентификаторами полей формы.
    - при необходимости укажите `extraParams` (по умолчанию `usp=pp_url`).
 
 После этого кнопка «Отправить в Google Docs» откроет форму с уже подставленными данными.

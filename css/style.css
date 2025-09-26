@@ -135,15 +135,21 @@ body[data-theme="dark"]{
 
 .map-title-row{
   display:flex;
-  align-items:flex-start;
-  justify-content:space-between;
+  align-items:center;
+  justify-content:center;
   gap:12px;
+  flex-wrap:nowrap;
 }
 
 .map-banner .map-title{
   font-size:28px;
   font-weight:700;
   color:var(--text);
+  flex:1;
+  text-align:center;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
 .map-info-toggle{
@@ -266,12 +272,12 @@ body[data-theme="dark"] .overlay-summary{
 }
 
 .overlay-body{
-  padding:16px 16px 18px;
+  padding:12px 16px 16px;
   border-top:1px solid var(--surface-border);
   background:var(--surface);
   display:flex;
   flex-direction:column;
-  gap:14px;
+  gap:12px;
 }
 
 .overlay-heading{
@@ -286,7 +292,7 @@ body[data-theme="dark"] .overlay-summary{
 .overlay-hint{
   display:flex;
   align-items:flex-start;
-  gap:10px;
+  gap:8px;
 }
 
 .overlay-info-toggle{
@@ -451,20 +457,20 @@ body[data-theme="dark"] .brand-tag{
 .filters-stack{
   display:flex;
   flex-direction:column;
-  gap:16px;
+  gap:12px;
 }
 
 .filters-stats{
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
+  gap:8px;
   align-items:center;
 }
 
 .filters-section{
   display:flex;
   flex-direction:column;
-  gap:10px;
+  gap:8px;
 }
 
 .filters-label{
@@ -479,7 +485,7 @@ body[data-theme="dark"] .brand-tag{
 .filters-toggles{
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
+  gap:8px;
   align-items:center;
 }
 
@@ -491,7 +497,7 @@ label.toggle-control{
   color:var(--text);
   font-weight:500;
   font-family:var(--font-ui);
-  padding:6px 12px;
+  padding:6px 10px;
   border-radius:999px;
   background:transparent;
   transition:background .2s ease, color .2s ease;
@@ -541,16 +547,17 @@ label.toggle-control input:checked ~ .toggle-emoji{
 }
 
 .filters-chips{
-  display:flex;
-  flex-wrap:wrap;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
   gap:8px;
+  justify-items:stretch;
 }
 
 .filter-chip{
   display:inline-flex;
   align-items:center;
   gap:8px;
-  padding:6px 14px;
+  padding:6px 10px;
   border-radius:999px;
   border:1px solid var(--pill-border);
   background:var(--pill-bg);
@@ -565,6 +572,7 @@ label.toggle-control input:checked ~ .toggle-emoji{
   justify-content:center;
   text-align:center;
   overflow-wrap:anywhere;
+  width:100%;
 }
 
 .filter-chip .filter-dot{

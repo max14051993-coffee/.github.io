@@ -574,6 +574,7 @@ function parseFieldsFromText(rawText) {
     }
 
     if (!extracted.notes && entry.hasNotesKeyword) {
+
       extracted.notes = value;
       markUsedLines(usedLines, entry);
       return;

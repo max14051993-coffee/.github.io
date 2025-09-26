@@ -280,19 +280,18 @@ body[data-theme="dark"] .overlay-summary{
   gap:12px;
 }
 
+.overlay-heading-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
 .overlay-heading{
   margin:0;
   font-size:16px;
   font-weight:600;
   color:var(--text-primary);
-  text-align:center;
-  width:100%;
-}
-
-.overlay-hint{
-  display:flex;
-  align-items:flex-start;
-  gap:8px;
+  flex:1;
 }
 
 .overlay-info-toggle{

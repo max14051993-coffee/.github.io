@@ -866,6 +866,14 @@ input[type="checkbox"]{
     gap:10px;
   }
 
+  .popup-card{
+    width:280px;
+  }
+
+  .popup-cover-box{
+    height:150px;
+  }
+
   .map-banner{
     padding:14px 16px;
     border-radius:18px;
@@ -930,5 +938,13 @@ input[type="checkbox"]{
 
   .map-overlays{
     max-height:55vh;
+  }
+
+  .popup-card{
+    width:260px;
+  }
+
+  .popup-cover-box{
+    height:135px;
   }
 }

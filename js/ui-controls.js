@@ -49,9 +49,7 @@ function buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel = '
   wrap.className = 'filters-stack';
   const ownerLabelSafe = String(ownerLabel || '').trim();
   const mineLabelClass = hasOwner ? 'toggle-control' : 'toggle-control is-disabled';
-  const mineLabelText = hasOwner
-    ? (ownerLabelSafe ? `Мои записи (${ownerLabelSafe})` : 'Мои записи')
-    : 'Мои записи';
+  const mineLabelText = 'Мои записи';
   const mineTitleText = hasOwner
     ? (ownerLabelSafe ? `Показывать только свои записи — ${ownerLabelSafe}` : 'Показывать только свои записи')
     : 'Фильтр появится, когда в данных указан автор';

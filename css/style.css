@@ -857,3 +857,78 @@ input[type="checkbox"]{
     gap:12px;
   }
 }
+
+@media (max-width:420px){
+  .map-ui{
+    top:max(10px,env(safe-area-inset-top));
+    left:max(10px,env(safe-area-inset-left));
+    right:max(10px,env(safe-area-inset-right));
+    gap:10px;
+  }
+
+  .map-banner{
+    padding:14px 16px;
+    border-radius:18px;
+    gap:8px;
+  }
+
+  .map-title-row{
+    flex-wrap:wrap;
+    justify-content:space-between;
+    gap:8px;
+  }
+
+  .map-banner .map-title{
+    font-size:21px;
+    text-align:left;
+    white-space:normal;
+  }
+
+  .map-banner .map-subtitle{
+    font-size:13px;
+    line-height:1.5;
+  }
+
+  .map-info-toggle{
+    width:32px;
+    height:32px;
+    padding:0;
+  }
+
+  .map-overlays{
+    gap:10px;
+    max-height:60vh;
+    overflow:auto;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+
+  .overlay-card{
+    border-radius:16px;
+  }
+
+  .overlay-summary{
+    padding:10px 12px;
+  }
+
+  .overlay-title{
+    font-size:12px;
+  }
+
+  .overlay-body{
+    padding:12px 12px 14px;
+  }
+}
+
+@media (max-width:360px){
+  .map-banner{
+    padding:12px 14px;
+  }
+
+  .map-banner .map-title{
+    font-size:19px;
+  }
+
+  .map-overlays{
+    max-height:55vh;
+  }
+}

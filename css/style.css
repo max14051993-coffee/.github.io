@@ -229,7 +229,7 @@ body[data-theme="dark"]{
   display:flex;
   align-items:center;
   gap:10px;
-  padding:12px 16px;
+  padding:10px 14px;
   font-family:var(--font-ui);
   font-weight:600;
   color:var(--text);
@@ -272,12 +272,12 @@ body[data-theme="dark"] .overlay-summary{
 }
 
 .overlay-body{
-  padding:12px 16px 16px;
+  padding:10px 14px 14px;
   border-top:1px solid var(--surface-border);
   background:var(--surface);
   display:flex;
   flex-direction:column;
-  gap:12px;
+  gap:10px;
 }
 
 .overlay-heading-row{
@@ -853,8 +853,8 @@ input[type="checkbox"]{
   }
 
   .overlay-body{
-    padding:14px 14px 16px;
-    gap:12px;
+    padding:12px 12px 14px;
+    gap:10px;
   }
 }
 
@@ -915,7 +915,7 @@ input[type="checkbox"]{
   }
 
   .overlay-body{
-    padding:12px 12px 14px;
+    padding:10px 10px 12px;
   }
 }
 

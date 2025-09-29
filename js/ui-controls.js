@@ -53,20 +53,22 @@ const ACHIEVEMENTS = [
 export function renderAchievements(metrics) {
   const earned = ACHIEVEMENTS.filter((achievement) => achievement.earned(metrics));
   const el = document.getElementById('achievements');
+  const container = el?.closest('[data-achievements-container]');
   if (!el) return;
   if (!earned.length) {
-    el.innerHTML = '<p class="ach-empty">Продолжайте исследовать карту, чтобы открыть новые бейджи.</p>';
+    el.innerHTML = '';
+    if (container) container.hidden = true;
     return;
   }
+  if (container) container.hidden = false;
   el.innerHTML = earned.map((achievement) => {
     const tooltip = achievement.description ? ` data-tooltip="${escapeAttr(achievement.description)}"` : '';
     const aria = achievement.description
       ? `${achievement.title}. ${achievement.description}`
       : achievement.title;
     return `
-      <div class="ach-badge" style="--ach-bg:${escapeAttr(achievement.color.bg)};--ach-border:${escapeAttr(achievement.color.br)};--ach-text:${escapeAttr(achievement.color.txt)}"${tooltip} tabindex="0" aria-label="${escapeAttr(aria)}">
+      <div class="ach-badge" role="listitem" style="--ach-bg:${escapeAttr(achievement.color.bg)};--ach-border:${escapeAttr(achievement.color.br)};--ach-text:${escapeAttr(achievement.color.txt)}"${tooltip} tabindex="0" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">${achievement.emoji}</span>
-        <span class="ach-title">${escapeHtml(achievement.title)}</span>
       </div>
     `;
   }).join('');

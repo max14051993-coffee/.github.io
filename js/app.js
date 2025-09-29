@@ -22,12 +22,9 @@ setupInfoDisclosure({
 const mapController = createMapController({ accessToken: MAPBOX_TOKEN, theme, flagMode });
 const overlayMedia = window.matchMedia('(max-width: 720px)');
 
-const filterState = { mine: false, process: 'all' };
+const filterState = { process: 'all' };
 let allPointFeatures = [];
 let cityCoords = {};
-let ownerName = '';
-let initialTitle = COLLECTION_TITLE;
-let mineTitle = COLLECTION_TITLE;
 let controls = null;
 
 function syncOverlayMenus(force = false) {
@@ -56,10 +53,6 @@ if (typeof overlayMedia.addEventListener === 'function') {
 
 function getFilteredFeatures() {
   return allPointFeatures.filter((feature) => {
-    if (filterState.mine && ownerName) {
-      const uploader = (feature.properties?.uploader || '').trim();
-      if (uploader !== ownerName) return false;
-    }
     if (filterState.process !== 'all') {
       const norm = (feature.properties?.process_norm || '').trim() || 'other';
       if (filterState.process === 'other') {
@@ -106,27 +99,12 @@ function handleProcessChange(rawValue) {
   applyFilters();
 }
 
-function handleMineToggle(state) {
-  const next = state && Boolean(ownerName);
-  filterState.mine = next;
-  controls?.setMineState(next);
-  const titleEl = document.getElementById('collectionTitle');
-  if (titleEl) titleEl.textContent = next ? mineTitle : initialTitle;
-  const filtered = applyFilters({ fit: next });
-  if (!filtered.length) {
-    mapController.clearRouteHighlight();
-  }
-}
-
 async function init() {
   syncOverlayMenus(true);
   try {
     const data = await loadData({ csvUrl: CSV_URL, mapboxToken: MAPBOX_TOKEN });
     allPointFeatures = data.pointFeatures;
     cityCoords = data.cityCoordsMap;
-    ownerName = data.ownerName;
-    initialTitle = COLLECTION_TITLE;
-    mineTitle = COLLECTION_TITLE;
 
     const titleEl = document.getElementById('collectionTitle');
     if (titleEl) titleEl.textContent = COLLECTION_TITLE;
@@ -135,12 +113,9 @@ async function init() {
     controls = createUIController({
       pointsCount: data.pointFeatures.length,
       countriesCount: data.visitedCountries.length,
-      ownerName: data.ownerName,
-      ownerLabel: data.ownerLabel,
       filterState,
       onRoutesToggle: (visible) => mapController.setRoutesVisibility(visible),
       onVisitedToggle: (visible) => mapController.setCountriesVisibility(visible),
-      onMineToggle: handleMineToggle,
       onProcessChange: handleProcessChange,
     });
     controls.placeControls();
@@ -155,10 +130,6 @@ async function init() {
       visitedCountries: data.visitedCountries,
       cityCoords: data.cityCoordsMap,
     }, { fit: true });
-
-    if (controls.isMineChecked()) {
-      handleMineToggle(true);
-    }
 
     window.addEventListener('resize', debounce(() => {
       controls.placeControls();

@@ -72,17 +72,9 @@ export function renderAchievements(metrics) {
   }).join('');
 }
 
-function buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel = '', activeProcess = 'all') {
+function buildControlsHTML(pointsCount, countriesCount, activeProcess = 'all') {
   const wrap = document.createElement('div');
   wrap.className = 'filters-stack';
-  const ownerLabelSafe = String(ownerLabel || '').trim();
-  const mineLabelClass = hasOwner ? 'toggle-control' : 'toggle-control is-disabled';
-  const mineLabelText = 'Мои записи';
-  const mineTitleText = hasOwner
-    ? (ownerLabelSafe ? `Показывать только свои записи — ${ownerLabelSafe}` : 'Показывать только свои записи')
-    : 'Фильтр появится, когда в данных указан автор';
-  const mineDisabledAttr = hasOwner ? '' : ' disabled';
-  const mineAriaDisabled = hasOwner ? '' : ' aria-disabled="true"';
   const processButtons = PROCESS_FILTERS.map((opt) => {
     const isActive = activeProcess === opt.value;
     const title = opt.title ? ` title="${escapeAttr(opt.title)}"` : '';
@@ -113,11 +105,6 @@ function buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel = '
           <span class="toggle-emoji">🎨</span>
           <span class="toggle-text">Страны</span>
         </label>
-        <label class="${mineLabelClass}" title="${escapeAttr(mineTitleText)}"${mineAriaDisabled}>
-          <input type="checkbox" id="toggleMine"${mineDisabledAttr}>
-          <span class="toggle-emoji">🙋</span>
-          <span class="toggle-text">${escapeHtml(mineLabelText)}</span>
-        </label>
       </div>
     </div>
     <div class="filters-section">
@@ -133,19 +120,14 @@ function buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel = '
 export function createUIController({
   pointsCount,
   countriesCount,
-  ownerName,
-  ownerLabel,
   filterState,
   onRoutesToggle,
   onVisitedToggle,
-  onMineToggle,
   onProcessChange,
 }) {
-  const hasOwner = Boolean(ownerName);
-  const root = buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel, filterState.process);
+  const root = buildControlsHTML(pointsCount, countriesCount, filterState.process);
   const routesToggle = root.querySelector('#toggleRoutes');
   const visitedToggle = root.querySelector('#toggleVisited');
-  const mineToggle = root.querySelector('#toggleMine');
   const processButtons = [...root.querySelectorAll('[data-process]')];
   const filtersMenu = document.getElementById('filtersMenu');
   const filtersInfoToggle = filtersMenu?.querySelector('[data-overlay-info-toggle]');
@@ -161,9 +143,6 @@ export function createUIController({
   }
   if (visitedToggle) {
     visitedToggle.addEventListener('change', (e) => onVisitedToggle?.(e.target.checked), { passive: true });
-  }
-  if (mineToggle) {
-    mineToggle.addEventListener('change', (e) => onMineToggle?.(e.target.checked), { passive: true });
   }
   processButtons.forEach((btn) => {
     btn.addEventListener('click', () => {
@@ -188,13 +167,6 @@ export function createUIController({
     });
   };
 
-  const setMineState = (state) => {
-    if (!mineToggle) return;
-    if (mineToggle.checked !== state) {
-      mineToggle.checked = state;
-    }
-  };
-
   const placeControls = () => {
     const container = document.getElementById('filtersPanel');
     if (!container) return;
@@ -204,18 +176,13 @@ export function createUIController({
     }
   };
 
-  const isMineChecked = () => Boolean(mineToggle?.checked);
-
   updateCounts(pointsCount, countriesCount);
   updateProcessButtons(filterState.process);
-  setMineState(filterState.mine);
 
   return {
     root,
     placeControls,
     updateCounts,
     updateProcessButtons,
-    setMineState,
-    isMineChecked,
   };
 }

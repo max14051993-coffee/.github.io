@@ -121,7 +121,7 @@ export function createMapController({ accessToken, theme, flagMode }) {
     container: 'map',
     style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
     center: [12, 20],
-    zoom: 2.2,
+    zoom: 1.6,
     attributionControl: true,
     renderWorldCopies: false,
   });

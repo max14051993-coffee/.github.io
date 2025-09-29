@@ -648,37 +648,88 @@ input[type="checkbox"]{
   accent-color:var(--accent);
 }
 
+
 .achievements{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:14px;
 }
 
 .ach-badge{
-  display:inline-flex;
-  align-items:center;
-  gap:8px;
-  padding:10px 14px;
-  border-radius:999px;
-  border:1px solid var(--surface-border);
-  background:var(--surface-strong);
-  font-size:13px;
-  line-height:1.2;
-  color:var(--text);
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06);
-  max-width:100%;
-  flex-wrap:wrap;
-  justify-content:center;
-  text-align:center;
-  overflow-wrap:anywhere;
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  padding:16px 18px 18px;
+  border-radius:20px;
+  border:1px solid var(--ach-border,var(--surface-border));
+  background:var(--ach-bg,var(--surface-strong));
+  color:var(--ach-text,var(--text));
+  box-shadow:0 18px 30px -25px rgba(17,24,39,0.4);
+  transition:transform 0.2s ease, box-shadow 0.2s ease;
+  outline:0;
 }
 
-.ach-emoji{
-  font-size:16px;
+.ach-badge:hover,
+.ach-badge:focus-visible{
+  transform:translateY(-2px);
+  box-shadow:0 24px 38px -26px rgba(17,24,39,0.45);
+}
+
+.ach-icon{
+  width:48px;
+  height:48px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:24px;
+  background:rgba(255,255,255,0.65);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.6),0 6px 12px -8px rgba(15,23,42,0.4);
+}
+
+body[data-theme="dark"] .ach-icon{
+  background:rgba(15,23,42,0.35);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18),0 6px 12px -8px rgba(0,0,0,0.75);
 }
 
 .ach-title{
   font-weight:600;
+  font-size:15px;
+  line-height:1.3;
+}
+
+.ach-badge::after{
+  content:attr(data-tooltip);
+  position:absolute;
+  left:50%;
+  bottom:-12px;
+  transform:translate(-50%,10px);
+  padding:10px 12px;
+  border-radius:12px;
+  background:var(--surface-strong);
+  color:var(--text);
+  border:1px solid var(--surface-border);
+  box-shadow:0 12px 20px -18px rgba(17,24,39,0.6);
+  font-size:13px;
+  line-height:1.35;
+  white-space:normal;
+  width:max-content;
+  max-width:220px;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity 0.18s ease, transform 0.18s ease;
+  z-index:10;
+}
+
+.ach-badge:hover::after,
+.ach-badge:focus-visible::after{
+  opacity:1;
+  transform:translate(-50%,0);
+}
+
+.ach-badge[data-tooltip=""]::after{
+  display:none;
 }
 
 .ach-empty{

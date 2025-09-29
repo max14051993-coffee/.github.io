@@ -24,9 +24,30 @@ export const PROCESS_FILTERS = [
 export const PROCESS_FILTER_VALUES = new Set(PROCESS_FILTERS.map((p) => p.value));
 
 const ACHIEVEMENTS = [
-  { id: 'first_sip',   emoji: '🎉', title: 'Первая отметка',          color: { bg: '#d1fae5', br: '#99f6e4', txt: '#065f46' }, earned: (m) => m.total >= 1 },
-  { id: 'countries_3', emoji: '🧭', title: 'Три страны в коллекции',  color: { bg: '#fef3c7', br: '#fde68a', txt: '#92400e' }, earned: (m) => m.countries >= 3 },
-  { id: 'processes_3', emoji: '🔬', title: 'Три способа обработки',    color: { bg: '#ede9fe', br: '#ddd6fe', txt: '#4c1d95' }, earned: (m) => m.processTypes >= 3 },
+  {
+    id: 'first_sip',
+    emoji: '🎉',
+    title: 'Первая отметка',
+    description: 'Запишите первую дегустацию на карте.',
+    color: { bg: '#f0fdf4', br: '#bbf7d0', txt: '#14532d' },
+    earned: (m) => m.total >= 1,
+  },
+  {
+    id: 'countries_3',
+    emoji: '🧭',
+    title: 'Три страны в коллекции',
+    description: 'Попробуйте кофе минимум из трёх разных стран.',
+    color: { bg: '#fffbeb', br: '#fde68a', txt: '#78350f' },
+    earned: (m) => m.countries >= 3,
+  },
+  {
+    id: 'processes_3',
+    emoji: '🔬',
+    title: 'Три способа обработки',
+    description: 'Откройте дегустации с тремя разными методами обработки.',
+    color: { bg: '#f5f3ff', br: '#ddd6fe', txt: '#3730a3' },
+    earned: (m) => m.processTypes >= 3,
+  },
 ];
 
 export function renderAchievements(metrics) {
@@ -37,11 +58,18 @@ export function renderAchievements(metrics) {
     el.innerHTML = '<p class="ach-empty">Продолжайте исследовать карту, чтобы открыть новые бейджи.</p>';
     return;
   }
-  el.innerHTML = earned.map((achievement) => `
-    <div class="ach-badge" style="background:${achievement.color.bg};border-color:${achievement.color.br};color:${achievement.color.txt}" title="${escapeAttr(achievement.title)}">
-      <span class="ach-emoji">${achievement.emoji}</span><span class="ach-title">${achievement.title}</span>
-    </div>
-  `).join('');
+  el.innerHTML = earned.map((achievement) => {
+    const tooltip = achievement.description ? ` data-tooltip="${escapeAttr(achievement.description)}"` : '';
+    const aria = achievement.description
+      ? `${achievement.title}. ${achievement.description}`
+      : achievement.title;
+    return `
+      <div class="ach-badge" style="--ach-bg:${escapeAttr(achievement.color.bg)};--ach-border:${escapeAttr(achievement.color.br)};--ach-text:${escapeAttr(achievement.color.txt)}"${tooltip} tabindex="0" aria-label="${escapeAttr(aria)}">
+        <span class="ach-icon" aria-hidden="true">${achievement.emoji}</span>
+        <span class="ach-title">${escapeHtml(achievement.title)}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 function buildControlsHTML(pointsCount, countriesCount, hasOwner, ownerLabel = '', activeProcess = 'all') {

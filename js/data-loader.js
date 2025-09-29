@@ -349,8 +349,6 @@ export async function loadData({ csvUrl, mapboxToken }) {
   const ownerLabel = primaryUploader
     ? (uploaders.length > 1 ? `${primaryUploader} +${uploaders.length - 1}` : primaryUploader)
     : '';
-  const initialTitle = ownerLabel ? `My coffee experience — ${ownerLabel}` : 'My coffee experience';
-  const mineTitle = ownerName ? `My coffee experience — ${ownerName}` : 'My coffee experience';
 
   const wantedCities = new Set();
   for (const feature of pointFeatures) {
@@ -371,8 +369,6 @@ export async function loadData({ csvUrl, mapboxToken }) {
     pointFeatures,
     ownerName,
     ownerLabel,
-    initialTitle,
-    mineTitle,
     cityCoordsMap,
     lineFeatures,
     cityPoints,

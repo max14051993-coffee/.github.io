@@ -10,6 +10,10 @@ const theme = (new URLSearchParams(location.search).get('style') || 'light').toL
 document.body.dataset.theme = theme;
 const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase();
 
+const COLLECTION_TITLE = 'My coffee experience';
+
+document.title = COLLECTION_TITLE;
+
 setupInfoDisclosure({
   toggle: document.querySelector('[data-map-info-toggle]'),
   panel: document.querySelector('[data-map-info-panel]'),
@@ -22,8 +26,8 @@ const filterState = { mine: false, process: 'all' };
 let allPointFeatures = [];
 let cityCoords = {};
 let ownerName = '';
-let initialTitle = 'My coffee experience';
-let mineTitle = 'My coffee experience';
+let initialTitle = COLLECTION_TITLE;
+let mineTitle = COLLECTION_TITLE;
 let controls = null;
 
 function syncOverlayMenus(force = false) {
@@ -121,11 +125,12 @@ async function init() {
     allPointFeatures = data.pointFeatures;
     cityCoords = data.cityCoordsMap;
     ownerName = data.ownerName;
-    initialTitle = data.initialTitle;
-    mineTitle = data.mineTitle;
+    initialTitle = COLLECTION_TITLE;
+    mineTitle = COLLECTION_TITLE;
 
     const titleEl = document.getElementById('collectionTitle');
-    if (titleEl) titleEl.textContent = initialTitle;
+    if (titleEl) titleEl.textContent = COLLECTION_TITLE;
+    document.title = COLLECTION_TITLE;
 
     controls = createUIController({
       pointsCount: data.pointFeatures.length,

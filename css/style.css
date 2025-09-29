@@ -208,13 +208,13 @@ body[data-theme="dark"]{
   display:flex;
   flex-direction:column;
   gap:12px;
-  width:min(260px,100%);
+  width:min(220px,100%);
   pointer-events:auto;
 }
 
 .overlay-card{
   width:100%;
-  max-width:260px;
+  max-width:220px;
   background:var(--surface);
   border:1px solid var(--surface-border);
   border-radius:18px;

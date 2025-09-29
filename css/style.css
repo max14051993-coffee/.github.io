@@ -905,9 +905,28 @@ input[type="checkbox"]{
 
   .map-overlays{
     gap:10px;
-    max-height:60vh;
+    max-height:clamp(340px,calc(100vh - 160px),80vh);
     overflow:auto;
     padding-bottom:env(safe-area-inset-bottom);
+  }
+
+  @supports(height:100dvh){
+    .map-overlays{
+      max-height:clamp(340px,calc(100dvh - 160px),80dvh);
+    }
+  }
+
+  .overlay-card[open] .overlay-body{
+    max-height:clamp(260px,calc(100vh - 220px),520px);
+    overflow:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+
+  @supports(height:100dvh){
+    .overlay-card[open] .overlay-body{
+      max-height:clamp(260px,calc(100dvh - 220px),520px);
+    }
   }
 
   .overlay-card{

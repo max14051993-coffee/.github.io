@@ -300,13 +300,13 @@ export function renderAchievements(metrics) {
   const container = el?.closest('[data-achievements-container]');
   if (!el) return;
 
-  const evaluated = ACHIEVEMENTS.map((achievement) => {
+  const evaluated = ACHIEVEMENTS.map((achievement, index) => {
     const earned = Boolean(achievement.earned(metrics));
     const rawProgress = typeof achievement.progress === 'function'
       ? achievement.progress(metrics)
       : (earned ? 1 : 0);
     const progress = earned ? 1 : clamp01(rawProgress);
-    return { ...achievement, earned, progress };
+    return { ...achievement, earned, progress, originalIndex: index };
   });
 
   const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
@@ -318,6 +318,13 @@ export function renderAchievements(metrics) {
     return achievement.progress > 0;
   });
 
+  const sorted = [...visible].sort((a, b) => {
+    if (a.earned && !b.earned) return -1;
+    if (!a.earned && b.earned) return 1;
+    if (b.progress !== a.progress) return b.progress - a.progress;
+    return a.originalIndex - b.originalIndex;
+  });
+
   if (!visible.length) {
     el.innerHTML = '';
     if (container) container.hidden = true;
@@ -325,7 +332,7 @@ export function renderAchievements(metrics) {
   }
   if (container) container.hidden = false;
 
-  el.innerHTML = visible.map((achievement) => {
+  el.innerHTML = sorted.map((achievement) => {
     const isPartial = !achievement.earned && achievement.progress > 0;
     const progressPercent = Math.round(achievement.progress * 100);
     const tooltipTextParts = [];
@@ -352,7 +359,7 @@ export function renderAchievements(metrics) {
     if (isPartial) cls.push('is-partial');
     return `
       <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
-        <span class="ach-icon" aria-hidden="true">${achievement.emoji}</span>
+        <span class="ach-icon" aria-hidden="true"><span class="ach-icon-emoji">${achievement.emoji}</span></span>
         ${tooltipHtml}
       </div>
     `;

@@ -336,7 +336,7 @@ export function renderAchievements(metrics) {
       tooltipTextParts.push(`Прогресс: ${progressPercent}%`);
     }
     const tooltipText = tooltipTextParts.join(' ');
-    const tooltip = tooltipText ? ` data-tooltip="${escapeAttr(tooltipText)}"` : '';
+    const tooltipHtml = tooltipText ? `<span class="ach-tooltip" aria-hidden="true">${escapeHtml(tooltipText)}</span>` : '';
     const ariaParts = [achievement.title];
     if (achievement.description) ariaParts.push(achievement.description);
     if (achievement.earned) {
@@ -351,11 +351,76 @@ export function renderAchievements(metrics) {
     if (achievement.earned) cls.push('is-earned');
     if (isPartial) cls.push('is-partial');
     return `
-      <div class="${cls.join(' ')}" role="listitem"${style}${tooltip} tabindex="0" aria-label="${escapeAttr(aria)}">
+      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">${achievement.emoji}</span>
+        ${tooltipHtml}
       </div>
     `;
   }).join('');
+
+  setupAchievementTooltips(el);
+}
+
+const TOOLTIP_VIEWPORT_GAP = 16;
+
+function setupAchievementTooltips(root) {
+  if (!root || typeof window === 'undefined' || typeof document === 'undefined') return;
+  const badges = root.querySelectorAll('.ach-badge');
+  badges.forEach((badge) => {
+    const tooltip = badge.querySelector('.ach-tooltip');
+    if (!tooltip) return;
+
+    let rafId = 0;
+    let resizeHandler = null;
+
+    const applyShift = () => {
+      badge.style.setProperty('--ach-tooltip-shift', '0px');
+      const rect = tooltip.getBoundingClientRect();
+      const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0;
+      const safeRight = viewportWidth - TOOLTIP_VIEWPORT_GAP;
+      let shift = 0;
+      if (rect.left < TOOLTIP_VIEWPORT_GAP) {
+        shift = TOOLTIP_VIEWPORT_GAP - rect.left;
+      } else if (rect.right > safeRight) {
+        shift = safeRight - rect.right;
+      }
+      if (shift !== 0) {
+        badge.style.setProperty('--ach-tooltip-shift', `${shift}px`);
+      } else {
+        badge.style.removeProperty('--ach-tooltip-shift');
+      }
+    };
+
+    const scheduleApply = () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      rafId = window.requestAnimationFrame(() => {
+        applyShift();
+        rafId = 0;
+      });
+      if (!resizeHandler) {
+        resizeHandler = () => applyShift();
+        window.addEventListener('resize', resizeHandler);
+      }
+    };
+
+    const resetShift = () => {
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+        rafId = 0;
+      }
+      badge.style.removeProperty('--ach-tooltip-shift');
+      if (resizeHandler) {
+        window.removeEventListener('resize', resizeHandler);
+        resizeHandler = null;
+      }
+    };
+
+    badge.addEventListener('pointerenter', scheduleApply);
+    badge.addEventListener('focus', scheduleApply);
+    badge.addEventListener('pointerleave', resetShift);
+    badge.addEventListener('blur', resetShift);
+    badge.addEventListener('touchstart', scheduleApply, { passive: true });
+  });
 }
 
 function buildControlsHTML(pointsCount, countriesCount, activeProcess = 'all') {

@@ -359,7 +359,7 @@ export function renderAchievements(metrics) {
     if (isPartial) cls.push('is-partial');
     return `
       <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
-        <span class="ach-icon" aria-hidden="true"><span class="ach-icon-emoji">${achievement.emoji}</span></span>
+        <span class="ach-icon" aria-hidden="true">${achievement.emoji}</span>
         ${tooltipHtml}
       </div>
     `;

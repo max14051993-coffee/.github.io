@@ -779,8 +779,8 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
   position:absolute;
   left:50%;
   right:auto;
-  bottom:-12px;
-  transform:translate(calc(-50% + var(--ach-tooltip-shift, 0px)), 10px);
+  bottom:calc(100% + 12px);
+  transform:translate(calc(-50% + var(--ach-tooltip-shift, 0px)), 8px);
   padding:10px 12px;
   border-radius:12px;
   background:var(--surface-strong);

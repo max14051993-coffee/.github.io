@@ -676,6 +676,7 @@ input[type="checkbox"]{
 
 
 .ach-badge{
+  --ach-progress:1;
   position:relative;
   display:flex;
   align-items:center;
@@ -684,17 +685,30 @@ input[type="checkbox"]{
   height:48px;
   border-radius:16px;
   border:1px solid var(--ach-border,var(--surface-border));
-  background:var(--ach-bg,var(--surface-strong));
+  background:var(--surface-strong);
   color:var(--ach-text,var(--text));
   box-shadow:0 12px 24px -16px rgba(17,24,39,0.4);
   transition:transform 0.2s ease, box-shadow 0.2s ease;
   outline:0;
+  overflow:hidden;
 }
 
 .ach-badge:hover,
 .ach-badge:focus-visible{
   transform:translateY(-2px);
   box-shadow:0 24px 38px -26px rgba(17,24,39,0.45);
+}
+
+.ach-badge::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:var(--ach-bg,var(--surface-strong));
+  transform-origin:bottom center;
+  transform:scaleY(var(--ach-progress,1));
+  transition:transform 0.25s ease;
+  z-index:0;
 }
 
 .ach-icon{
@@ -707,11 +721,21 @@ input[type="checkbox"]{
   font-size:20px;
   background:rgba(255,255,255,0.65);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,0.6),0 4px 10px -6px rgba(15,23,42,0.4);
+  position:relative;
+  z-index:1;
 }
 
 body[data-theme="dark"] .ach-icon{
   background:rgba(15,23,42,0.35);
   box-shadow:inset 0 0 0 1px rgba(255,255,255,0.18),0 6px 12px -8px rgba(0,0,0,0.75);
+}
+
+.ach-badge.is-partial .ach-icon{
+  background:rgba(255,255,255,0.8);
+}
+
+body[data-theme="dark"] .ach-badge.is-partial .ach-icon{
+  background:rgba(15,23,42,0.45);
 }
 
 .ach-badge::after{

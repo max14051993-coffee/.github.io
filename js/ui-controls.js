@@ -30,6 +30,27 @@ const metricCount = (value) => {
   return 0;
 };
 
+const clamp01 = (value) => Math.max(0, Math.min(1, Number.isFinite(value) ? value : 0));
+
+const ratioProgress = (current, target) => {
+  const safeTarget = Number(target);
+  if (!Number.isFinite(safeTarget) || safeTarget <= 0) {
+    return current ? 1 : 0;
+  }
+  const safeCurrent = Number(current);
+  if (!Number.isFinite(safeCurrent)) return 0;
+  return clamp01(safeCurrent / safeTarget);
+};
+
+const countProgress = (value, target) => ratioProgress(metricCount(value), target);
+
+const multiFlagProgress = (flags) => {
+  const items = Array.isArray(flags) ? flags : [];
+  if (!items.length) return 0;
+  const completed = items.reduce((acc, flag) => acc + (flag ? 1 : 0), 0);
+  return ratioProgress(completed, items.length);
+};
+
 const ACHIEVEMENTS = [
   {
     id: 'world_wanderer',
@@ -38,6 +59,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе из 5 разных стран.',
     color: { bg: '#e6f7ff', br: '#b3e5fc', txt: '#01579b' },
     earned: (m) => metricCount(m.countryCodes) >= 5,
+    progress: (m) => countProgress(m.countryCodes, 5),
   },
   {
     id: 'bean_passport',
@@ -46,6 +68,8 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе из 10 стран.',
     color: { bg: '#fff3e0', br: '#ffcc80', txt: '#e65100' },
     earned: (m) => metricCount(m.countryCodes) >= 10,
+    progress: (m) => countProgress(m.countryCodes, 10),
+    requires: 'world_wanderer',
   },
   {
     id: 'coffee_united',
@@ -54,6 +78,8 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе из 20+ стран.',
     color: { bg: '#f3e5f5', br: '#d1c4e9', txt: '#4a148c' },
     earned: (m) => metricCount(m.countryCodes) >= 20,
+    progress: (m) => countProgress(m.countryCodes, 20),
+    requires: 'bean_passport',
   },
   {
     id: 'global_champion',
@@ -62,6 +88,8 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе хотя бы из 30 стран.',
     color: { bg: '#fffde7', br: '#fff176', txt: '#f57f17' },
     earned: (m) => metricCount(m.countryCodes) >= 30,
+    progress: (m) => countProgress(m.countryCodes, 30),
+    requires: 'coffee_united',
   },
   {
     id: 'continental',
@@ -70,6 +98,7 @@ const ACHIEVEMENTS = [
     description: 'Собрать кофе с каждого континента, где он растёт.',
     color: { bg: '#e8f5e9', br: '#a5d6a7', txt: '#1b5e20' },
     earned: (m) => Boolean(m.hasAllCoffeeContinents),
+    progress: (m) => countProgress(m.continents, 5),
   },
   {
     id: 'africa_explorer',
@@ -78,6 +107,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе минимум из 5 африканских стран.',
     color: { bg: '#fbe9e7', br: '#ffab91', txt: '#bf360c' },
     earned: (m) => metricCount(m.africanCountries) >= 5,
+    progress: (m) => countProgress(m.africanCountries, 5),
   },
   {
     id: 'latin_gourmet',
@@ -86,6 +116,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе из 5 стран Латинской Америки.',
     color: { bg: '#f1f8e9', br: '#c5e1a5', txt: '#33691e' },
     earned: (m) => metricCount(m.latinCountries) >= 5,
+    progress: (m) => countProgress(m.latinCountries, 5),
   },
   {
     id: 'asia_collector',
@@ -94,6 +125,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе из 3 азиатских стран.',
     color: { bg: '#e0f7fa', br: '#80deea', txt: '#006064' },
     earned: (m) => metricCount(m.asianCountries) >= 3,
+    progress: (m) => countProgress(m.asianCountries, 3),
   },
   {
     id: 'island_hunter',
@@ -102,6 +134,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе с островов.',
     color: { bg: '#fff0f6', br: '#f8bbd0', txt: '#ad1457' },
     earned: (m) => metricCount(m.islandCountries) >= 3,
+    progress: (m) => countProgress(m.islandCountries, 3),
   },
   {
     id: 'ethiopia_tracker',
@@ -110,6 +143,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе из 3 разных регионов Эфиопии.',
     color: { bg: '#f1f8ff', br: '#bbdefb', txt: '#0d47a1' },
     earned: (m) => metricCount(m.ethiopiaRegions) >= 3,
+    progress: (m) => countProgress(m.ethiopiaRegions, 3),
   },
   {
     id: 'colombia_tracker',
@@ -118,6 +152,7 @@ const ACHIEVEMENTS = [
     description: 'Собрать кофе из 3 зон Колумбии.',
     color: { bg: '#fff8e1', br: '#ffe082', txt: '#ff6f00' },
     earned: (m) => metricCount(m.colombiaRegions) >= 3,
+    progress: (m) => countProgress(m.colombiaRegions, 3),
   },
   {
     id: 'deep_dive',
@@ -126,6 +161,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе из 5 регионов в одной стране.',
     color: { bg: '#ede7f6', br: '#b39ddb', txt: '#311b92' },
     earned: (m) => Number(m.maxRegionsInCountry) >= 5,
+    progress: (m) => countProgress(m.maxRegionsInCountry, 5),
   },
   {
     id: 'regional_champion',
@@ -134,6 +170,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе из 15+ уникальных регионов.',
     color: { bg: '#fff3f0', br: '#ffab91', txt: '#bf360c' },
     earned: (m) => Number(m.uniqueRegions) >= 15,
+    progress: (m) => countProgress(m.uniqueRegions, 15),
   },
   {
     id: 'washed_master',
@@ -142,6 +179,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать 5 сортов мытой обработки.',
     color: { bg: '#e0f2f1', br: '#80cbc4', txt: '#004d40' },
     earned: (m) => Number(m.washedCount) >= 5,
+    progress: (m) => countProgress(m.washedCount, 5),
   },
   {
     id: 'natural_gourmet',
@@ -150,6 +188,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать 5 сортов натуральной обработки.',
     color: { bg: '#fff8e1', br: '#ffe0b2', txt: '#e65100' },
     earned: (m) => Number(m.naturalCount) >= 5,
+    progress: (m) => countProgress(m.naturalCount, 5),
   },
   {
     id: 'experimenter',
@@ -158,6 +197,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать honey, anaerobic и carbonic maceration.',
     color: { bg: '#edeefc', br: '#c5cae9', txt: '#283593' },
     earned: (m) => Boolean(m.hasHoney && m.hasAnaerobic && m.hasCarbonic),
+    progress: (m) => multiFlagProgress([m.hasHoney, m.hasAnaerobic, m.hasCarbonic]),
   },
   {
     id: 'fermentation_maniac',
@@ -166,6 +206,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать 5+ экспериментальных методов обработки.',
     color: { bg: '#f3e5f5', br: '#ce93d8', txt: '#6a1b9a' },
     earned: (m) => metricCount(m.experimentalMethods) >= 5,
+    progress: (m) => countProgress(m.experimentalMethods, 5),
   },
   {
     id: 'industrial_romantic',
@@ -174,6 +215,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать rare washed и honey с геопривязкой.',
     color: { bg: '#f1f8e9', br: '#aed581', txt: '#33691e' },
     earned: (m) => Boolean(m.geotagWashed && m.geotagHoney),
+    progress: (m) => multiFlagProgress([m.geotagWashed, m.geotagHoney]),
   },
   {
     id: 'filter_geek',
@@ -182,6 +224,11 @@ const ACHIEVEMENTS = [
     description: 'Попробовать 3 метода фильтра: v60, Kalita, Aeropress.',
     color: { bg: '#e8eaf6', br: '#c5cae9', txt: '#283593' },
     earned: (m) => Boolean(m.filterHits?.v60 && m.filterHits?.kalita && m.filterHits?.aeropress),
+    progress: (m) => multiFlagProgress([
+      Boolean(m.filterHits?.v60),
+      Boolean(m.filterHits?.kalita),
+      Boolean(m.filterHits?.aeropress),
+    ]),
   },
   {
     id: 'multi_brew',
@@ -190,6 +237,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать хотя бы 5 разных способов заварки.',
     color: { bg: '#f9fbe7', br: '#dce775', txt: '#827717' },
     earned: (m) => metricCount(m.brewMethods) >= 5,
+    progress: (m) => countProgress(m.brewMethods, 5),
   },
   {
     id: 'espresso_master',
@@ -198,6 +246,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать эспрессо в 5 разных городах.',
     color: { bg: '#fff3e0', br: '#ffb74d', txt: '#e65100' },
     earned: (m) => metricCount(m.espressoCities) >= 5,
+    progress: (m) => countProgress(m.espressoCities, 5),
   },
   {
     id: 'local_patriot',
@@ -206,6 +255,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе от 3 обжарщиков из своего города.',
     color: { bg: '#f1f8e9', br: '#dcedc8', txt: '#33691e' },
     earned: (m) => Number(m.roastersInHomeCity) >= 3,
+    progress: (m) => countProgress(m.roastersInHomeCity, 3),
   },
   {
     id: 'international_roasters',
@@ -214,6 +264,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе от обжарщиков из 5 разных стран.',
     color: { bg: '#e0f2f1', br: '#80cbc4', txt: '#004d40' },
     earned: (m) => metricCount(m.roasterCountries) >= 5,
+    progress: (m) => countProgress(m.roasterCountries, 5),
   },
   {
     id: 'home_barista',
@@ -222,6 +273,7 @@ const ACHIEVEMENTS = [
     description: 'Выпить 10 чашек дома.',
     color: { bg: '#fff8e1', br: '#ffe0b2', txt: '#ef6c00' },
     earned: (m) => Number(m.homeCups) >= 10,
+    progress: (m) => countProgress(m.homeCups, 10),
   },
   {
     id: 'coffee_tourist',
@@ -230,6 +282,7 @@ const ACHIEVEMENTS = [
     description: 'Попробовать кофе в 5 разных городах.',
     color: { bg: '#e3f2fd', br: '#90caf9', txt: '#1565c0' },
     earned: (m) => metricCount(m.consumedCities) >= 5,
+    progress: (m) => countProgress(m.consumedCities, 5),
   },
   {
     id: 'cafe_explorer',
@@ -238,27 +291,67 @@ const ACHIEVEMENTS = [
     description: 'Посетить 10 уникальных кофеен.',
     color: { bg: '#fce4ec', br: '#f48fb1', txt: '#880e4f' },
     earned: (m) => metricCount(m.cafes) >= 10,
+    progress: (m) => countProgress(m.cafes, 10),
   },
 ];
 
 export function renderAchievements(metrics) {
-  const earned = ACHIEVEMENTS.filter((achievement) => achievement.earned(metrics));
   const el = document.getElementById('achievements');
   const container = el?.closest('[data-achievements-container]');
   if (!el) return;
-  if (!earned.length) {
+
+  const evaluated = ACHIEVEMENTS.map((achievement) => {
+    const earned = Boolean(achievement.earned(metrics));
+    const rawProgress = typeof achievement.progress === 'function'
+      ? achievement.progress(metrics)
+      : (earned ? 1 : 0);
+    const progress = earned ? 1 : clamp01(rawProgress);
+    return { ...achievement, earned, progress };
+  });
+
+  const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
+
+  const visible = evaluated.filter((achievement) => {
+    const requirementMet = !achievement.requires || lookup.get(achievement.requires)?.earned;
+    if (!requirementMet && !achievement.earned) return false;
+    if (achievement.earned) return true;
+    return achievement.progress > 0;
+  });
+
+  if (!visible.length) {
     el.innerHTML = '';
     if (container) container.hidden = true;
     return;
   }
   if (container) container.hidden = false;
-  el.innerHTML = earned.map((achievement) => {
-    const tooltip = achievement.description ? ` data-tooltip="${escapeAttr(achievement.description)}"` : '';
-    const aria = achievement.description
-      ? `${achievement.title}. ${achievement.description}`
-      : achievement.title;
+
+  el.innerHTML = visible.map((achievement) => {
+    const isPartial = !achievement.earned && achievement.progress > 0;
+    const progressPercent = Math.round(achievement.progress * 100);
+    const tooltipTextParts = [];
+    if (achievement.description) tooltipTextParts.push(achievement.description);
+    if (achievement.earned) {
+      tooltipTextParts.push('Достижение получено');
+    } else if (isPartial) {
+      tooltipTextParts.push(`Прогресс: ${progressPercent}%`);
+    }
+    const tooltipText = tooltipTextParts.join(' ');
+    const tooltip = tooltipText ? ` data-tooltip="${escapeAttr(tooltipText)}"` : '';
+    const ariaParts = [achievement.title];
+    if (achievement.description) ariaParts.push(achievement.description);
+    if (achievement.earned) {
+      ariaParts.push('Достижение получено.');
+    } else if (isPartial) {
+      ariaParts.push(`Прогресс ${progressPercent}%.`);
+    }
+    const aria = ariaParts.join(' ');
+    const styleValue = `--ach-bg:${achievement.color.bg};--ach-border:${achievement.color.br};--ach-text:${achievement.color.txt};--ach-progress:${achievement.progress.toFixed(3)}`;
+    const style = ` style="${escapeAttr(styleValue)}"`;
+    const cls = ['ach-badge'];
+    if (achievement.earned) cls.push('is-earned');
+    if (isPartial) cls.push('is-partial');
     return `
-      <div class="ach-badge" role="listitem" style="--ach-bg:${escapeAttr(achievement.color.bg)};--ach-border:${escapeAttr(achievement.color.br)};--ach-text:${escapeAttr(achievement.color.txt)}"${tooltip} tabindex="0" aria-label="${escapeAttr(aria)}">
+      <div class="${cls.join(' ')}" role="listitem"${style}${tooltip} tabindex="0" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">${achievement.emoji}</span>
       </div>
     `;

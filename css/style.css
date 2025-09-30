@@ -228,6 +228,8 @@ body[data-theme="dark"]{
   width:100%;
   max-width:440px;
   justify-self:start;
+  position:relative;
+  z-index:3;
   pointer-events:auto;
 }
 
@@ -698,7 +700,7 @@ input[type="checkbox"]{
   box-shadow:0 12px 24px -16px rgba(17,24,39,0.4);
   transition:transform 0.2s ease, box-shadow 0.2s ease;
   outline:0;
-  overflow:hidden;
+  overflow:visible;
 }
 
 .ach-badge:hover,
@@ -746,12 +748,12 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon{
   background:rgba(15,23,42,0.45);
 }
 
-.ach-badge::after{
-  content:attr(data-tooltip);
+.ach-tooltip{
   position:absolute;
-  right:0;
+  left:50%;
+  right:auto;
   bottom:-12px;
-  transform:translate(0,10px);
+  transform:translate(calc(-50% + var(--ach-tooltip-shift, 0px)), 10px);
   padding:10px 12px;
   border-radius:12px;
   background:var(--surface-strong);
@@ -762,21 +764,19 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon{
   line-height:1.35;
   white-space:normal;
   width:max-content;
-  max-width:220px;
+  max-width:min(240px, calc(100vw - 32px));
   opacity:0;
   pointer-events:none;
   transition:opacity 0.18s ease, transform 0.18s ease;
   z-index:10;
+  overflow-wrap:anywhere;
+  text-align:left;
 }
 
-.ach-badge:hover::after,
-.ach-badge:focus-visible::after{
+.ach-badge:hover .ach-tooltip,
+.ach-badge:focus-visible .ach-tooltip{
   opacity:1;
-  transform:translate(0,0);
-}
-
-.ach-badge[data-tooltip=""]::after{
-  display:none;
+  transform:translate(calc(-50% + var(--ach-tooltip-shift, 0px)), 0);
 }
 
 #map{

@@ -352,7 +352,8 @@ export function renderAchievements(metrics) {
       ariaParts.push(`Прогресс ${progressPercent}%.`);
     }
     const aria = ariaParts.join(' ');
-    const styleValue = `--ach-bg:${achievement.color.bg};--ach-border:${achievement.color.br};--ach-text:${achievement.color.txt};--ach-progress:${achievement.progress.toFixed(3)}`;
+    const cover = Math.max(0, Math.min(1, 1 - achievement.progress));
+    const styleValue = `--ach-bg:${achievement.color.bg};--ach-border:${achievement.color.br};--ach-text:${achievement.color.txt};--ach-progress:${achievement.progress.toFixed(3)};--ach-cover:${cover.toFixed(3)}`;
     const style = ` style="${escapeAttr(styleValue)}"`;
     const cls = ['ach-badge'];
     if (achievement.earned) cls.push('is-earned');

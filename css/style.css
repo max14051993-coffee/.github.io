@@ -228,6 +228,8 @@ body[data-theme="dark"]{
   width:100%;
   max-width:440px;
   justify-self:start;
+  position:relative;
+  z-index:3;
   pointer-events:auto;
 }
 

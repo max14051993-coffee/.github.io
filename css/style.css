@@ -804,9 +804,11 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
 }
 
 .ach-badge:hover .ach-tooltip,
-.ach-badge:focus-visible .ach-tooltip{
+.ach-badge:focus-visible .ach-tooltip,
+.ach-badge.is-tooltip-active .ach-tooltip{
   opacity:1;
   transform:translate(calc(-50% + var(--ach-tooltip-shift, 0px)), 0);
+  pointer-events:auto;
 }
 
 #map{

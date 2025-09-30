@@ -425,11 +425,23 @@ function setupAchievementTooltips(root) {
       }
     };
 
-    badge.addEventListener('pointerenter', scheduleApply);
-    badge.addEventListener('focus', scheduleApply);
-    badge.addEventListener('pointerleave', resetShift);
-    badge.addEventListener('blur', resetShift);
-    badge.addEventListener('touchstart', scheduleApply, { passive: true });
+    const showTooltip = () => {
+      badge.classList.add('is-tooltip-active');
+      scheduleApply();
+    };
+
+    const hideTooltip = () => {
+      badge.classList.remove('is-tooltip-active');
+      resetShift();
+    };
+
+    badge.addEventListener('pointerenter', showTooltip);
+    badge.addEventListener('focus', showTooltip);
+    badge.addEventListener('pointerleave', hideTooltip);
+    badge.addEventListener('blur', hideTooltip);
+    badge.addEventListener('touchstart', showTooltip, { passive: true });
+    badge.addEventListener('touchend', hideTooltip, { passive: true });
+    badge.addEventListener('touchcancel', hideTooltip, { passive: true });
   });
 }
 

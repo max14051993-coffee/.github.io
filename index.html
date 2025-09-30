@@ -32,6 +32,11 @@
         <p class="map-subtitle" id="mapInfoText" data-map-info-panel hidden>Передвигайте карту и кликайте на маркеры, чтобы увидеть путь зерна от фермы до чашки.</p>
       </header>
 
+      <div class="map-achievements" data-achievements-container hidden>
+        <span class="sr-only" id="achievementsLabel">Достижения</span>
+        <div class="achievements" id="achievements" role="list" aria-labelledby="achievementsLabel"></div>
+      </div>
+
       <div class="map-overlays">
         <details class="overlay-card" id="filtersMenu">
           <summary class="overlay-summary">
@@ -52,10 +57,6 @@
           </div>
         </details>
 
-      </div>
-      <div class="map-achievements" data-achievements-container hidden>
-        <span class="sr-only" id="achievementsLabel">Достижения</span>
-        <div class="achievements" id="achievements" role="list" aria-labelledby="achievementsLabel"></div>
       </div>
     </div>
   </div>

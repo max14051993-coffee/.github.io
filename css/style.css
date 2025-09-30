@@ -687,6 +687,7 @@ input[type="checkbox"]{
 
 .ach-badge{
   --ach-progress:1;
+  --ach-cover:0;
   position:relative;
   display:flex;
   align-items:center;
@@ -701,12 +702,14 @@ input[type="checkbox"]{
   transition:transform 0.2s ease, box-shadow 0.2s ease;
   outline:0;
   overflow:visible;
+  z-index:0;
 }
 
 .ach-badge:hover,
 .ach-badge:focus-visible{
   transform:translateY(-2px);
   box-shadow:0 24px 38px -26px rgba(17,24,39,0.45);
+  z-index:20;
 }
 
 .ach-badge::before{
@@ -716,7 +719,7 @@ input[type="checkbox"]{
   border-radius:inherit;
   background:var(--ach-bg,var(--surface-strong));
   transform-origin:bottom center;
-  transform:scaleY(var(--ach-progress,1));
+  transform:scaleY(var(--ach-cover,0));
   transition:transform 0.25s ease;
   z-index:0;
 }
@@ -753,7 +756,7 @@ input[type="checkbox"]{
 .ach-icon::after{
   background:var(--ach-bg,var(--surface-strong));
   transform-origin:bottom center;
-  transform:scaleY(var(--ach-progress,1));
+  transform:scaleY(var(--ach-cover,0));
   z-index:1;
 }
 
@@ -795,7 +798,7 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
   opacity:0;
   pointer-events:none;
   transition:opacity 0.18s ease, transform 0.18s ease;
-  z-index:10;
+  z-index:200;
   overflow-wrap:anywhere;
   text-align:left;
 }

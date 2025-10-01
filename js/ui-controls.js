@@ -1,5 +1,29 @@
 import { escapeAttr, escapeHtml, setupInfoDisclosure } from './utils.js';
 
+const globalScope = typeof globalThis !== 'undefined' ? globalThis : undefined;
+
+const iconBasePath = (() => {
+  if (!globalScope) return 'img/achievements';
+  const customPath = globalScope.ACHIEVEMENT_ICON_PATH;
+  if (customPath === null || customPath === false) return null;
+  if (typeof customPath === 'string' && customPath.trim()) {
+    return customPath.replace(/\/$/, '');
+  }
+  return 'img/achievements';
+})();
+
+const iconOverrides = globalScope && typeof globalScope.ACHIEVEMENT_ICONS === 'object'
+  ? globalScope.ACHIEVEMENT_ICONS
+  : null;
+
+const resolveAchievementIcon = (id) => {
+  if (iconOverrides && typeof iconOverrides[id] === 'string') {
+    return iconOverrides[id];
+  }
+  if (!iconBasePath) return null;
+  return `${iconBasePath}/${id}.png`;
+};
+
 export function processColors(pType) {
   switch (pType) {
     case 'washed':      return { point: '#2e7d32', bg: '#d7f0df', br: '#82b998', txt: '#205b3a' };
@@ -54,6 +78,7 @@ const multiFlagProgress = (flags) => {
 const ACHIEVEMENTS = [
   {
     id: 'world_wanderer',
+    icon: resolveAchievementIcon('world_wanderer'),
     emoji: '🌍',
     title: 'Мировой скиталец',
     description: 'Попробовать кофе из 5 разных стран.',
@@ -63,6 +88,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'bean_passport',
+    icon: resolveAchievementIcon('bean_passport'),
     emoji: '🛂',
     title: 'Паспорт в зернах',
     description: 'Попробовать кофе из 10 стран.',
@@ -73,6 +99,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'coffee_united',
+    icon: resolveAchievementIcon('coffee_united'),
     emoji: '🏅',
     title: 'Coffee United Nations',
     description: 'Попробовать кофе из 20+ стран.',
@@ -83,6 +110,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'global_champion',
+    icon: resolveAchievementIcon('global_champion'),
     emoji: '🌐',
     title: 'Глобальный чемпион',
     description: 'Попробовать кофе хотя бы из 30 стран.',
@@ -93,6 +121,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'continental',
+    icon: resolveAchievementIcon('continental'),
     emoji: '🗺️',
     title: 'Континентальный',
     description: 'Собрать кофе с каждого континента, где он растёт.',
@@ -102,6 +131,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'africa_explorer',
+    icon: resolveAchievementIcon('africa_explorer'),
     emoji: '🌍',
     title: 'Африканский исследователь',
     description: 'Попробовать кофе минимум из 5 африканских стран.',
@@ -111,6 +141,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'latin_gourmet',
+    icon: resolveAchievementIcon('latin_gourmet'),
     emoji: '🌎',
     title: 'Латиноамериканский гурман',
     description: 'Попробовать кофе из 5 стран Латинской Америки.',
@@ -120,6 +151,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'asia_collector',
+    icon: resolveAchievementIcon('asia_collector'),
     emoji: '🌏',
     title: 'Азиатский коллекционер',
     description: 'Попробовать кофе из 3 азиатских стран.',
@@ -129,6 +161,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'island_hunter',
+    icon: resolveAchievementIcon('island_hunter'),
     emoji: '🏝️',
     title: 'Архипелаговый искатель',
     description: 'Попробовать кофе с островов.',
@@ -138,6 +171,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'ethiopia_tracker',
+    icon: resolveAchievementIcon('ethiopia_tracker'),
     emoji: '🇪🇹',
     title: 'Эфиопский следопыт',
     description: 'Попробовать кофе из 3 разных регионов Эфиопии.',
@@ -147,6 +181,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'colombia_tracker',
+    icon: resolveAchievementIcon('colombia_tracker'),
     emoji: '🇨🇴',
     title: 'Колумбийский трекер',
     description: 'Собрать кофе из 3 зон Колумбии.',
@@ -156,6 +191,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'deep_dive',
+    icon: resolveAchievementIcon('deep_dive'),
     emoji: '📍',
     title: 'Глубокое погружение',
     description: 'Попробовать кофе из 5 регионов в одной стране.',
@@ -165,6 +201,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'regional_champion',
+    icon: resolveAchievementIcon('regional_champion'),
     emoji: '🏆',
     title: 'Региональный чемпион',
     description: 'Попробовать кофе из 15+ уникальных регионов.',
@@ -174,6 +211,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'washed_master',
+    icon: resolveAchievementIcon('washed_master'),
     emoji: '💧',
     title: 'Мытый мастер',
     description: 'Попробовать 5 сортов мытой обработки.',
@@ -183,6 +221,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'natural_gourmet',
+    icon: resolveAchievementIcon('natural_gourmet'),
     emoji: '☀️',
     title: 'Сухой гурман',
     description: 'Попробовать 5 сортов натуральной обработки.',
@@ -192,6 +231,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'experimenter',
+    icon: resolveAchievementIcon('experimenter'),
     emoji: '⚗️',
     title: 'Экспериментатор',
     description: 'Попробовать honey, anaerobic и carbonic maceration.',
@@ -201,6 +241,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'fermentation_maniac',
+    icon: resolveAchievementIcon('fermentation_maniac'),
     emoji: '🧪',
     title: 'Ферментационный маньяк',
     description: 'Попробовать 5+ экспериментальных методов обработки.',
@@ -210,6 +251,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'industrial_romantic',
+    icon: resolveAchievementIcon('industrial_romantic'),
     emoji: '🏭',
     title: 'Промышленный романтик',
     description: 'Попробовать rare washed и honey с геопривязкой.',
@@ -219,6 +261,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'filter_geek',
+    icon: resolveAchievementIcon('filter_geek'),
     emoji: '☕',
     title: 'Фильтр-гик',
     description: 'Попробовать 3 метода фильтра: v60, Kalita, Aeropress.',
@@ -232,6 +275,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'multi_brew',
+    icon: resolveAchievementIcon('multi_brew'),
     emoji: '🌀',
     title: 'Мульти-брю',
     description: 'Попробовать хотя бы 5 разных способов заварки.',
@@ -241,6 +285,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'espresso_master',
+    icon: resolveAchievementIcon('espresso_master'),
     emoji: '🍵',
     title: 'Эспрессо-мастер',
     description: 'Попробовать эспрессо в 5 разных городах.',
@@ -250,6 +295,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'local_patriot',
+    icon: resolveAchievementIcon('local_patriot'),
     emoji: '🏘️',
     title: 'Локальный патриот',
     description: 'Попробовать кофе от 3 обжарщиков из своего города.',
@@ -259,6 +305,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'international_roasters',
+    icon: resolveAchievementIcon('international_roasters'),
     emoji: '🌐',
     title: 'Интернациональный сет',
     description: 'Попробовать кофе от обжарщиков из 5 разных стран.',
@@ -268,6 +315,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'home_barista',
+    icon: resolveAchievementIcon('home_barista'),
     emoji: '🏠',
     title: 'Домашний бариста',
     description: 'Выпить 10 чашек дома.',
@@ -277,6 +325,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'coffee_tourist',
+    icon: resolveAchievementIcon('coffee_tourist'),
     emoji: '🧳',
     title: 'Кофейный турист',
     description: 'Попробовать кофе в 5 разных городах.',
@@ -286,6 +335,7 @@ const ACHIEVEMENTS = [
   },
   {
     id: 'cafe_explorer',
+    icon: resolveAchievementIcon('cafe_explorer'),
     emoji: '🏛️',
     title: 'Кафейный исследователь',
     description: 'Посетить 10 уникальных кофеен.',
@@ -358,20 +408,61 @@ export function renderAchievements(metrics) {
     const cls = ['ach-badge'];
     if (achievement.earned) cls.push('is-earned');
     if (isPartial) cls.push('is-partial');
+    const iconHtmlParts = [];
+    if (achievement.icon) {
+      const hasFallback = Boolean(achievement.emoji);
+      const fallbackAttr = hasFallback ? ' data-fallback="true"' : '';
+      iconHtmlParts.push(`
+          <img class="ach-icon-image" src="${escapeAttr(achievement.icon)}" alt="" loading="lazy" decoding="async"${fallbackAttr}>
+        `.trim());
+    }
+    if (achievement.emoji) {
+      const fallbackCls = ['ach-icon-emoji'];
+      if (achievement.icon) fallbackCls.push('ach-icon-emoji--fallback');
+      const hiddenAttr = achievement.icon ? ' hidden' : '';
+      iconHtmlParts.push(`<span class="${fallbackCls.join(' ')}"${hiddenAttr}>${escapeHtml(achievement.emoji)}</span>`);
+    }
+    const iconHtml = iconHtmlParts.length
+      ? iconHtmlParts.join('')
+      : '<span class="ach-icon-emoji">🏆</span>';
     return `
       <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">
-          <span class="ach-icon-emoji">${achievement.emoji}</span>
+          ${iconHtml}
         </span>
         ${tooltipHtml}
       </div>
     `;
   }).join('');
 
+  setupAchievementIcons(el);
   setupAchievementTooltips(el);
 }
 
 const TOOLTIP_VIEWPORT_GAP = 16;
+
+function setupAchievementIcons(root) {
+  if (!root || typeof document === 'undefined') return;
+  const images = root.querySelectorAll('.ach-icon-image[data-fallback="true"]');
+  images.forEach((img) => {
+    const fallback = img.nextElementSibling;
+    if (!fallback || !fallback.classList.contains('ach-icon-emoji--fallback')) return;
+
+    const showFallback = () => {
+      fallback.hidden = false;
+      img.remove();
+    };
+
+    if (img.complete) {
+      if (img.naturalWidth === 0) {
+        showFallback();
+        return;
+      }
+    }
+
+    img.addEventListener('error', showFallback, { once: true });
+  });
+}
 
 function setupAchievementTooltips(root) {
   if (!root || typeof window === 'undefined' || typeof document === 'undefined') return;

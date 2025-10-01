@@ -360,7 +360,9 @@ export function renderAchievements(metrics) {
     if (isPartial) cls.push('is-partial');
     return `
       <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
-        <span class="ach-icon" aria-hidden="true">${achievement.emoji}</span>
+        <span class="ach-icon" aria-hidden="true">
+          <span class="ach-icon-emoji">${achievement.emoji}</span>
+        </span>
         ${tooltipHtml}
       </div>
     `;
@@ -380,6 +382,14 @@ function setupAchievementTooltips(root) {
 
     let rafId = 0;
     let resizeHandler = null;
+    let hideTimeout = 0;
+
+    const clearHideTimeout = () => {
+      if (hideTimeout) {
+        window.clearTimeout(hideTimeout);
+        hideTimeout = 0;
+      }
+    };
 
     const applyShift = () => {
       badge.style.setProperty('--ach-tooltip-shift', '0px');
@@ -416,6 +426,7 @@ function setupAchievementTooltips(root) {
         window.cancelAnimationFrame(rafId);
         rafId = 0;
       }
+      clearHideTimeout();
       badge.style.removeProperty('--ach-tooltip-shift');
       if (resizeHandler) {
         window.removeEventListener('resize', resizeHandler);
@@ -423,11 +434,33 @@ function setupAchievementTooltips(root) {
       }
     };
 
-    badge.addEventListener('pointerenter', scheduleApply);
-    badge.addEventListener('focus', scheduleApply);
-    badge.addEventListener('pointerleave', resetShift);
-    badge.addEventListener('blur', resetShift);
-    badge.addEventListener('touchstart', scheduleApply, { passive: true });
+    const showTooltip = () => {
+      clearHideTimeout();
+      badge.classList.add('is-tooltip-active');
+      scheduleApply();
+    };
+
+    const hideTooltip = () => {
+      clearHideTimeout();
+      badge.classList.remove('is-tooltip-active');
+      resetShift();
+    };
+
+    const hideTooltipDelayed = () => {
+      clearHideTimeout();
+      hideTimeout = window.setTimeout(() => {
+        hideTimeout = 0;
+        hideTooltip();
+      }, 2000);
+    };
+
+    badge.addEventListener('pointerenter', showTooltip);
+    badge.addEventListener('focus', showTooltip);
+    badge.addEventListener('pointerleave', hideTooltip);
+    badge.addEventListener('blur', hideTooltip);
+    badge.addEventListener('touchstart', showTooltip, { passive: true });
+    badge.addEventListener('touchend', hideTooltipDelayed, { passive: true });
+    badge.addEventListener('touchcancel', hideTooltip, { passive: true });
   });
 }
 

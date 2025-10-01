@@ -701,7 +701,7 @@ input[type="checkbox"]{
   box-shadow:0 12px 24px -16px rgba(17,24,39,0.4);
   transition:transform 0.2s ease, box-shadow 0.2s ease;
   outline:0;
-  overflow:visible;
+  overflow:hidden;
   z-index:0;
 }
 

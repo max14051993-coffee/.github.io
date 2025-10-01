@@ -446,6 +446,7 @@ function setupAchievementTooltips(root) {
       resetShift();
     };
 
+
     const hideTooltipDelayed = () => {
       clearHideTimeout();
       hideTimeout = window.setTimeout(() => {
@@ -453,7 +454,6 @@ function setupAchievementTooltips(root) {
         hideTooltip();
       }, 2000);
     };
-
     badge.addEventListener('pointerenter', showTooltip);
     badge.addEventListener('focus', showTooltip);
     badge.addEventListener('pointerleave', hideTooltip);

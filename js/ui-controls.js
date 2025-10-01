@@ -393,7 +393,10 @@ export function renderAchievements(metrics) {
       tooltipTextParts.push(`Прогресс: ${progressPercent}%`);
     }
     const tooltipText = tooltipTextParts.join(' ');
-    const tooltipHtml = tooltipText ? `<span class="ach-tooltip" aria-hidden="true">${escapeHtml(tooltipText)}</span>` : '';
+    const tooltipHtml = tooltipText
+      ? `<span class="ach-tooltip" role="tooltip" aria-hidden="true">${escapeHtml(tooltipText)}</span>`
+      : '';
+    const titleAttr = tooltipText ? ` title="${escapeAttr(tooltipText)}"` : '';
     const ariaParts = [achievement.title];
     if (achievement.description) ariaParts.push(achievement.description);
     if (achievement.earned) {
@@ -426,7 +429,7 @@ export function renderAchievements(metrics) {
       ? iconHtmlParts.join('')
       : '<span class="ach-icon-emoji">🏆</span>';
     return `
-      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
+      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}"${titleAttr}>
         <span class="ach-icon" aria-hidden="true">
           ${iconHtml}
         </span>

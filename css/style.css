@@ -696,10 +696,10 @@ input[type="checkbox"]{
   width:var(--ach-badge-size);
   aspect-ratio:3 / 4;
   border-radius:999px;
-  border:1px solid var(--ach-border,var(--surface-border));
-  background:var(--surface-strong);
+  border:none;
+  background:transparent;
   color:var(--ach-text,var(--text));
-  box-shadow:0 12px 24px -16px rgba(17,24,39,0.4);
+  box-shadow:none;
   transition:transform 0.2s ease, box-shadow 0.2s ease;
   outline:0;
   overflow:visible;
@@ -709,20 +709,13 @@ input[type="checkbox"]{
 .ach-badge:hover,
 .ach-badge:focus-visible{
   transform:translateY(-2px);
-  box-shadow:0 24px 38px -26px rgba(17,24,39,0.45);
+  box-shadow:none;
   z-index:20;
 }
 
 .ach-badge::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-  background:var(--ach-bg,var(--surface-strong));
-  transform-origin:bottom center;
-  transform:scaleY(var(--ach-progress,1));
-  transition:transform 0.25s ease;
-  z-index:0;
+  content:none;
+  display:none;
 }
 
 .ach-icon{
@@ -757,10 +750,8 @@ input[type="checkbox"]{
 }
 
 .ach-icon::after{
-  background:var(--ach-bg,var(--surface-strong));
-  transform-origin:bottom center;
-  transform:scaleY(var(--ach-progress,1));
-  z-index:0;
+  content:none;
+  display:none;
 }
 
 .ach-icon-emoji{

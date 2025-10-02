@@ -688,12 +688,13 @@ input[type="checkbox"]{
 .ach-badge{
   --ach-progress:1;
   --ach-cover:0;
+  --ach-badge-size:48px;
   position:relative;
   display:flex;
   align-items:stretch;
   justify-content:center;
-  width:48px;
-  height:64px;
+  width:var(--ach-badge-size);
+  aspect-ratio:3 / 4;
   border-radius:999px;
   border:1px solid var(--ach-border,var(--surface-border));
   background:var(--surface-strong);
@@ -771,7 +772,7 @@ input[type="checkbox"]{
   width:100%;
   height:100%;
   border-radius:inherit;
-  object-fit:cover;
+  object-fit:contain;
   display:block;
   position:relative;
   z-index:2;

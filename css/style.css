@@ -690,7 +690,7 @@ input[type="checkbox"]{
   --ach-cover:0;
   position:relative;
   display:flex;
-  align-items:center;
+  align-items:stretch;
   justify-content:center;
   width:48px;
   height:64px;
@@ -736,6 +736,8 @@ input[type="checkbox"]{
   z-index:1;
   overflow:hidden;
   color:inherit;
+  flex:1 1 100%;
+  align-self:stretch;
 }
 
 .ach-icon::before,

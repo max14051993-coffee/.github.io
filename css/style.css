@@ -240,12 +240,13 @@ body[data-theme="dark"]{
 
 .achievements{
   display:grid;
-  grid-template-columns:repeat(2, auto);
-  gap:8px 12px;
+  grid-template-columns:repeat(3, minmax(0,1fr));
+  gap:4px 8px;
   justify-content:flex-start;
   align-content:flex-start;
   justify-items:start;
   align-items:start;
+  width:100%;
 }
 
 .overlay-card{
@@ -950,6 +951,7 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
   }
 
   .achievements{
+    grid-template-columns:repeat(2, minmax(0,1fr));
     justify-content:flex-start;
   }
 
@@ -1032,6 +1034,10 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
   .map-banner .map-subtitle{
     font-size:13px;
     line-height:1.5;
+  }
+
+  .achievements{
+    grid-template-columns:1fr;
   }
 
   .map-info-toggle{

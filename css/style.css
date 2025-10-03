@@ -241,7 +241,7 @@ body[data-theme="dark"]{
 .achievements{
   display:grid;
   grid-template-columns:repeat(3, minmax(0,1fr));
-  gap:4px 8px;
+  gap:4px 4px;
   justify-content:flex-start;
   align-content:flex-start;
   justify-items:start;

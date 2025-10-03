@@ -239,9 +239,10 @@ body[data-theme="dark"]{
 }
 
 .achievements{
+  --ach-grid-size:var(--ach-badge-size,48px);
   display:grid;
-  grid-template-columns:repeat(3, minmax(0,1fr));
-  gap:4px 4px;
+  grid-template-columns:repeat(3, minmax(0,var(--ach-grid-size)));
+  gap:4px;
   justify-content:flex-start;
   align-content:flex-start;
   justify-items:start;
@@ -951,7 +952,7 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
   }
 
   .achievements{
-    grid-template-columns:repeat(2, minmax(0,1fr));
+    grid-template-columns:repeat(2, minmax(0,var(--ach-grid-size)));
     justify-content:flex-start;
   }
 
@@ -1037,7 +1038,7 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
   }
 
   .achievements{
-    grid-template-columns:1fr;
+    grid-template-columns:repeat(1, minmax(0,var(--ach-grid-size)));
   }
 
   .map-info-toggle{

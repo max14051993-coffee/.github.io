@@ -670,6 +670,34 @@ body[data-theme="dark"] .filter-chip.is-active .filter-dot{
   font-weight:500;
 }
 
+.chip-hint{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:0;
+  width:18px;
+  height:18px;
+  border-radius:50%;
+  border:0;
+  background:var(--accent-soft);
+  color:var(--accent);
+  font-size:12px;
+  line-height:1;
+  flex-shrink:0;
+  cursor:help;
+  transition:background-color 0.2s ease,color 0.2s ease;
+}
+
+.chip-hint:hover,
+.chip-hint:focus-visible{
+  background:var(--accent);
+  color:#fff;
+}
+
+.chip-hint:focus:not(:focus-visible){
+  outline:none;
+}
+
 label{
   display:inline-flex;
   align-items:center;

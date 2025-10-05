@@ -176,7 +176,7 @@ function cacheSave() {
   window.localStorage.setItem(CITY_CACHE_NS, JSON.stringify(cityCache));
 }
 
-async function geocodeCityName(name, mapboxToken) {
+async function geocodeCityName(name, mapboxToken, { signal } = {}) {
   const key = String(name || '').trim().toLowerCase();
   if (!key) return null;
   const cached = cityCache[key];
@@ -189,7 +189,13 @@ async function geocodeCityName(name, mapboxToken) {
       language: 'ru,en',
       limit: '1',
     });
-  const res = await fetch(url);
+  let res;
+  try {
+    res = await fetch(url, { signal });
+  } catch (error) {
+    if (error?.name === 'AbortError') throw error;
+    return fallback;
+  }
   if (!res.ok) return fallback;
   const json = await res.json();
   const feature = (json.features || [])[0];
@@ -213,20 +219,42 @@ async function geocodeCityName(name, mapboxToken) {
   return point;
 }
 
-export async function geocodeCities(names, mapboxToken) {
-  const tasks = names.map(async (raw) => {
+export async function geocodeCities(names, mapboxToken, { signal } = {}) {
+  const deduped = new Map();
+  for (const raw of names) {
     const name = String(raw || '').trim();
-    if (!name) return null;
-    const pt = await geocodeCityName(name, mapboxToken);
-    return pt ? { name, pt } : null;
-  });
-  const results = await Promise.all(tasks);
+    if (!name) continue;
+    const normalized = normalizeName(name).toLowerCase();
+    const key = normalized || name.toLowerCase();
+    if (!key) continue;
+    let entry = deduped.get(key);
+    if (!entry) {
+      entry = { query: name, names: new Set() };
+      deduped.set(key, entry);
+    }
+    entry.names.add(name);
+  }
+
+  const entries = [...deduped.values()];
+  const requests = entries.map((entry) => geocodeCityName(entry.query, mapboxToken, { signal }));
+  const settled = await Promise.allSettled(requests);
+
   const out = {};
-  for (const result of results) {
-    if (!result) continue;
-    const { name, pt } = result;
-    out[name] = pt;
-    out[normalizeName(name).toLowerCase()] = pt;
+  for (let i = 0; i < settled.length; i += 1) {
+    const result = settled[i];
+    const entry = entries[i];
+    if (!entry) continue;
+    if (result.status === 'rejected') {
+      if (result.reason?.name === 'AbortError') throw result.reason;
+      continue;
+    }
+    const pt = result.value;
+    if (!pt) continue;
+    for (const name of entry.names) {
+      out[name] = pt;
+      const norm = normalizeName(name).toLowerCase();
+      if (norm) out[norm] = pt;
+    }
   }
   return out;
 }

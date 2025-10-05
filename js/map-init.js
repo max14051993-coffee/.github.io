@@ -165,7 +165,7 @@ export function createMapController({ accessToken, theme, flagMode, enable3dLaye
     layersInitialized: false,
     interactionsBound: false,
     routesVisible: false,
-    allow3DLayers: enable3dLayers !== false,
+    countriesVisible: false,
   };
 
   const withMapReady = (fn) => {
@@ -292,7 +292,8 @@ export function createMapController({ accessToken, theme, flagMode, enable3dLaye
   };
 
   const setCountriesVisibility = (stateVisible) => {
-    const vis = stateVisible ? 'visible' : 'none';
+    state.countriesVisible = Boolean(stateVisible);
+    const vis = state.countriesVisible ? 'visible' : 'none';
     if (map.getLayer('countries-visited-fill')) map.setLayoutProperty('countries-visited-fill', 'visibility', vis);
     if (map.getLayer('countries-visited-outline')) map.setLayoutProperty('countries-visited-outline', 'visibility', vis);
   };
@@ -427,8 +428,8 @@ export function createMapController({ accessToken, theme, flagMode, enable3dLaye
     }
 
     ensureCountriesLayers();
-    setCountriesVisibility(false);
-    setRoutesVisibility(false);
+    setCountriesVisibility(state.countriesVisible);
+    setRoutesVisibility(state.routesVisible);
 
     bindInteractions();
     state.layersInitialized = true;

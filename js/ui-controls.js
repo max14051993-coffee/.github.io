@@ -610,6 +610,7 @@ export function createUIController({
   onRoutesToggle,
   onVisitedToggle,
   onProcessChange,
+  initialToggles,
 }) {
   const root = buildControlsHTML(pointsCount, countriesCount, filterState.process);
   const routesToggle = root.querySelector('#toggleRoutes');
@@ -619,15 +620,20 @@ export function createUIController({
   const filtersInfoToggle = filtersMenu?.querySelector('[data-overlay-info-toggle]');
   const filtersInfoPanel = filtersMenu?.querySelector('[data-overlay-info-panel]');
 
+  const routesInitial = typeof initialToggles?.routes === 'boolean' ? initialToggles.routes : true;
+  const visitedInitial = typeof initialToggles?.visited === 'boolean' ? initialToggles.visited : true;
+
   setupInfoDisclosure({
     toggle: filtersInfoToggle,
     panel: filtersInfoPanel,
   });
 
   if (routesToggle) {
+    routesToggle.checked = routesInitial;
     routesToggle.addEventListener('change', (e) => onRoutesToggle?.(e.target.checked), { passive: true });
   }
   if (visitedToggle) {
+    visitedToggle.checked = visitedInitial;
     visitedToggle.addEventListener('change', (e) => onVisitedToggle?.(e.target.checked), { passive: true });
   }
   processButtons.forEach((btn) => {
@@ -636,6 +642,9 @@ export function createUIController({
       onProcessChange?.(raw);
     }, { passive: true });
   });
+
+  onRoutesToggle?.(routesInitial);
+  onVisitedToggle?.(visitedInitial);
 
   const updateCounts = (points, countries) => {
     const pointsEl = root.querySelector('#pointsCount');

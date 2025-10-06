@@ -133,6 +133,7 @@ async function init() {
 
     window.addEventListener('resize', debounce(() => {
       controls.placeControls();
+      mapController.refresh3DLayers();
       mapController.resize();
       syncOverlayMenus();
     }, 150));

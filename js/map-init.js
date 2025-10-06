@@ -3,8 +3,20 @@ import { processColors } from './ui-controls.js';
 import { buildVisitedFilter, getCityPt } from './data-loader.js';
 
 const EPS = 1e-6;
+const TERRAIN_WIDTH_BREAKPOINT = 768;
 
 const sameCoord = (a, b) => Math.abs(a[0] - b[0]) < EPS && Math.abs(a[1] - b[1]) < EPS;
+
+const prefersReducedMotion = () => {
+  if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+  return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+};
+
+const isCompactViewport = () => {
+  if (typeof window === 'undefined') return false;
+  if (typeof window.innerWidth !== 'number') return false;
+  return window.innerWidth > 0 && window.innerWidth < TERRAIN_WIDTH_BREAKPOINT;
+};
 
 function dedupeFeatures(arr) {
   const seen = new Set();
@@ -30,7 +42,26 @@ function dedupeFeatures(arr) {
   return out;
 }
 
-function ensureTerrain(map) {
+function ensureTerrain(map, { enable3dLayers = true } = {}) {
+  const shouldDisable3D = !enable3dLayers || prefersReducedMotion() || isCompactViewport();
+
+  if (shouldDisable3D) {
+    if (typeof map.getLayer === 'function' && map.getLayer('sky')) {
+      map.removeLayer('sky');
+    }
+    if (typeof map.getTerrain === 'function' && map.getTerrain()) {
+      map.setTerrain(null);
+    }
+    if (typeof map.getSource === 'function' && map.getSource('terrain-dem')) {
+      map.removeSource('terrain-dem');
+    }
+    if (typeof map.setFog === 'function') {
+      map.setFog(null);
+    }
+    map.resize();
+    return;
+  }
+
   if (!map.getSource('terrain-dem')) {
     map.addSource('terrain-dem', { type: 'raster-dem', url: 'mapbox://mapbox.terrain-rgb', tileSize: 512 });
   }
@@ -115,7 +146,7 @@ function popupHTML(p, flagMode) {
   }
 }
 
-export function createMapController({ accessToken, theme, flagMode }) {
+export function createMapController({ accessToken, theme, flagMode, enable3dLayers = true }) {
   mapboxgl.accessToken = accessToken;
   const map = new mapboxgl.Map({
     container: 'map',
@@ -127,8 +158,6 @@ export function createMapController({ accessToken, theme, flagMode }) {
   });
   map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
   map.doubleClickZoom.disable();
-
-  map.on('load', () => ensureTerrain(map));
 
   const state = {
     cityCoords: {},
@@ -146,6 +175,25 @@ export function createMapController({ accessToken, theme, flagMode }) {
       map.once('load', fn);
     }
   };
+
+  const applyTerrainPreference = () => {
+    withMapReady(() => ensureTerrain(map, { enable3dLayers: state.allow3DLayers }));
+  };
+
+  map.on('load', applyTerrainPreference);
+
+  const motionQuery = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
+    ? window.matchMedia('(prefers-reduced-motion: reduce)')
+    : null;
+
+  if (motionQuery) {
+    const handleMotionChange = () => applyTerrainPreference();
+    if (typeof motionQuery.addEventListener === 'function') {
+      motionQuery.addEventListener('change', handleMotionChange);
+    } else if (typeof motionQuery.addListener === 'function') {
+      motionQuery.addListener(handleMotionChange);
+    }
+  }
 
   const fitToData = (geojson) => {
     if (!geojson?.features?.length) return;
@@ -506,6 +554,11 @@ export function createMapController({ accessToken, theme, flagMode }) {
     });
   };
 
+  const set3DLayersEnabled = (enabled) => {
+    state.allow3DLayers = enabled !== false;
+    applyTerrainPreference();
+  };
+
   return {
     map,
     fitToData,
@@ -515,5 +568,7 @@ export function createMapController({ accessToken, theme, flagMode }) {
     clearRouteHighlight,
     highlightRouteFor,
     resize: () => map.resize(),
+    refresh3DLayers: applyTerrainPreference,
+    set3DLayersEnabled,
   };
 }

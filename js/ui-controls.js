@@ -575,8 +575,11 @@ function buildControlsHTML(pointsCount, countriesCount, activeProcess = 'all') {
   }).join('');
   wrap.innerHTML = `
     <div class="filters-stats">
-      <span class="chip" title="Точек на карте">☕ <span id="pointsCount">${pointsCount}</span></span>
-      <span class="chip" title="Стран в коллекции">🌍 <span id="countriesCount">${countriesCount}</span><button type="button" class="chip-hint" title="Количество уникальных стран в коллекции" aria-label="Количество уникальных стран в коллекции">ℹ️</button></span>
+      <div class="filters-stats-counts">
+        <span class="chip" title="Точек на карте">☕ <span id="pointsCount">${pointsCount}</span></span>
+        <span class="chip" title="Стран в коллекции">🌍 <span id="countriesCount">${countriesCount}</span></span>
+      </div>
+      <button type="button" class="chip-hint filters-stats-hint" title="Количество уникальных стран в коллекции" aria-label="Количество уникальных стран в коллекции">ℹ️</button>
     </div>
     <div class="filters-section">
       <span class="filters-label">Отображение</span>

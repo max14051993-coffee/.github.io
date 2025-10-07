@@ -504,6 +504,17 @@ body[data-theme="dark"] .brand-tag{
   align-items:center;
 }
 
+.filters-stats-counts{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+
+.filters-stats-hint{
+  margin-left:auto;
+}
+
 .filters-section{
   display:flex;
   flex-direction:column;

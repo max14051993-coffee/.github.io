@@ -1,5 +1,11 @@
 import { debounce, setupInfoDisclosure } from './utils.js';
-import { buildCityPoints, buildRouteFeatures, getVisitedCountriesIso2, loadData } from './data-loader.js';
+import {
+  buildCityPoints,
+  buildRouteFeatures,
+  getVisitedCountriesIso2,
+  loadBaseDataset,
+  loadSupplementalDataset,
+} from './data-loader.js';
 import { PROCESS_FILTER_VALUES, createUIController, renderAchievements } from './ui-controls.js';
 import { createMapController } from './map-init.js';
 
@@ -13,6 +19,20 @@ const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toL
 const COLLECTION_TITLE = 'My coffee experience';
 
 document.title = COLLECTION_TITLE;
+
+function showAchievementsStatus(message, variant = 'info') {
+  const list = document.getElementById('achievements');
+  const container = list?.closest('[data-achievements-container]');
+  if (!list || !container) return;
+  const classes = ['achievements-message'];
+  if (variant === 'loading') classes.push('achievements-message--loading');
+  if (variant === 'error') classes.push('achievements-message--error');
+  const content = variant === 'loading'
+    ? `<span class="achievements-spinner" aria-hidden="true"></span><span>${message}</span>`
+    : message;
+  container.hidden = false;
+  list.innerHTML = `<div class="${classes.join(' ')}" role="status">${content}</div>`;
+}
 
 setupInfoDisclosure({
   toggle: document.querySelector('[data-map-info-toggle]'),
@@ -102,17 +122,17 @@ function handleProcessChange(rawValue) {
 async function init() {
   syncOverlayMenus(true);
   try {
-    const data = await loadData({ csvUrl: CSV_URL, mapboxToken: MAPBOX_TOKEN });
-    allPointFeatures = data.pointFeatures;
-    cityCoords = data.cityCoordsMap;
+    const baseData = await loadBaseDataset({ csvUrl: CSV_URL });
+    allPointFeatures = baseData.pointFeatures;
+    cityCoords = {};
 
     const titleEl = document.getElementById('collectionTitle');
     if (titleEl) titleEl.textContent = COLLECTION_TITLE;
     document.title = COLLECTION_TITLE;
 
     controls = createUIController({
-      pointsCount: data.pointFeatures.length,
-      countriesCount: data.visitedCountries.length,
+      pointsCount: baseData.pointFeatures.length,
+      countriesCount: baseData.visitedCountries.length,
       filterState,
       onRoutesToggle: (visible) => mapController.setRoutesVisibility(visible),
       onVisitedToggle: (visible) => mapController.setCountriesVisibility(visible),
@@ -121,15 +141,20 @@ async function init() {
     controls.placeControls();
     syncOverlayMenus();
 
-    renderAchievements(data.metrics);
+    showAchievementsStatus('Загружаем достижения…', 'loading');
 
-    mapController.updateData({
-      geojsonPoints: data.geojsonPoints,
-      lineFeatures: data.lineFeatures,
-      cityPoints: data.cityPoints,
-      visitedCountries: data.visitedCountries,
-      cityCoords: data.cityCoordsMap,
-    }, { fit: true });
+    applyFilters({ fit: true });
+
+    loadSupplementalDataset({ pointFeatures: baseData.pointFeatures, mapboxToken: MAPBOX_TOKEN })
+      .then((supplemental) => {
+        cityCoords = supplemental.cityCoordsMap;
+        renderAchievements(supplemental.metrics);
+        applyFilters();
+      })
+      .catch((supplementalError) => {
+        console.error('Supplemental data error:', supplementalError);
+        showAchievementsStatus('Не удалось загрузить достижения', 'error');
+      });
 
     window.addEventListener('resize', debounce(() => {
       controls.placeControls();

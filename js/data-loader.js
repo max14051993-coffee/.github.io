@@ -628,7 +628,7 @@ function parseCsv(csvUrl) {
   });
 }
 
-export async function loadData({ csvUrl, mapboxToken }) {
+export async function loadBaseDataset({ csvUrl }) {
   const rows = await parseCsv(csvUrl);
   const geojsonPoints = rowsToGeoJSON(rows);
   const pointFeatures = geojsonPoints.features;
@@ -640,6 +640,18 @@ export async function loadData({ csvUrl, mapboxToken }) {
     ? (uploaders.length > 1 ? `${primaryUploader} +${uploaders.length - 1}` : primaryUploader)
     : '';
 
+  const visitedCountries = [...getVisitedCountriesIso2(pointFeatures)];
+
+  return {
+    geojsonPoints,
+    pointFeatures,
+    ownerName,
+    ownerLabel,
+    visitedCountries,
+  };
+}
+
+export async function loadSupplementalDataset({ pointFeatures, mapboxToken, signal } = {}) {
   const wantedCities = new Set();
   for (const feature of pointFeatures) {
     const properties = feature.properties || {};
@@ -647,22 +659,26 @@ export async function loadData({ csvUrl, mapboxToken }) {
     if (properties.consumedCity) wantedCities.add(String(properties.consumedCity).trim());
   }
   const uniqueCities = [...wantedCities].filter(Boolean);
-  const cityCoordsMap = await geocodeCities(uniqueCities, mapboxToken);
+  const cityCoordsMap = await geocodeCities(uniqueCities, mapboxToken, { signal });
 
   const lineFeatures = buildRouteFeatures(pointFeatures, cityCoordsMap);
   const cityPoints = buildCityPoints(pointFeatures, cityCoordsMap);
-  const visitedCountries = [...getVisitedCountriesIso2(pointFeatures)];
   const metrics = computeMetrics(pointFeatures, cityCoordsMap);
 
   return {
-    geojsonPoints,
-    pointFeatures,
-    ownerName,
-    ownerLabel,
     cityCoordsMap,
     lineFeatures,
     cityPoints,
-    visitedCountries,
     metrics,
   };
+}
+
+export async function loadData({ csvUrl, mapboxToken }) {
+  const base = await loadBaseDataset({ csvUrl });
+  const supplemental = await loadSupplementalDataset({
+    pointFeatures: base.pointFeatures,
+    mapboxToken,
+  });
+
+  return { ...base, ...supplemental };
 }

@@ -579,7 +579,6 @@ function buildControlsHTML(pointsCount, countriesCount, activeProcess = 'all') {
         <span class="chip" title="Точек на карте">☕ <span id="pointsCount">${pointsCount}</span></span>
         <span class="chip" title="Стран в коллекции">🌍 <span id="countriesCount">${countriesCount}</span></span>
       </div>
-      <button type="button" class="chip-hint filters-stats-hint" title="Количество уникальных стран в коллекции" aria-label="Количество уникальных стран в коллекции">ℹ️</button>
     </div>
     <div class="filters-section">
       <span class="filters-label">Отображение</span>
@@ -620,8 +619,14 @@ export function createUIController({
   const visitedToggle = root.querySelector('#toggleVisited');
   const processButtons = [...root.querySelectorAll('[data-process]')];
   const filtersMenu = document.getElementById('filtersMenu');
+  const filtersStatsCounts = root.querySelector('.filters-stats-counts');
   const filtersInfoToggle = filtersMenu?.querySelector('[data-overlay-info-toggle]');
   const filtersInfoPanel = filtersMenu?.querySelector('[data-overlay-info-panel]');
+
+  if (filtersStatsCounts && filtersInfoToggle && filtersInfoToggle.parentElement !== filtersStatsCounts) {
+    filtersInfoToggle.classList.add('filters-stats-info-toggle');
+    filtersStatsCounts.appendChild(filtersInfoToggle);
+  }
 
   const routesInitial = typeof initialToggles?.routes === 'boolean' ? initialToggles.routes : true;
   const visitedInitial = typeof initialToggles?.visited === 'boolean' ? initialToggles.visited : true;

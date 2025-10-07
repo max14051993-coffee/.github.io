@@ -511,8 +511,8 @@ body[data-theme="dark"] .brand-tag{
   align-items:center;
 }
 
-.filters-stats-hint{
-  margin-left:auto;
+.filters-stats-info-toggle{
+  margin-left:4px;
 }
 
 .filters-section{
@@ -679,34 +679,6 @@ body[data-theme="dark"] .filter-chip.is-active .filter-dot{
   background:var(--pill-bg);
   color:var(--text);
   font-weight:500;
-}
-
-.chip-hint{
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:0;
-  width:18px;
-  height:18px;
-  border-radius:50%;
-  border:0;
-  background:var(--accent-soft);
-  color:var(--accent);
-  font-size:12px;
-  line-height:1;
-  flex-shrink:0;
-  cursor:help;
-  transition:background-color 0.2s ease,color 0.2s ease;
-}
-
-.chip-hint:hover,
-.chip-hint:focus-visible{
-  background:var(--accent);
-  color:#fff;
-}
-
-.chip-hint:focus:not(:focus-visible){
-  outline:none;
 }
 
 label{

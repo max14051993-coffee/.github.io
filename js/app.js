@@ -8,6 +8,7 @@ import {
 } from './data-loader.js';
 import { PROCESS_FILTER_VALUES, createUIController, renderAchievements } from './ui-controls.js';
 import { createMapController } from './map-init.js';
+import { ensureVendorBundles } from './vendor-loader.js';
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
 const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSbms6-9Pie6VdyXzbjiMwWeIF-mxMvMiyFHaRI1DJE0nPNkSG99lewaeeU8YIuj7Y8vxzJGOD2md1v/pub?gid=1055803810&single=true&output=csv';
@@ -39,7 +40,7 @@ setupInfoDisclosure({
   panel: document.querySelector('[data-map-info-panel]'),
 });
 
-const mapController = createMapController({ accessToken: MAPBOX_TOKEN, theme, flagMode });
+let mapController = null;
 const overlayMedia = window.matchMedia('(max-width: 720px)');
 
 const filterState = { process: 'all' };
@@ -92,6 +93,10 @@ function applyFilters({ fit = false } = {}) {
   const cityPoints = buildCityPoints(features, cityCoords);
   const visited = [...getVisitedCountriesIso2(features)];
 
+  controls?.updateCounts(features.length, visited.length);
+
+  if (!mapController) return features;
+
   mapController.updateData({
     geojsonPoints: geojson,
     lineFeatures,
@@ -100,7 +105,6 @@ function applyFilters({ fit = false } = {}) {
     cityCoords,
   }, { fit });
 
-  controls?.updateCounts(features.length, visited.length);
   return features;
 }
 
@@ -122,6 +126,18 @@ function handleProcessChange(rawValue) {
 async function init() {
   syncOverlayMenus(true);
   try {
+    await ensureVendorBundles();
+    mapController = createMapController({ accessToken: MAPBOX_TOKEN, theme, flagMode });
+  } catch (dependencyError) {
+    console.error('Map dependency error:', dependencyError);
+    const mapEl = document.getElementById('map');
+    if (mapEl) {
+      mapEl.innerHTML = '<div class="map-error">Не удалось загрузить карту. Попробуйте обновить страницу.</div>';
+    }
+    return;
+  }
+
+  try {
     const baseData = await loadBaseDataset({ csvUrl: CSV_URL });
     allPointFeatures = baseData.pointFeatures;
     cityCoords = {};
@@ -134,8 +150,8 @@ async function init() {
       pointsCount: baseData.pointFeatures.length,
       countriesCount: baseData.visitedCountries.length,
       filterState,
-      onRoutesToggle: (visible) => mapController.setRoutesVisibility(visible),
-      onVisitedToggle: (visible) => mapController.setCountriesVisibility(visible),
+      onRoutesToggle: (visible) => mapController?.setRoutesVisibility(visible),
+      onVisitedToggle: (visible) => mapController?.setCountriesVisibility(visible),
       onProcessChange: handleProcessChange,
     });
     controls.placeControls();
@@ -157,9 +173,9 @@ async function init() {
       });
 
     window.addEventListener('resize', debounce(() => {
-      controls.placeControls();
-      mapController.refresh3DLayers();
-      mapController.resize();
+      controls?.placeControls();
+      mapController?.refresh3DLayers();
+      mapController?.resize();
       syncOverlayMenus();
     }, 150));
   } catch (err) {

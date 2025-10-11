@@ -44,9 +44,9 @@ a:hover{
 }
 
 :root{
-  --font-base:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,Arial,'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';
-  --font-card:'Golos Text',var(--font-base);
-  --font-ui:'Onest',var(--font-base);
+  --font-base:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif,'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';
+  --font-card:var(--font-base);
+  --font-ui:var(--font-base);
   --page-bg:radial-gradient(circle at top left,#fdf4ec 0%,#f5f8ff 40%,#eef1f8 100%);
   --surface:rgba(255,255,255,0.72);
   --surface-strong:rgba(255,255,255,0.85);
@@ -880,6 +880,27 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
   right:0;
   bottom:0;
   left:0;
+}
+
+.map-error{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:24px;
+  text-align:center;
+  font-family:var(--font-ui);
+  font-size:16px;
+  line-height:1.5;
+  color:var(--muted);
+  background:linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.94));
+  backdrop-filter:blur(18px);
+}
+
+body[data-theme="dark"] .map-error{
+  color:var(--text);
+  background:rgba(17,24,39,0.88);
 }
 
 .mapboxgl-popup-content{

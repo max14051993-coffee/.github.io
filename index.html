@@ -6,14 +6,12 @@
   <title>My coffee experience</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg" />
 
-  <!-- Mapbox + PapaParse -->
-  <link href="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css" rel="stylesheet">
-  <script src="https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=Onest:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://api.mapbox.com" crossorigin>
+  <link rel="preconnect" href="https://events.mapbox.com" crossorigin>
+  <link rel="dns-prefetch" href="https://api.mapbox.com">
+  <link rel="dns-prefetch" href="https://events.mapbox.com">
+  <link rel="dns-prefetch" href="https://flagcdn.com">
+  <!-- Mapbox GL JS and PapaParse are now loaded lazily from app.js -->
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>

@@ -1,4 +1,4 @@
-import { debounce, setupInfoDisclosure } from './utils.js';
+import { debounce, runWhenIdle, setupInfoDisclosure } from './utils.js';
 import {
   buildCityPoints,
   buildRouteFeatures,
@@ -145,16 +145,18 @@ async function init() {
 
     applyFilters({ fit: true });
 
-    loadSupplementalDataset({ pointFeatures: baseData.pointFeatures, mapboxToken: MAPBOX_TOKEN })
-      .then((supplemental) => {
-        cityCoords = supplemental.cityCoordsMap;
-        renderAchievements(supplemental.metrics);
-        applyFilters();
-      })
-      .catch((supplementalError) => {
-        console.error('Supplemental data error:', supplementalError);
-        showAchievementsStatus('Не удалось загрузить достижения', 'error');
-      });
+    runWhenIdle(() => {
+      loadSupplementalDataset({ pointFeatures: baseData.pointFeatures, mapboxToken: MAPBOX_TOKEN })
+        .then((supplemental) => {
+          cityCoords = supplemental.cityCoordsMap;
+          renderAchievements(supplemental.metrics);
+          applyFilters();
+        })
+        .catch((supplementalError) => {
+          console.error('Supplemental data error:', supplementalError);
+          showAchievementsStatus('Не удалось загрузить достижения', 'error');
+        });
+    }, { timeout: 2000 });
 
     window.addEventListener('resize', debounce(() => {
       controls.placeControls();

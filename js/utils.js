@@ -156,3 +156,23 @@ export function setupInfoDisclosure({ toggle, panel, closeOnOutside = true } = {
     }
   };
 }
+
+export function runWhenIdle(callback, { timeout = 0 } = {}) {
+  if (typeof callback !== 'function') return () => {};
+  if (typeof window === 'undefined') {
+    callback();
+    return () => {};
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    const handle = window.requestIdleCallback(callback, timeout ? { timeout } : undefined);
+    return () => {
+      if (typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(handle);
+      }
+    };
+  }
+
+  const timer = window.setTimeout(callback, Math.max(timeout, 0));
+  return () => window.clearTimeout(timer);
+}

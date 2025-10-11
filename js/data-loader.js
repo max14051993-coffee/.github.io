@@ -166,20 +166,146 @@ export function rowsToGeoJSON(rows) {
   return { type: 'FeatureCollection', features };
 }
 
-const CITY_CACHE_NS = 'coffee_city_cache_v1';
-const cityCache = typeof window !== 'undefined'
-  ? JSON.parse(window.localStorage.getItem(CITY_CACHE_NS) || '{}')
-  : {};
+const CITY_CACHE_PREFIX = 'coffee_city_cache_v2';
+const CITY_CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 1 week
 
-function cacheSave() {
+const cityCacheState = {
+  key: null,
+  store: {},
+  dirty: false,
+};
+
+function sanitizeTokenForCache(token) {
+  if (!token) return 'anon';
+  const cleaned = String(token).replace(/[^a-z0-9]/gi, '').toLowerCase();
+  if (cleaned.length >= 10) return cleaned.slice(-10);
+  return cleaned || 'anon';
+}
+
+function getCityCacheKey(mapboxToken) {
+  return `${CITY_CACHE_PREFIX}_${sanitizeTokenForCache(mapboxToken)}`;
+}
+
+function normalizeCacheRecord(raw, now) {
+  if (!raw || typeof raw !== 'object') return null;
+
+  if (typeof raw.lat === 'number' && typeof raw.lng === 'number') {
+    return {
+      value: {
+        data: { ...raw },
+        expiresAt: now + CITY_CACHE_TTL_MS,
+      },
+      converted: true,
+    };
+  }
+
+  const data = raw.data && typeof raw.data === 'object' ? raw.data : null;
+  if (!data || typeof data.lat !== 'number' || typeof data.lng !== 'number') return null;
+
+  const expiresAt = typeof raw.expiresAt === 'number' ? raw.expiresAt : (now + CITY_CACHE_TTL_MS);
+  if (expiresAt <= now) return null;
+
+  return {
+    value: {
+      data: { ...data },
+      expiresAt,
+    },
+    converted: typeof raw.expiresAt !== 'number',
+  };
+}
+
+function loadCityCache(storageKey) {
+  if (typeof window === 'undefined') return { store: {}, dirty: false };
+  try {
+    const raw = window.localStorage.getItem(storageKey);
+    if (!raw) return { store: {}, dirty: false };
+
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return { store: {}, dirty: true };
+
+    const now = Date.now();
+    const store = {};
+    let dirty = false;
+
+    for (const [key, value] of Object.entries(parsed)) {
+      const normalized = normalizeCacheRecord(value, now);
+      if (normalized) {
+        store[key] = normalized.value;
+        if (normalized.converted) dirty = true;
+      } else {
+        dirty = true;
+      }
+    }
+
+    return { store, dirty };
+  } catch (error) {
+    console.warn('Failed to read city cache', error);
+    return { store: {}, dirty: true };
+  }
+}
+
+function persistCityCache() {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(CITY_CACHE_NS, JSON.stringify(cityCache));
+  if (!cityCacheState.key) return;
+  if (!cityCacheState.dirty) return;
+  try {
+    window.localStorage.setItem(cityCacheState.key, JSON.stringify(cityCacheState.store));
+  } catch (error) {
+    console.warn('Failed to write city cache', error);
+  }
+  cityCacheState.dirty = false;
+}
+
+function ensureCityCache(mapboxToken) {
+  const storageKey = getCityCacheKey(mapboxToken);
+  if (cityCacheState.key === storageKey) return cityCacheState.store;
+
+  cityCacheState.key = storageKey;
+  const { store, dirty } = loadCityCache(storageKey);
+  cityCacheState.store = store;
+  cityCacheState.dirty = dirty;
+  if (dirty) persistCityCache();
+  return cityCacheState.store;
+}
+
+function getCachedCity(key, mapboxToken) {
+  const cache = ensureCityCache(mapboxToken);
+  const record = cache[key];
+  if (!record) return null;
+
+  const now = Date.now();
+  if (typeof record.expiresAt === 'number' && record.expiresAt <= now) {
+    delete cache[key];
+    cityCacheState.dirty = true;
+    persistCityCache();
+    return null;
+  }
+
+  return record.data || null;
+}
+
+function setCachedCity(key, point, mapboxToken) {
+  if (!key || !point) return;
+  const cache = ensureCityCache(mapboxToken);
+  cache[key] = {
+    data: { ...point },
+    expiresAt: Date.now() + CITY_CACHE_TTL_MS,
+  };
+  cityCacheState.dirty = true;
+}
+
+function rememberCityVariants(rawName, point, mapboxToken) {
+  if (!rawName || !point) return;
+  const trimmed = String(rawName).trim().toLowerCase();
+  if (trimmed) setCachedCity(trimmed, point, mapboxToken);
+  const normalized = normalizeName(rawName).toLowerCase();
+  if (normalized && normalized !== trimmed) setCachedCity(normalized, point, mapboxToken);
 }
 
 async function geocodeCityName(name, mapboxToken, { signal } = {}) {
   const key = String(name || '').trim().toLowerCase();
   if (!key) return null;
-  const cached = cityCache[key];
+  const cached = getCachedCity(key, mapboxToken);
   if (cached && cached.countryCode) return cached;
   const fallback = cached || null;
   const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
@@ -214,8 +340,8 @@ async function geocodeCityName(name, mapboxToken, { signal } = {}) {
   const point = { lng, lat };
   if (countryCode) point.countryCode = countryCode;
   if (countryName) point.countryName = countryName;
-  cityCache[key] = point;
-  cacheSave();
+  rememberCityVariants(name, point, mapboxToken);
+  persistCityCache();
   return point;
 }
 
@@ -254,8 +380,10 @@ export async function geocodeCities(names, mapboxToken, { signal } = {}) {
       out[name] = pt;
       const norm = normalizeName(name).toLowerCase();
       if (norm) out[norm] = pt;
+      rememberCityVariants(name, pt, mapboxToken);
     }
   }
+  persistCityCache();
   return out;
 }
 

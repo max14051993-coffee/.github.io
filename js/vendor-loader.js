@@ -1,5 +1,5 @@
-const MAPBOX_JS_URL = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
-const MAPBOX_CSS_URL = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
+const MAPBOX_GL_JS_URL = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
+const MAPBOX_GL_CSS_URL = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
 const PAPAPARSE_URL = 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js';
 
 const pendingResources = new Map();
@@ -103,22 +103,29 @@ function ensureScript(src, attributes = {}) {
 
 async function ensureMapboxResources() {
   const tasks = [];
-  tasks.push(ensureStylesheet(MAPBOX_CSS_URL, { crossorigin: 'anonymous' }));
-  if (typeof window === 'undefined' || !window.mapboxgl) {
-    tasks.push(ensureScript(MAPBOX_JS_URL, { crossorigin: 'anonymous' }));
+  tasks.push(ensureStylesheet(MAPBOX_GL_CSS_URL, { crossorigin: 'anonymous' }));
+  const needsScript = typeof window !== 'undefined' && !window.mapboxgl;
+  if (needsScript) {
+    tasks.push(ensureScript(MAPBOX_GL_JS_URL, { crossorigin: 'anonymous' }));
   }
   await Promise.all(tasks);
+  if (typeof window === 'undefined' || !window.mapboxgl) {
+    throw new Error('Mapbox GL JS did not initialize correctly');
+  }
+  return window.mapboxgl;
 }
 
 async function ensurePapaParse() {
-  if (typeof window !== 'undefined' && window.Papa) return;
+  if (typeof window !== 'undefined' && window.Papa) return window.Papa;
   await ensureScript(PAPAPARSE_URL, { crossorigin: 'anonymous' });
+  return typeof window !== 'undefined' ? window.Papa : undefined;
 }
 
 export async function ensureVendorBundles() {
-  if (typeof document === 'undefined') return;
-  await Promise.all([
+  if (typeof document === 'undefined') return {};
+  const [mapboxgl, Papa] = await Promise.all([
     ensureMapboxResources(),
     ensurePapaParse(),
   ]);
+  return { mapboxgl, Papa };
 }

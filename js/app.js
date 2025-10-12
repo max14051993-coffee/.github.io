@@ -120,8 +120,8 @@ function handleProcessChange(rawValue) {
 async function init() {
   syncOverlayMenus(true);
   try {
-    await ensureVendorBundles();
-    mapController = createMapController({ accessToken: MAPBOX_TOKEN, theme, flagMode });
+    const { mapboxgl } = await ensureVendorBundles();
+    mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode });
   } catch (dependencyError) {
     console.error('Map dependency error:', dependencyError);
     const mapEl = document.getElementById('map');

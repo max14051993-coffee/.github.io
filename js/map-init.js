@@ -146,7 +146,10 @@ function popupHTML(p, flagMode) {
   }
 }
 
-export function createMapController({ accessToken, theme, flagMode, enable3dLayers = true, viewMode = 'cities' }) {
+export function createMapController({ mapboxgl, accessToken, theme, flagMode, enable3dLayers = true, viewMode = 'cities' }) {
+  if (!mapboxgl || typeof mapboxgl.Map !== 'function') {
+    throw new Error('Mapbox GL JS is not available');
+  }
   mapboxgl.accessToken = accessToken;
   const map = new mapboxgl.Map({
     container: 'map',

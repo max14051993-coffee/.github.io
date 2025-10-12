@@ -146,7 +146,7 @@ function popupHTML(p, flagMode) {
   }
 }
 
-export function createMapController({ accessToken, theme, flagMode, enable3dLayers = true }) {
+export function createMapController({ accessToken, theme, flagMode, enable3dLayers = true, viewMode = 'cities' }) {
   mapboxgl.accessToken = accessToken;
   const map = new mapboxgl.Map({
     container: 'map',
@@ -166,6 +166,7 @@ export function createMapController({ accessToken, theme, flagMode, enable3dLaye
     interactionsBound: false,
     routesVisible: false,
     countriesVisible: false,
+    viewMode: viewMode === 'points' ? 'points' : 'cities',
   };
 
   const withMapReady = (fn) => {
@@ -180,7 +181,24 @@ export function createMapController({ accessToken, theme, flagMode, enable3dLaye
     withMapReady(() => ensureTerrain(map, { enable3dLayers: state.allow3DLayers }));
   };
 
-  map.on('load', applyTerrainPreference);
+  const applyViewMode = () => {
+    withMapReady(() => {
+      const showCities = state.viewMode === 'cities';
+      const pointsVisibility = showCities ? 'none' : 'visible';
+      const citiesVisibility = showCities ? 'visible' : 'none';
+      ['clusters', 'cluster-count', 'unclustered'].forEach((id) => {
+        if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', pointsVisibility);
+      });
+      if (map.getLayer('city-points')) {
+        map.setLayoutProperty('city-points', 'visibility', citiesVisibility);
+      }
+    });
+  };
+
+  map.on('load', () => {
+    applyTerrainPreference();
+    applyViewMode();
+  });
 
   const motionQuery = (typeof window !== 'undefined' && typeof window.matchMedia === 'function')
     ? window.matchMedia('(prefers-reduced-motion: reduce)')
@@ -255,6 +273,15 @@ export function createMapController({ accessToken, theme, flagMode, enable3dLaye
     if (!state.routesVisible) {
       map.setLayoutProperty('route-highlight', 'visibility', 'none');
     }
+  };
+
+  const setViewMode = (mode) => {
+    const next = mode === 'points' ? 'points' : 'cities';
+    if (state.viewMode !== next) {
+      state.viewMode = next;
+      if (next === 'cities') clearRouteHighlight();
+    }
+    applyViewMode();
   };
 
   const ensureCountriesLayers = () => {
@@ -433,6 +460,7 @@ export function createMapController({ accessToken, theme, flagMode, enable3dLaye
 
     bindInteractions();
     state.layersInitialized = true;
+    applyViewMode();
   };
 
   const bindInteractions = () => {
@@ -551,6 +579,7 @@ export function createMapController({ accessToken, theme, flagMode, enable3dLaye
       if (fit) {
         fitToData(geojsonPoints);
       }
+      applyViewMode();
     });
   };
 
@@ -570,5 +599,6 @@ export function createMapController({ accessToken, theme, flagMode, enable3dLaye
     resize: () => map.resize(),
     refresh3DLayers: applyTerrainPreference,
     set3DLayersEnabled,
+    setViewMode,
   };
 }

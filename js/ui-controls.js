@@ -558,7 +558,7 @@ function setupAchievementTooltips(root) {
   });
 }
 
-function buildControlsHTML(pointsCount, countriesCount, activeProcess = 'all') {
+function buildControlsHTML(pointsCount, countriesCount, activeProcess = 'all', activeViewMode = 'cities') {
   const wrap = document.createElement('div');
   wrap.className = 'filters-stack';
   const processButtons = PROCESS_FILTERS.map((opt) => {
@@ -573,6 +573,21 @@ function buildControlsHTML(pointsCount, countriesCount, activeProcess = 'all') {
       </button>
     `;
   }).join('');
+  const viewModes = [
+    { value: 'cities', label: 'Города', emoji: '🏙️', title: 'Группировать и показывать города' },
+    { value: 'points', label: 'Точки', emoji: '📍', title: 'Показывать отдельные точки' },
+  ];
+  const normalizedView = activeViewMode === 'points' ? 'points' : 'cities';
+  const viewModeButtons = viewModes.map((mode) => {
+    const isActive = normalizedView === mode.value;
+    const cls = isActive ? 'mode-option is-active' : 'mode-option';
+    return `
+      <button type="button" class="${cls}" data-view-mode="${escapeAttr(mode.value)}" aria-pressed="${isActive ? 'true' : 'false'}" title="${escapeAttr(mode.title)}">
+        <span class="mode-option-emoji" aria-hidden="true">${escapeHtml(mode.emoji)}</span>
+        <span>${escapeHtml(mode.label)}</span>
+      </button>
+    `;
+  }).join('');
   wrap.innerHTML = `
     <div class="filters-stats">
       <div class="filters-stats-counts">
@@ -582,6 +597,9 @@ function buildControlsHTML(pointsCount, countriesCount, activeProcess = 'all') {
     </div>
     <div class="filters-section">
       <span class="filters-label">Отображение</span>
+      <div class="filters-mode" role="group" aria-label="Уровень детализации">
+        ${viewModeButtons}
+      </div>
       <div class="filters-toggles">
         <label class="toggle-control" title="Показывать маршруты ферма → обжарщик → кофейня">
           <input type="checkbox" id="toggleRoutes">
@@ -613,11 +631,14 @@ export function createUIController({
   onVisitedToggle,
   onProcessChange,
   initialToggles,
+  onViewModeChange,
+  viewMode = 'cities',
 }) {
-  const root = buildControlsHTML(pointsCount, countriesCount, filterState.process);
+  const root = buildControlsHTML(pointsCount, countriesCount, filterState.process, viewMode);
   const routesToggle = root.querySelector('#toggleRoutes');
   const visitedToggle = root.querySelector('#toggleVisited');
   const processButtons = [...root.querySelectorAll('[data-process]')];
+  const viewModeButtons = [...root.querySelectorAll('[data-view-mode]')];
   const filtersMenu = document.getElementById('filtersMenu');
   const filtersStatsCounts = root.querySelector('.filters-stats-counts');
   const filtersInfoToggle = filtersMenu?.querySelector('[data-overlay-info-toggle]');
@@ -650,6 +671,12 @@ export function createUIController({
       onProcessChange?.(raw);
     }, { passive: true });
   });
+  viewModeButtons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const raw = btn.getAttribute('data-view-mode') || 'cities';
+      onViewModeChange?.(raw);
+    }, { passive: true });
+  });
 
   onRoutesToggle?.(routesInitial);
   onVisitedToggle?.(visitedInitial);
@@ -670,6 +697,16 @@ export function createUIController({
     });
   };
 
+  const updateViewMode = (activeValue) => {
+    const normalized = activeValue === 'points' ? 'points' : 'cities';
+    viewModeButtons.forEach((btn) => {
+      const value = btn.getAttribute('data-view-mode') || 'cities';
+      const isActive = value === normalized;
+      btn.classList.toggle('is-active', isActive);
+      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    });
+  };
+
   const placeControls = () => {
     const container = document.getElementById('filtersPanel');
     if (!container) return;
@@ -681,11 +718,13 @@ export function createUIController({
 
   updateCounts(pointsCount, countriesCount);
   updateProcessButtons(filterState.process);
+  updateViewMode(viewMode);
 
   return {
     root,
     placeControls,
     updateCounts,
     updateProcessButtons,
+    updateViewMode,
   };
 }

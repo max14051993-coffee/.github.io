@@ -582,6 +582,56 @@ body[data-theme="dark"] .brand-tag{
   align-items:center;
 }
 
+.filters-mode{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+
+.mode-option{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 12px;
+  border-radius:999px;
+  border:1px solid var(--pill-border);
+  background:var(--glass);
+  color:var(--muted);
+  font-family:var(--font-ui);
+  font-size:14px;
+  font-weight:500;
+  cursor:pointer;
+  transition:background .2s ease, color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+
+.mode-option:hover{
+  border-color:var(--accent);
+  color:var(--accent);
+}
+
+.mode-option:focus-visible{
+  outline:2px solid var(--accent);
+  outline-offset:2px;
+}
+
+.mode-option-emoji{
+  font-size:16px;
+  line-height:1;
+}
+
+.mode-option.is-active{
+  background:var(--accent-soft);
+  border-color:rgba(194,109,67,0.45);
+  color:var(--accent);
+  box-shadow:0 8px 22px -16px rgba(194,109,67,0.85);
+}
+
+body[data-theme="dark"] .mode-option.is-active{
+  border-color:rgba(245,158,11,0.45);
+  box-shadow:0 8px 22px -16px rgba(245,158,11,0.9);
+}
+
 label.toggle-control{
   display:inline-flex;
   align-items:center;

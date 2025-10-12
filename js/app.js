@@ -49,20 +49,15 @@ let cityCoords = {};
 let controls = null;
 
 function syncOverlayMenus(force = false) {
+  const menu = document.getElementById('filtersMenu');
+  if (!menu) return;
   const compact = overlayMedia.matches;
   const mode = compact ? 'mobile' : 'desktop';
-  const menus = [
-    document.getElementById('filtersMenu'),
-    document.getElementById('achievementsMenu'),
-  ];
-  menus.forEach((menu) => {
-    if (!menu) return;
-    const prevMode = menu.dataset.overlayMode;
-    if (force || prevMode !== mode) {
-      menu.dataset.overlayMode = mode;
-      menu.open = mode === 'desktop';
-    }
-  });
+  const prevMode = menu.dataset.overlayMode;
+  if (force || prevMode !== mode) {
+    menu.dataset.overlayMode = mode;
+    menu.open = mode === 'desktop';
+  }
 }
 
 const handleOverlayChange = () => syncOverlayMenus(true);

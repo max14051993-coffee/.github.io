@@ -3,6 +3,10 @@
   "version": "1.0.0",
   "description": "Coffeemap mapbox project",
   "scripts": {
-    "test": "echo 'No tests'"
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "http-server": "^14.1.1"
   }
 }

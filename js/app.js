@@ -47,7 +47,6 @@ const filterState = { process: 'all' };
 let allPointFeatures = [];
 let cityCoords = {};
 let controls = null;
-let viewMode = 'cities';
 
 function syncOverlayMenus(force = false) {
   const compact = overlayMedia.matches;
@@ -105,8 +104,6 @@ function applyFilters({ fit = false } = {}) {
     visitedCountries: visited,
     cityCoords,
   }, { fit });
-  mapController.setViewMode(viewMode);
-
   return features;
 }
 
@@ -125,22 +122,11 @@ function handleProcessChange(rawValue) {
   applyFilters();
 }
 
-function handleViewModeChange(rawValue) {
-  const normalized = rawValue === 'points' ? 'points' : 'cities';
-  if (viewMode === normalized) {
-    controls?.updateViewMode?.(normalized);
-    return;
-  }
-  viewMode = normalized;
-  controls?.updateViewMode?.(normalized);
-  mapController?.setViewMode(normalized);
-}
-
 async function init() {
   syncOverlayMenus(true);
   try {
     await ensureVendorBundles();
-    mapController = createMapController({ accessToken: MAPBOX_TOKEN, theme, flagMode, viewMode });
+    mapController = createMapController({ accessToken: MAPBOX_TOKEN, theme, flagMode });
   } catch (dependencyError) {
     console.error('Map dependency error:', dependencyError);
     const mapEl = document.getElementById('map');
@@ -166,12 +152,9 @@ async function init() {
       onRoutesToggle: (visible) => mapController?.setRoutesVisibility(visible),
       onVisitedToggle: (visible) => mapController?.setCountriesVisibility(visible),
       onProcessChange: handleProcessChange,
-      onViewModeChange: handleViewModeChange,
-      viewMode,
     });
     controls.placeControls();
     syncOverlayMenus();
-    controls.updateViewMode?.(viewMode);
 
     showAchievementsStatus('Загружаем достижения…', 'loading');
 

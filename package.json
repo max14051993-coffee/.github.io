@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Coffeemap mapbox project",
   "scripts": {
-    "test": "playwright test"
+    "test": "playwright test",
+    "pretest": "bash -c 'if command -v apt-get >/dev/null 2>&1; then npx playwright install-deps || true; fi; playwright install'"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",

@@ -167,8 +167,8 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     flagMode: (flagMode || 'img').toLowerCase(),
     layersInitialized: false,
     interactionsBound: false,
-    routesVisible: false,
-    countriesVisible: false,
+    routesVisible: true,
+    countriesVisible: true,
     viewMode: viewMode === 'points' ? 'points' : 'cities',
   };
 

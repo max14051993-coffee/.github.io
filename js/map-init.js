@@ -560,26 +560,46 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
 
     popup.on('close', clearRouteHighlight);
     popup.addTo(map);
+    const goToRelativeCard = (delta) => {
+      index = (index + delta + features.length) % features.length;
+      render();
+    };
     const handleClick = (event) => {
       const target = event.target;
       if (target?.closest?.('[data-prev]')) {
-        index = (index - 1 + features.length) % features.length;
-        render();
+        goToRelativeCard(-1);
       } else if (target?.closest?.('[data-next]')) {
-        index = (index + 1) % features.length;
-        render();
+        goToRelativeCard(1);
       }
     };
     const handleKeydown = (event) => {
-      if (event.key === 'Escape') popup.remove();
+      if (event.key === 'Escape') {
+        event.stopPropagation();
+        popup.remove();
+        return;
+      }
+      if (features.length < 2) return;
+      const activeEl = event.target;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        event.stopPropagation();
+        goToRelativeCard(-1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        event.stopPropagation();
+        goToRelativeCard(1);
+      }
     };
     const el = popup.getElement();
     el?.addEventListener('click', handleClick, { passive: true });
-    document.addEventListener('keydown', handleKeydown);
+    window.addEventListener('keydown', handleKeydown, true);
     popup.on('close', () => {
       const el2 = popup.getElement();
       el2?.removeEventListener('click', handleClick);
-      document.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('keydown', handleKeydown, true);
     });
     render();
   };

@@ -1,4 +1,4 @@
-import { escapeAttr, escapeHtml, setupInfoDisclosure } from './utils.js';
+import { escapeAttr, escapeHtml } from './utils.js';
 
 const globalScope = typeof globalThis !== 'undefined' ? globalThis : undefined;
 
@@ -34,18 +34,6 @@ export function processColors(pType) {
     default:            return { point: '#777777', bg: '#eeeeee', br: '#cccccc', txt: '#333333' };
   }
 }
-
-export const PROCESS_FILTERS = [
-  { value: 'all',          label: 'Все',           title: 'Показывать все процессы',           dot: 'var(--accent)' },
-  { value: 'washed',       label: 'Мытый',         title: 'Мытый / washed процесс',           dot: processColors('washed').point },
-  { value: 'natural',      label: 'Натуральный',   title: 'Natural / сухая обработка',        dot: processColors('natural').point },
-  { value: 'honey',        label: 'Хани',          title: 'Honey / pulped natural',           dot: processColors('honey').point },
-  { value: 'anaerobic',    label: 'Анаэроб',       title: 'Анаэробные ферментации',           dot: processColors('anaerobic').point },
-  { value: 'experimental', label: 'Эксперименты',  title: 'Экспериментальные обработки',      dot: processColors('experimental').point },
-  { value: 'other',        label: 'Другое',        title: 'Редкие или неуказанные методы',    dot: processColors('other').point },
-];
-
-export const PROCESS_FILTER_VALUES = new Set(PROCESS_FILTERS.map((p) => p.value));
 
 const metricCount = (value) => {
   if (Array.isArray(value)) return value.length;
@@ -558,134 +546,3 @@ function setupAchievementTooltips(root) {
   });
 }
 
-function buildControlsHTML(pointsCount, countriesCount, activeProcess = 'all') {
-  const wrap = document.createElement('div');
-  wrap.className = 'filters-stack';
-  const processButtons = PROCESS_FILTERS.map((opt) => {
-    const isActive = activeProcess === opt.value;
-    const title = opt.title ? ` title="${escapeAttr(opt.title)}"` : '';
-    const dot = opt.dot ? ` style="--dot-color:${escapeAttr(opt.dot)}"` : '';
-    const cls = isActive ? 'filter-chip is-active' : 'filter-chip';
-    return `
-      <button type="button" class="${cls}" data-process="${escapeAttr(opt.value)}" aria-pressed="${isActive ? 'true' : 'false'}"${title}>
-        <span class="filter-dot"${dot}></span>
-        <span>${escapeHtml(opt.label)}</span>
-      </button>
-    `;
-  }).join('');
-  wrap.innerHTML = `
-    <div class="filters-stats">
-      <div class="filters-stats-counts">
-        <span class="chip" title="Точек на карте">☕ <span id="pointsCount">${pointsCount}</span></span>
-        <span class="chip" title="Стран в коллекции">🌍 <span id="countriesCount">${countriesCount}</span></span>
-      </div>
-    </div>
-    <div class="filters-section">
-      <span class="filters-label">Отображение</span>
-      <div class="filters-toggles">
-        <label class="toggle-control" title="Показывать маршруты ферма → обжарщик → кофейня">
-          <input type="checkbox" id="toggleRoutes">
-          <span class="toggle-emoji">🧵</span>
-          <span class="toggle-text">Маршруты</span>
-        </label>
-        <label class="toggle-control" title="Закрашивать страны происхождения на карте">
-          <input type="checkbox" id="toggleVisited">
-          <span class="toggle-emoji">🎨</span>
-          <span class="toggle-text">Страны</span>
-        </label>
-      </div>
-    </div>
-    <div class="filters-section">
-      <span class="filters-label">Обработка зерна</span>
-      <div class="filters-chips" role="group" aria-label="Фильтр по обработке">
-        ${processButtons}
-      </div>
-    </div>
-  `;
-  return wrap;
-}
-
-export function createUIController({
-  pointsCount,
-  countriesCount,
-  filterState,
-  onRoutesToggle,
-  onVisitedToggle,
-  onProcessChange,
-  initialToggles,
-}) {
-  const root = buildControlsHTML(pointsCount, countriesCount, filterState.process);
-  const routesToggle = root.querySelector('#toggleRoutes');
-  const visitedToggle = root.querySelector('#toggleVisited');
-  const processButtons = [...root.querySelectorAll('[data-process]')];
-  const filtersMenu = document.getElementById('filtersMenu');
-  const filtersStatsCounts = root.querySelector('.filters-stats-counts');
-  const filtersInfoToggle = filtersMenu?.querySelector('[data-overlay-info-toggle]');
-  const filtersInfoPanel = filtersMenu?.querySelector('[data-overlay-info-panel]');
-
-  if (filtersStatsCounts && filtersInfoToggle && filtersInfoToggle.parentElement !== filtersStatsCounts) {
-    filtersInfoToggle.classList.add('filters-stats-info-toggle');
-    filtersStatsCounts.appendChild(filtersInfoToggle);
-  }
-
-  const routesInitial = typeof initialToggles?.routes === 'boolean' ? initialToggles.routes : true;
-  const visitedInitial = typeof initialToggles?.visited === 'boolean' ? initialToggles.visited : true;
-
-  setupInfoDisclosure({
-    toggle: filtersInfoToggle,
-    panel: filtersInfoPanel,
-  });
-
-  if (routesToggle) {
-    routesToggle.checked = routesInitial;
-    routesToggle.addEventListener('change', (e) => onRoutesToggle?.(e.target.checked), { passive: true });
-  }
-  if (visitedToggle) {
-    visitedToggle.checked = visitedInitial;
-    visitedToggle.addEventListener('change', (e) => onVisitedToggle?.(e.target.checked), { passive: true });
-  }
-  processButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const raw = btn.getAttribute('data-process') || 'all';
-      onProcessChange?.(raw);
-    }, { passive: true });
-  });
-
-  onRoutesToggle?.(routesInitial);
-  onVisitedToggle?.(visitedInitial);
-
-  const updateCounts = (points, countries) => {
-    const pointsEl = root.querySelector('#pointsCount');
-    if (pointsEl) pointsEl.textContent = points;
-    const countriesEl = root.querySelector('#countriesCount');
-    if (countriesEl) countriesEl.textContent = countries;
-  };
-
-  const updateProcessButtons = (activeValue) => {
-    processButtons.forEach((btn) => {
-      const value = btn.getAttribute('data-process') || 'all';
-      const isActive = value === activeValue;
-      btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
-      btn.classList.toggle('is-active', isActive);
-    });
-  };
-
-  const placeControls = () => {
-    const container = document.getElementById('filtersPanel');
-    if (!container) return;
-    if (root.parentElement !== container) {
-      container.innerHTML = '';
-      container.appendChild(root);
-    }
-  };
-
-  updateCounts(pointsCount, countriesCount);
-  updateProcessButtons(filterState.process);
-
-  return {
-    root,
-    placeControls,
-    updateCounts,
-    updateProcessButtons,
-  };
-}

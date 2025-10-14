@@ -6,7 +6,7 @@ import {
   loadBaseDataset,
   loadSupplementalDataset,
 } from './data-loader.js';
-import { PROCESS_FILTER_VALUES, createUIController, renderAchievements } from './ui-controls.js';
+import { renderAchievements } from './ui-controls.js';
 import { createMapController } from './map-init.js';
 import { ensureVendorBundles } from './vendor-loader.js';
 
@@ -41,44 +41,11 @@ setupInfoDisclosure({
 });
 
 let mapController = null;
-const overlayMedia = window.matchMedia('(max-width: 720px)');
-
-const filterState = { process: 'all' };
 let allPointFeatures = [];
 let cityCoords = {};
-let controls = null;
-
-function syncOverlayMenus(force = false) {
-  const menu = document.getElementById('filtersMenu');
-  if (!menu) return;
-  const compact = overlayMedia.matches;
-  const mode = compact ? 'mobile' : 'desktop';
-  const prevMode = menu.dataset.overlayMode;
-  if (force || prevMode !== mode) {
-    menu.dataset.overlayMode = mode;
-    menu.open = mode === 'desktop';
-  }
-}
-
-const handleOverlayChange = () => syncOverlayMenus(true);
-if (typeof overlayMedia.addEventListener === 'function') {
-  overlayMedia.addEventListener('change', handleOverlayChange);
-} else if (typeof overlayMedia.addListener === 'function') {
-  overlayMedia.addListener(handleOverlayChange);
-}
 
 function getFilteredFeatures() {
-  return allPointFeatures.filter((feature) => {
-    if (filterState.process !== 'all') {
-      const norm = (feature.properties?.process_norm || '').trim() || 'other';
-      if (filterState.process === 'other') {
-        if (norm && norm !== 'other') return false;
-      } else if (norm !== filterState.process) {
-        return false;
-      }
-    }
-    return true;
-  });
+  return allPointFeatures;
 }
 
 function applyFilters({ fit = false } = {}) {
@@ -87,8 +54,6 @@ function applyFilters({ fit = false } = {}) {
   const lineFeatures = buildRouteFeatures(features, cityCoords);
   const cityPoints = buildCityPoints(features, cityCoords);
   const visited = [...getVisitedCountriesIso2(features)];
-
-  controls?.updateCounts(features.length, visited.length);
 
   if (!mapController) return features;
 
@@ -102,23 +67,7 @@ function applyFilters({ fit = false } = {}) {
   return features;
 }
 
-function handleProcessChange(rawValue) {
-  const normalized = PROCESS_FILTER_VALUES.has(rawValue) ? rawValue : 'all';
-  let next = normalized;
-  if (filterState.process === normalized && normalized !== 'all') {
-    next = 'all';
-  }
-  if (filterState.process === next) {
-    controls?.updateProcessButtons(next);
-    return;
-  }
-  filterState.process = next;
-  controls?.updateProcessButtons(next);
-  applyFilters();
-}
-
 async function init() {
-  syncOverlayMenus(true);
   try {
     const { mapboxgl } = await ensureVendorBundles();
     mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode });
@@ -140,17 +89,6 @@ async function init() {
     if (titleEl) titleEl.textContent = COLLECTION_TITLE;
     document.title = COLLECTION_TITLE;
 
-    controls = createUIController({
-      pointsCount: baseData.pointFeatures.length,
-      countriesCount: baseData.visitedCountries.length,
-      filterState,
-      onRoutesToggle: (visible) => mapController?.setRoutesVisibility(visible),
-      onVisitedToggle: (visible) => mapController?.setCountriesVisibility(visible),
-      onProcessChange: handleProcessChange,
-    });
-    controls.placeControls();
-    syncOverlayMenus();
-
     showAchievementsStatus('Загружаем достижения…', 'loading');
 
     applyFilters({ fit: true });
@@ -167,16 +105,11 @@ async function init() {
       });
 
     window.addEventListener('resize', debounce(() => {
-      controls?.placeControls();
       mapController?.refresh3DLayers();
       mapController?.resize();
-      syncOverlayMenus();
     }, 150));
   } catch (err) {
-    const filtersPanel = document.getElementById('filtersPanel');
-    if (filtersPanel) {
-      filtersPanel.innerHTML = '<div class="overlay-error">Ошибка загрузки CSV</div>';
-    }
+    showAchievementsStatus('Ошибка загрузки данных', 'error');
     console.error('CSV error:', err);
   }
 }

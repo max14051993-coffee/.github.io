@@ -574,6 +574,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     };
     const handleKeydown = (event) => {
       if (event.key === 'Escape') {
+        event.stopPropagation();
         popup.remove();
         return;
       }
@@ -584,19 +585,21 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
       }
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
+        event.stopPropagation();
         goToRelativeCard(-1);
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
+        event.stopPropagation();
         goToRelativeCard(1);
       }
     };
     const el = popup.getElement();
     el?.addEventListener('click', handleClick, { passive: true });
-    document.addEventListener('keydown', handleKeydown);
+    window.addEventListener('keydown', handleKeydown, true);
     popup.on('close', () => {
       const el2 = popup.getElement();
       el2?.removeEventListener('click', handleClick);
-      document.removeEventListener('keydown', handleKeydown);
+      window.removeEventListener('keydown', handleKeydown, true);
     });
     render();
   };

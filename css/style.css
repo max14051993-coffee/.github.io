@@ -134,6 +134,132 @@ body[data-theme="dark"]{
   pointer-events:auto;
 }
 
+.map-filters{
+  background:var(--surface);
+  border:1px solid var(--surface-border);
+  box-shadow:var(--surface-shadow);
+  border-radius:18px;
+  padding:12px 16px;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  width:min(440px,100%);
+  pointer-events:auto;
+  font-family:var(--font-ui);
+}
+
+.map-filters__section{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  align-items:center;
+}
+
+.map-filters__title{
+  font-size:11px;
+  font-weight:600;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--muted);
+  margin-right:4px;
+}
+
+.filter-control{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 14px;
+  border-radius:999px;
+  border:1px solid var(--pill-border);
+  background:var(--pill-bg);
+  color:var(--text);
+  cursor:pointer;
+  transition:background-color .2s ease,border-color .2s ease,color .2s ease;
+  font-size:14px;
+  line-height:1.2;
+  user-select:none;
+}
+
+.filter-control input{
+  position:absolute;
+  inset:0;
+  opacity:0;
+  cursor:pointer;
+  margin:0;
+}
+
+.filter-control__icon{
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  border:2px solid currentColor;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  transition:background-color .2s ease,border-color .2s ease;
+}
+
+.filter-control--checkbox .filter-control__icon{
+  border-radius:6px;
+}
+
+.filter-control__icon::after{
+  content:"";
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:currentColor;
+  opacity:0;
+  transform:scale(.6);
+  transition:opacity .2s ease,transform .2s ease;
+}
+
+.filter-control--checkbox .filter-control__icon::after{
+  width:10px;
+  height:10px;
+  border-radius:3px;
+}
+
+.filter-control[data-checked="true"]{
+  border-color:var(--accent);
+  background:var(--accent-soft);
+  color:var(--accent);
+}
+
+.filter-control[data-checked="true"] .filter-control__icon{
+  border-color:currentColor;
+}
+
+.filter-control[data-checked="true"] .filter-control__icon::after{
+  opacity:1;
+  transform:scale(1);
+}
+
+.filter-control:focus-within{
+  outline:2px solid color-mix(in srgb,var(--accent) 60%,transparent);
+  outline-offset:2px;
+}
+
+.filter-control:hover{
+  border-color:var(--accent);
+}
+
+.filter-control__label{
+  pointer-events:none;
+}
+
+@media (max-width:720px){
+  .map-filters{
+    width:100%;
+  }
+  .map-ui{
+    left:16px;
+    right:16px;
+  }
+}
+
 .map-title-row{
   display:flex;
   align-items:center;

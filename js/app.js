@@ -6,7 +6,7 @@ import {
   loadBaseDataset,
   loadSupplementalDataset,
 } from './data-loader.js';
-import { renderAchievements } from './ui-controls.js';
+import { renderAchievements, setupFiltersMenu } from './ui-controls.js';
 import { createMapController } from './map-init.js';
 import { ensureVendorBundles } from './vendor-loader.js';
 
@@ -71,6 +71,7 @@ async function init() {
   try {
     const { mapboxgl } = await ensureVendorBundles();
     mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode });
+    setupFiltersMenu({ mapController });
   } catch (dependencyError) {
     console.error('Map dependency error:', dependencyError);
     const mapEl = document.getElementById('map');

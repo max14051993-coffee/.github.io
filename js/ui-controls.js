@@ -430,6 +430,56 @@ export function renderAchievements(metrics) {
   setupAchievementTooltips(el);
 }
 
+function syncControlState(input) {
+  const wrapper = input.closest('.filter-control');
+  if (!wrapper) return;
+  wrapper.dataset.checked = input.checked ? 'true' : 'false';
+}
+
+export function setupFiltersMenu({ mapController } = {}) {
+  if (!mapController) return;
+  const root = document.getElementById('filtersMenu');
+  if (!root) return;
+
+  const inputs = Array.from(root.querySelectorAll('input'));
+  inputs.forEach((input) => {
+    syncControlState(input);
+    input.addEventListener('change', () => {
+      syncControlState(input);
+      const { name, type, value, checked } = input;
+      if (type === 'radio' && !checked) return;
+      switch (name) {
+        case 'viewMode':
+          mapController.setViewMode(value === 'points' ? 'points' : 'cities');
+          break;
+        case 'showRoutes':
+          mapController.setRoutesVisibility(checked);
+          break;
+        case 'showCountries':
+          mapController.setCountriesVisibility(checked);
+          break;
+        case 'enable3d':
+          mapController.set3DLayersEnabled(checked);
+          break;
+        default:
+          break;
+      }
+    }, { passive: true });
+  });
+
+  // Ensure map reflects initial control state when mounted
+  const viewControl = inputs.find((input) => input.name === 'viewMode' && input.checked);
+  if (viewControl) {
+    mapController.setViewMode(viewControl.value === 'points' ? 'points' : 'cities');
+  }
+  const routesControl = inputs.find((input) => input.name === 'showRoutes');
+  if (routesControl) mapController.setRoutesVisibility(routesControl.checked);
+  const countriesControl = inputs.find((input) => input.name === 'showCountries');
+  if (countriesControl) mapController.setCountriesVisibility(countriesControl.checked);
+  const terrainControl = inputs.find((input) => input.name === 'enable3d');
+  if (terrainControl) mapController.set3DLayersEnabled(terrainControl.checked);
+}
+
 const TOOLTIP_VIEWPORT_GAP = 16;
 
 function setupAchievementIcons(root) {

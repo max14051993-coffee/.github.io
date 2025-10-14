@@ -35,6 +35,44 @@
         <div class="achievements" id="achievements" role="list" aria-labelledby="achievementsLabel"></div>
       </div>
 
+      <section class="map-filters" id="filtersMenu" aria-label="Настройки карты">
+        <div class="map-filters__section" role="radiogroup" aria-label="Режим отображения">
+          <span class="map-filters__title">Режим</span>
+          <label class="filter-control filter-control--radio" data-type="radio">
+            <input type="radio" name="viewMode" value="cities" checked>
+            <span class="filter-control__icon" aria-hidden="true"></span>
+            <span class="filter-control__label">Города</span>
+          </label>
+          <label class="filter-control filter-control--radio" data-type="radio">
+            <input type="radio" name="viewMode" value="points">
+            <span class="filter-control__icon" aria-hidden="true"></span>
+            <span class="filter-control__label">Точки</span>
+          </label>
+        </div>
+
+        <div class="map-filters__section" aria-label="Слои карты">
+          <span class="map-filters__title">Слои</span>
+          <label class="filter-control filter-control--checkbox" data-type="checkbox">
+            <input type="checkbox" name="showRoutes" checked>
+            <span class="filter-control__icon" aria-hidden="true"></span>
+            <span class="filter-control__label">Маршруты</span>
+          </label>
+          <label class="filter-control filter-control--checkbox" data-type="checkbox">
+            <input type="checkbox" name="showCountries" checked>
+            <span class="filter-control__icon" aria-hidden="true"></span>
+            <span class="filter-control__label">Страны</span>
+          </label>
+        </div>
+
+        <div class="map-filters__section" aria-label="Дополнительные опции">
+          <span class="map-filters__title">Графика</span>
+          <label class="filter-control filter-control--checkbox" data-type="checkbox">
+            <input type="checkbox" name="enable3d" checked>
+            <span class="filter-control__icon" aria-hidden="true"></span>
+            <span class="filter-control__label">3D рельеф</span>
+          </label>
+        </div>
+      </section>
     </div>
   </div>
 

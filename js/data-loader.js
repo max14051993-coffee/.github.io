@@ -166,20 +166,47 @@ export function rowsToGeoJSON(rows) {
   return { type: 'FeatureCollection', features };
 }
 
-const CITY_CACHE_NS = 'coffee_city_cache_v1';
-const cityCache = typeof window !== 'undefined'
-  ? JSON.parse(window.localStorage.getItem(CITY_CACHE_NS) || '{}')
-  : {};
+const CITY_CACHE_PREFIX = 'coffee_city_cache_v1';
+const TOKEN_SUFFIX_LEN = 8;
+const CACHE_TTL_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
-function cacheSave() {
+function cacheKeyForToken(token) {
+  const raw = String(token || '');
+  const suffix = raw ? raw.slice(-TOKEN_SUFFIX_LEN) : 'anon';
+  return `${CITY_CACHE_PREFIX}_${suffix}`;
+}
+
+function loadCityCache(token) {
+  if (typeof window === 'undefined') return { entries: {}, updatedAt: 0 };
+  const key = cacheKeyForToken(token);
+  const now = Date.now();
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) || '{}');
+    const entries = (parsed && typeof parsed.entries === 'object') ? parsed.entries : parsed;
+    const updatedAt = Number(parsed && parsed.updatedAt) || 0;
+    if (!entries || typeof entries !== 'object') return { entries: {}, updatedAt: 0 };
+    if (updatedAt && now - updatedAt > CACHE_TTL_MS) return { entries: {}, updatedAt: now };
+    return { entries, updatedAt };
+  } catch {
+    return { entries: {}, updatedAt: 0 };
+  }
+}
+
+function saveCityCache(token, cache) {
   if (typeof window === 'undefined') return;
-  window.localStorage.setItem(CITY_CACHE_NS, JSON.stringify(cityCache));
+  const key = cacheKeyForToken(token);
+  const payload = {
+    entries: (cache && cache.entries) || {},
+    updatedAt: Date.now(),
+  };
+  window.localStorage.setItem(key, JSON.stringify(payload));
 }
 
 async function geocodeCityName(name, mapboxToken, { signal } = {}) {
   const key = String(name || '').trim().toLowerCase();
   if (!key) return null;
-  const cached = cityCache[key];
+  const cache = loadCityCache(mapboxToken);
+  const cached = cache.entries[key];
   if (cached && cached.countryCode) return cached;
   const fallback = cached || null;
   const url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' +
@@ -214,8 +241,8 @@ async function geocodeCityName(name, mapboxToken, { signal } = {}) {
   const point = { lng, lat };
   if (countryCode) point.countryCode = countryCode;
   if (countryName) point.countryName = countryName;
-  cityCache[key] = point;
-  cacheSave();
+  cache.entries[key] = point;
+  saveCityCache(mapboxToken, cache);
   return point;
 }
 

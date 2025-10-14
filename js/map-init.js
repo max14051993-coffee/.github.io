@@ -220,7 +220,8 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     if (!geojson?.features?.length) return;
     const bounds = new mapboxgl.LngLatBounds();
     geojson.features.forEach((feature) => bounds.extend(feature.geometry.coordinates));
-    map.fitBounds(bounds, { padding: 40, duration: 700, maxZoom: 10 });
+    const duration = prefersReducedMotion() ? 0 : 700;
+    map.fitBounds(bounds, { padding: 40, duration, maxZoom: 10 });
   };
 
   const highlightRouteFor = (properties, coord) => {
@@ -552,23 +553,34 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         : '';
       popup.setHTML(popupHTML(properties, state.flagMode) + nav);
 
-      setTimeout(() => {
-        const el = popup.getElement();
-        el?.querySelector('[data-prev]')?.addEventListener('click', () => {
-          index = (index - 1 + features.length) % features.length;
-          render();
-        }, { passive: true });
-        el?.querySelector('[data-next]')?.addEventListener('click', () => {
-          index = (index + 1) % features.length;
-          render();
-        }, { passive: true });
-      }, 0);
+      
 
       highlightRouteFor(properties, feature.geometry.coordinates);
     };
 
     popup.on('close', clearRouteHighlight);
     popup.addTo(map);
+    const handleClick = (event) => {
+      const target = event.target;
+      if (target?.closest?.('[data-prev]')) {
+        index = (index - 1 + features.length) % features.length;
+        render();
+      } else if (target?.closest?.('[data-next]')) {
+        index = (index + 1) % features.length;
+        render();
+      }
+    };
+    const handleKeydown = (event) => {
+      if (event.key === 'Escape') popup.remove();
+    };
+    const el = popup.getElement();
+    el?.addEventListener('click', handleClick, { passive: true });
+    document.addEventListener('keydown', handleKeydown);
+    popup.on('close', () => {
+      const el2 = popup.getElement();
+      el2?.removeEventListener('click', handleClick);
+      document.removeEventListener('keydown', handleKeydown);
+    });
     render();
   };
 

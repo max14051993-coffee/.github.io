@@ -372,7 +372,12 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         type: 'line',
         source: 'routes',
         filter: ['==', ['get', 'kind'], 'farm_to_roaster'],
-        paint: { 'line-color': '#006d2c', 'line-width': 2, 'line-opacity': 0.6 },
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#b45309',
+          'line-opacity': 0.75,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 1.4, 4, 2.8, 6, 4.2, 10, 7],
+        },
       });
     }
     if (!map.getLayer('route-roaster-consumed')) {
@@ -381,7 +386,13 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         type: 'line',
         source: 'routes',
         filter: ['==', ['get', 'kind'], 'roaster_to_consumed'],
-        paint: { 'line-color': '#08519c', 'line-width': 2, 'line-opacity': 0.6, 'line-dasharray': [2, 2] },
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#0b7285',
+          'line-opacity': 0.75,
+          'line-dasharray': [2.5, 2.5],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 1.2, 4, 2.4, 6, 3.6, 10, 6],
+        },
       });
     }
     if (!map.getLayer('route-highlight')) {
@@ -390,7 +401,12 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         type: 'line',
         source: 'routes',
         filter: ['==', ['get', 'kind'], '___nope___'],
-        paint: { 'line-color': '#ff7f00', 'line-width': 5, 'line-opacity': 0.9 },
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': '#ff7f00',
+          'line-opacity': 0.95,
+          'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 2.5, 4, 4, 7, 5.5, 10, 8],
+        },
       });
       map.setLayoutProperty('route-highlight', 'visibility', 'none');
     }

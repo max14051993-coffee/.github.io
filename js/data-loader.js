@@ -1,4 +1,5 @@
 import { normKey, normalizeName, toNumber } from './utils.js';
+import { getFallbackForCity } from './city-fallbacks.js';
 
 const HEADERS = {
   timestamp:       ['Timestamp'],
@@ -229,14 +230,22 @@ export async function geocodeCities(names, mapboxToken, { signal } = {}) {
     if (!key) continue;
     let entry = deduped.get(key);
     if (!entry) {
-      entry = { query: name, names: new Set() };
+      entry = { query: name, names: new Set(), fallback: null };
       deduped.set(key, entry);
     }
     entry.names.add(name);
+    if (!entry.fallback) {
+      entry.fallback = getFallbackForCity(name);
+    }
   }
 
   const entries = [...deduped.values()];
-  const requests = entries.map((entry) => geocodeCityName(entry.query, mapboxToken, { signal }));
+  const requests = entries.map((entry) => {
+    if (entry.fallback) {
+      return Promise.resolve(entry.fallback);
+    }
+    return geocodeCityName(entry.query, mapboxToken, { signal });
+  });
   const settled = await Promise.allSettled(requests);
 
   const out = {};
@@ -248,7 +257,8 @@ export async function geocodeCities(names, mapboxToken, { signal } = {}) {
       if (result.reason?.name === 'AbortError') throw result.reason;
       continue;
     }
-    const pt = result.value;
+    let pt = result.value;
+    if (!pt && entry.fallback) pt = entry.fallback;
     if (!pt) continue;
     for (const name of entry.names) {
       out[name] = pt;

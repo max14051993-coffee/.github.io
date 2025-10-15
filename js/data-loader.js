@@ -13,7 +13,7 @@ const HEADERS = {
   whereConsumed:   ['Where consumed'],
   cafeName:        ['Cafe name'],
   cafeUrl:         ['Cafe URL'],
-  consumedCity:    ['Consumed city', 'Consumed city '],
+  consumedCity:    ['Consumed city', 'Consumed city ', 'Consumed city  '],
   consumedAddr:    ['Consumed address'],
   recipe:          ['Recipe'],
   roasterName:     ['Roaster name'],

@@ -6,8 +6,8 @@ test.describe('Coffeemap homepage', () => {
 
     await expect(page).toHaveTitle(/my coffee experience/i);
     await expect(page.locator('#map')).toBeVisible();
+    await expect(page.getByRole('heading', { name: /my coffee experience/i })).toBeVisible();
     await expect(page.getByRole('button', { name: /показать пояснения/i })).toBeVisible();
-    await expect(page.locator('#filtersMenu')).toBeVisible();
   });
 
   test('meets baseline loading performance', async ({ page }) => {

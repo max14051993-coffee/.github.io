@@ -69,7 +69,16 @@ function ensureTerrain(map, { enable3dLayers = true } = {}) {
     // Функция, которая удаляет источник terrain-dem защищённо
     const tryRemoveTerrainSource = () => {
       try {
-        if (typeof map.getSource === 'function' && map.getSource('terrain-dem')) {
+        // Если стиль ещё не загружен — подождём ближайшее событие styledata
+        if (typeof map.isStyleLoaded === 'function' && !map.isStyleLoaded()) {
+          map.once('styledata', tryRemoveTerrainSource);
+          return;
+        }
+
+        const hasSource = typeof map.getSource === 'function' && map.getSource('terrain-dem');
+        const styleReady = !!(map && map.style && typeof map.style.getSource === 'function');
+
+        if (hasSource && styleReady) {
           map.removeSource('terrain-dem');
         }
       } catch (err) {

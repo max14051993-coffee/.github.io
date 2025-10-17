@@ -42,48 +42,124 @@ function dedupeFeatures(arr) {
   return out;
 }
 
+// Замените существующую функцию ensureTerrain(...) на этот код:
+
 function ensureTerrain(map, { enable3dLayers = true } = {}) {
   const shouldDisable3D = !enable3dLayers || prefersReducedMotion() || isCompactViewport();
 
   if (shouldDisable3D) {
-    if (typeof map.getLayer === 'function' && map.getLayer('sky')) {
-      map.removeLayer('sky');
+    // Удаляем sky (если есть) — в try/catch, чтобы не ломать приложение
+    try {
+      if (typeof map.getLayer === 'function' && map.getLayer('sky')) {
+        map.removeLayer('sky');
+      }
+    } catch (err) {
+      console.warn('removeLayer(sky) failed', err);
     }
-    if (typeof map.getTerrain === 'function' && map.getTerrain()) {
-      map.setTerrain(null);
+
+    // Сбрасываем terrain безопасно
+    try {
+      if (typeof map.getTerrain === 'function' && map.getTerrain()) {
+        map.setTerrain(null);
+      }
+    } catch (err) {
+      console.warn('setTerrain(null) failed', err);
     }
-    if (typeof map.getSource === 'function' && map.getSource('terrain-dem')) {
-      map.removeSource('terrain-dem');
+
+    // Функция, которая удаляет источник terrain-dem защищённо
+    const tryRemoveTerrainSource = () => {
+      try {
+        if (typeof map.getSource === 'function' && map.getSource('terrain-dem')) {
+          map.removeSource('terrain-dem');
+        }
+      } catch (err) {
+        console.warn('removeSource(terrain-dem) failed', err);
+      }
+    };
+
+    // Ждём завершения внутренних асинхронных операций карты (idle), прежде чем удалять источник.
+    // Это предотвращает гонку, когда Mapbox обращается к уже удалённому объекту и кидает ошибку.
+    try {
+      if (typeof map.once === 'function' && map.loaded && map.loaded()) {
+        let removed = false;
+        const onIdle = () => {
+          if (removed) return;
+          removed = true;
+          tryRemoveTerrainSource();
+        };
+        map.once('idle', onIdle);
+        // Фолбэк: на случай, если 'idle' не придёт — удалим через таймаут
+        setTimeout(() => {
+          if (!removed) {
+            removed = true;
+            tryRemoveTerrainSource();
+          }
+        }, 700);
+      } else {
+        // если карта не загружена — попробуем удалить (в try/catch)
+        tryRemoveTerrainSource();
+      }
+    } catch (err) {
+      // безопасный fallback
+      tryRemoveTerrainSource();
     }
-    if (typeof map.setFog === 'function') {
-      map.setFog(null);
+
+    // Сбрасываем fog (если есть)
+    try {
+      if (typeof map.setFog === 'function') {
+        map.setFog(null);
+      }
+    } catch (err) {
+      console.warn('setFog(null) failed', err);
     }
+
     map.resize();
     return;
   }
 
-  if (!map.getSource('terrain-dem')) {
-    map.addSource('terrain-dem', { type: 'raster-dem', url: 'mapbox://mapbox.terrain-rgb', tileSize: 512 });
+  // Логика включения terrain (как было), с защитой try/catch на потенциально ненадёжные вызовы
+  try {
+    if (!map.getSource('terrain-dem')) {
+      map.addSource('terrain-dem', { type: 'raster-dem', url: 'mapbox://mapbox.terrain-rgb', tileSize: 512 });
+    }
+  } catch (err) {
+    console.warn('addSource(terrain-dem) failed', err);
   }
-  map.setTerrain({ source: 'terrain-dem', exaggeration: 1.6 });
-  if (!map.getLayer('sky')) {
-    map.addLayer({
-      id: 'sky',
-      type: 'sky',
-      paint: {
-        'sky-type': 'atmosphere',
-        'sky-atmosphere-sun': [10, 25],
-        'sky-atmosphere-sun-intensity': 10,
-      },
+
+  try {
+    map.setTerrain({ source: 'terrain-dem', exaggeration: 1.6 });
+  } catch (err) {
+    console.warn('setTerrain(...) failed', err);
+  }
+
+  try {
+    if (!map.getLayer('sky')) {
+      map.addLayer({
+        id: 'sky',
+        type: 'sky',
+        paint: {
+          'sky-type': 'atmosphere',
+          'sky-atmosphere-sun': [10, 25],
+          'sky-atmosphere-sun-intensity': 10,
+        },
+      });
+    }
+  } catch (err) {
+    console.warn('addLayer(sky) failed', err);
+  }
+
+  try {
+    map.setFog({
+      range: [0.6, 12],
+      color: '#f6efe7',
+      'high-color': '#d4c7b8',
+      'horizon-blend': 0.2,
+      'star-intensity': 0,
     });
+  } catch (err) {
+    console.warn('setFog(...) failed', err);
   }
-  map.setFog({
-    range: [0.6, 12],
-    color: '#f6efe7',
-    'high-color': '#d4c7b8',
-    'horizon-blend': 0.2,
-    'star-intensity': 0,
-  });
+
   map.resize();
 }
 

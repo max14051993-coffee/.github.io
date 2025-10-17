@@ -76,13 +76,27 @@ function ensureTerrain(map, { enable3dLayers = true } = {}) {
       console.warn('setFog(null) failed', err);
     }
 
-    try {
-      const terrainStillActive = typeof map.getTerrain === 'function' && !!map.getTerrain();
-      if (typeof map.getSource === 'function' && !terrainStillActive && map.getSource('terrain-dem')) {
-        map.removeSource('terrain-dem');
+    const scheduleSourceRemoval = () => {
+      try {
+        const terrainStillActive = typeof map.getTerrain === 'function' && !!map.getTerrain();
+        if (typeof map.getSource === 'function' && !terrainStillActive && map.getSource('terrain-dem')) {
+          map.removeSource('terrain-dem');
+        }
+      } catch (err) {
+        console.warn('removeSource(terrain-dem) failed', err);
       }
-    } catch (err) {
-      console.warn('removeSource(terrain-dem) failed', err);
+    };
+
+    if (terrainIsActive && typeof map.once === 'function') {
+      // Mapbox GL updates the style asynchronously when the terrain changes.
+      // Removing the source too early leads to the internal terrain code trying
+      // to access a source cache that has already been disposed of, which
+      // triggers the "Cannot read properties of undefined (reading 'get')"
+      // error.  We therefore wait for the next styledata event before cleaning
+      // up the DEM source.
+      map.once('styledata', scheduleSourceRemoval);
+    } else {
+      scheduleSourceRemoval();
     }
 
     map.resize();

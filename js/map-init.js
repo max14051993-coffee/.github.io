@@ -46,9 +46,20 @@ function dedupeFeatures(arr) {
 
 function ensureTerrain(map, { enable3dLayers = true } = {}) {
   const shouldDisable3D = !enable3dLayers || prefersReducedMotion() || isCompactViewport();
+  const terrainIsActive = typeof map.getTerrain === 'function' && !!map.getTerrain();
 
   if (shouldDisable3D) {
-    // Удаляем sky (если есть) — в try/catch, чтобы не ломать приложение
+    if (terrainIsActive) {
+      try {
+        map.setTerrain(null);
+      } catch (err) {
+        console.warn('setTerrain(null) failed', err);
+        // Если не удалось снять террейн, не продолжаем очистку,
+        // чтобы не удалить источник, который ещё используется движком.
+        return;
+      }
+    }
+
     try {
       if (typeof map.getLayer === 'function' && map.getLayer('sky')) {
         map.removeLayer('sky');
@@ -57,74 +68,6 @@ function ensureTerrain(map, { enable3dLayers = true } = {}) {
       console.warn('removeLayer(sky) failed', err);
     }
 
-    // Сбрасываем terrain безопасно
-    try {
-      if (typeof map.getTerrain === 'function' && map.getTerrain()) {
-        map.setTerrain(null);
-      }
-    } catch (err) {
-      console.warn('setTerrain(null) failed', err);
-    }
-
-    // Функция, которая удаляет источник terrain-dem защищённо
-    const tryRemoveTerrainSource = () => {
-      try {
-        if (!map || typeof map.once !== 'function') {
-          return;
-        }
-
-        const mapRemoved = Boolean(map._removed);
-        const styleRemoved = Boolean(map.style?._removed);
-        const styleReady = !!(map.style && !styleRemoved && typeof map.style.getSource === 'function');
-
-        // Если стиль ещё не загружен — подождём ближайшее событие styledata
-        if (!styleReady || (typeof map.isStyleLoaded === 'function' && !map.isStyleLoaded())) {
-          map.once('styledata', tryRemoveTerrainSource);
-          return;
-        }
-
-        if (mapRemoved) {
-          return;
-        }
-
-        const hasSource = typeof map.getSource === 'function' && map.getSource('terrain-dem');
-
-        if (hasSource && styleReady) {
-          map.removeSource('terrain-dem');
-        }
-      } catch (err) {
-        console.warn('removeSource(terrain-dem) failed', err);
-      }
-    };
-
-    // Ждём завершения внутренних асинхронных операций карты (idle), прежде чем удалять источник.
-    // Это предотвращает гонку, когда Mapbox обращается к уже удалённому объекту и кидает ошибку.
-    try {
-      if (typeof map.once === 'function' && map.loaded && map.loaded()) {
-        let removed = false;
-        const onIdle = () => {
-          if (removed) return;
-          removed = true;
-          tryRemoveTerrainSource();
-        };
-        map.once('idle', onIdle);
-        // Фолбэк: на случай, если 'idle' не придёт — удалим через таймаут
-        setTimeout(() => {
-          if (!removed) {
-            removed = true;
-            tryRemoveTerrainSource();
-          }
-        }, 700);
-      } else {
-        // если карта не загружена — попробуем удалить (в try/catch)
-        tryRemoveTerrainSource();
-      }
-    } catch (err) {
-      // безопасный fallback
-      tryRemoveTerrainSource();
-    }
-
-    // Сбрасываем fog (если есть)
     try {
       if (typeof map.setFog === 'function') {
         map.setFog(null);
@@ -133,27 +76,37 @@ function ensureTerrain(map, { enable3dLayers = true } = {}) {
       console.warn('setFog(null) failed', err);
     }
 
+    try {
+      const terrainStillActive = typeof map.getTerrain === 'function' && !!map.getTerrain();
+      if (typeof map.getSource === 'function' && !terrainStillActive && map.getSource('terrain-dem')) {
+        map.removeSource('terrain-dem');
+      }
+    } catch (err) {
+      console.warn('removeSource(terrain-dem) failed', err);
+    }
+
     map.resize();
     return;
   }
 
-  // Логика включения terrain (как было), с защитой try/catch на потенциально ненадёжные вызовы
   try {
-    if (!map.getSource('terrain-dem')) {
+    if (typeof map.getSource === 'function' && !map.getSource('terrain-dem')) {
       map.addSource('terrain-dem', { type: 'raster-dem', url: 'mapbox://mapbox.terrain-rgb', tileSize: 512 });
     }
   } catch (err) {
     console.warn('addSource(terrain-dem) failed', err);
+    return;
   }
 
   try {
     map.setTerrain({ source: 'terrain-dem', exaggeration: 1.6 });
   } catch (err) {
     console.warn('setTerrain(...) failed', err);
+    return;
   }
 
   try {
-    if (!map.getLayer('sky')) {
+    if (typeof map.getLayer === 'function' && !map.getLayer('sky')) {
       map.addLayer({
         id: 'sky',
         type: 'sky',

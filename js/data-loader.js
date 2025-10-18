@@ -621,25 +621,95 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
   };
 }
 
-function parseCsv(csvUrl) {
-  return new Promise((resolve, reject) => {
-    const PapaLib = typeof window !== 'undefined' ? window.Papa : undefined;
-    if (!PapaLib) {
-      reject(new Error('PapaParse is not loaded'));
-      return;
+function normalizeCsvText(text) {
+  const normalized = String(text || '');
+  return normalized.charCodeAt(0) === 0xfeff ? normalized.slice(1) : normalized;
+}
+
+function parseCsvText(csvText) {
+  const rows = [];
+  const text = normalizeCsvText(csvText);
+  const len = text.length;
+  let currentRow = [];
+  let currentValue = '';
+  let insideQuotes = false;
+
+  for (let i = 0; i < len; i += 1) {
+    const char = text[i];
+
+    if (insideQuotes) {
+      if (char === '"') {
+        if (text[i + 1] === '"') {
+          currentValue += '"';
+          i += 1;
+        } else {
+          insideQuotes = false;
+        }
+      } else {
+        currentValue += char;
+      }
+      continue;
     }
-    PapaLib.parse(csvUrl, {
-      download: true,
-      header: true,
-      dynamicTyping: false,
-      complete: (results) => resolve(results.data || []),
-      error: reject,
+
+    if (char === '"') {
+      insideQuotes = true;
+      continue;
+    }
+
+    if (char === ',') {
+      currentRow.push(currentValue);
+      currentValue = '';
+      continue;
+    }
+
+    if (char === '\n' || char === '\r') {
+      currentRow.push(currentValue);
+      currentValue = '';
+      if (currentRow.some((value) => value !== '')) {
+        rows.push(currentRow);
+      }
+      currentRow = [];
+      if (char === '\r' && text[i + 1] === '\n') {
+        i += 1;
+      }
+      continue;
+    }
+
+    currentValue += char;
+  }
+
+  currentRow.push(currentValue);
+
+  if (currentRow.some((value) => value !== '')) {
+    rows.push(currentRow);
+  }
+
+  if (!rows.length) return [];
+
+  const [headerRow, ...dataRows] = rows;
+  const headers = headerRow;
+
+  return dataRows.map((row) => {
+    const record = {};
+    headers.forEach((header, index) => {
+      if (header === undefined || header === null || header === '') return;
+      record[header] = row[index] !== undefined ? row[index] : '';
     });
+    return record;
   });
 }
 
-export async function loadBaseDataset({ csvUrl }) {
-  const rows = await parseCsv(csvUrl);
+async function downloadCsv(csvUrl, { signal } = {}) {
+  const response = await fetch(csvUrl, { signal, cache: 'no-cache' });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
+  }
+  return response.text();
+}
+
+export async function loadBaseDataset({ csvUrl, signal } = {}) {
+  const csvText = await downloadCsv(csvUrl, { signal });
+  const rows = parseCsvText(csvText);
   const geojsonPoints = rowsToGeoJSON(rows);
   const pointFeatures = geojsonPoints.features;
 

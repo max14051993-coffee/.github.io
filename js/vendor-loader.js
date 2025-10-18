@@ -1,6 +1,5 @@
 const MAPBOX_GL_JS_URL = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.js';
 const MAPBOX_GL_CSS_URL = 'https://api.mapbox.com/mapbox-gl-js/v2.15.0/mapbox-gl.css';
-const PAPAPARSE_URL = 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js';
 
 const pendingResources = new Map();
 
@@ -114,18 +113,8 @@ async function ensureMapboxResources() {
   }
   return window.mapboxgl;
 }
-
-async function ensurePapaParse() {
-  if (typeof window !== 'undefined' && window.Papa) return window.Papa;
-  await ensureScript(PAPAPARSE_URL, { crossorigin: 'anonymous' });
-  return typeof window !== 'undefined' ? window.Papa : undefined;
-}
-
 export async function ensureVendorBundles() {
   if (typeof document === 'undefined') return {};
-  const [mapboxgl, Papa] = await Promise.all([
-    ensureMapboxResources(),
-    ensurePapaParse(),
-  ]);
-  return { mapboxgl, Papa };
+  const mapboxgl = await ensureMapboxResources();
+  return { mapboxgl };
 }

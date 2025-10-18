@@ -68,12 +68,22 @@ function applyFilters({ fit = false } = {}) {
 }
 
 async function init() {
+  const baseDataAbort = (typeof AbortController === 'function') ? new AbortController() : null;
+  const baseDataPromise = loadBaseDataset({
+    csvUrl: CSV_URL,
+    signal: baseDataAbort?.signal,
+  });
+
   try {
     const { mapboxgl } = await ensureVendorBundles();
     mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode, viewMode: 'points' });
     mapController.setRoutesVisibility(true);
   } catch (dependencyError) {
     console.error('Map dependency error:', dependencyError);
+    if (baseDataAbort) {
+      baseDataAbort.abort();
+      await baseDataPromise.catch(() => null);
+    }
     const mapEl = document.getElementById('map');
     if (mapEl) {
       mapEl.innerHTML = '<div class="map-error">Не удалось загрузить карту. Попробуйте обновить страницу.</div>';
@@ -82,7 +92,7 @@ async function init() {
   }
 
   try {
-    const baseData = await loadBaseDataset({ csvUrl: CSV_URL });
+    const baseData = await baseDataPromise;
     allPointFeatures = baseData.pointFeatures;
     cityCoords = {};
 

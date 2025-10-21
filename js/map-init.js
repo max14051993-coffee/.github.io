@@ -437,7 +437,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         filter: ['==', ['get', 'kind'], 'farm_to_roaster'],
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': '#b45309',
+          'line-color': '#2e7d32',
           'line-opacity': 0.75,
           'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 1.4, 4, 2.8, 6, 4.2, 10, 7],
         },
@@ -466,7 +466,11 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         filter: ['==', ['get', 'kind'], '___nope___'],
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': '#ff7f00',
+          'line-color': ['match', ['get', 'kind'],
+            'farm_to_roaster', '#2e7d32',
+            'roaster_to_consumed', '#1d4ed8',
+            /* other */ '#ff7f00',
+          ],
           'line-opacity': 0.95,
           'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 2.5, 4, 4, 7, 5.5, 10, 8],
         },

@@ -50,6 +50,20 @@ const RAW_FALLBACKS = [
     countryCode: 'RU',
     countryName: 'Russia',
   },
+  {
+    names: ['Barcelona', 'Барселона'],
+    lng: 2.16859,
+    lat: 41.3874,
+    countryCode: 'ES',
+    countryName: 'Spain',
+  },
+  {
+    names: ['Warsaw', 'Варшава'],
+    lng: 21.012229,
+    lat: 52.229676,
+    countryCode: 'PL',
+    countryName: 'Poland',
+  },
 ];
 
 function buildFallbackMap() {

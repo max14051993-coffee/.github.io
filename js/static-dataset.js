@@ -877,6 +877,76 @@ export const STATIC_DATA = {
           "farmLng5": -83.98576,
           "farmLat5": 9.83798
         }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            30.415374,
+            -1.800221
+          ]
+        },
+        "properties": {
+          "timestamp": "11/18/2025 17:45:37",
+          "email": "max14051993@gmail.com",
+          "uploader": "Maksim",
+          "originCountry": "Rwanda",
+          "originRegion": "Gakenke",
+          "farmName": "",
+          "process": "🍒 natural",
+          "process_norm": "natural",
+          "brewMethod": "batch brew",
+          "whereConsumed": "Home 🏠",
+          "cafeName": "Jacaranda",
+          "cafeUrl": "https://maps.app.goo.gl/32Q17DBvSssEEEHb7?g_st=ipc",
+          "consumedCity": "Barcelona",
+          "consumedAddr": "",
+          "recipe": "",
+          "roasterName": "Fresh black",
+          "roasterCity": "Варшава",
+          "photoUrl": "https://drive.google.com/thumbnail?id=1jKZsVanclnZBVilbr5yhPSv95wBxzpKb&sz=w1600",
+          "matchedName": "Gakenke",
+          "countryIso2": "RW",
+          "flagEmoji": "🇷🇼",
+          "farmLng5": 30.41537,
+          "farmLat5": -1.80022
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -91.47092,
+            15.322084
+          ]
+        },
+        "properties": {
+          "timestamp": "11/20/2025 14:12:22",
+          "email": "max14051993@gmail.com",
+          "uploader": "Maksim",
+          "originCountry": "Guatemala",
+          "originRegion": "Huehuetenango",
+          "farmName": "Bolsa",
+          "process": "💧 washed",
+          "process_norm": "washed",
+          "brewMethod": "batch brew",
+          "whereConsumed": "Home 🏠",
+          "cafeName": "Orval studio",
+          "cafeUrl": "",
+          "consumedCity": "Barcelona",
+          "consumedAddr": "",
+          "recipe": "",
+          "roasterName": "Worrow",
+          "roasterCity": "Barcelona",
+          "photoUrl": "https://drive.google.com/thumbnail?id=1bQWRfbg7ny39O4E-vVe-X3XpAIOIJxND&sz=w1600",
+          "matchedName": "Уэуэтенанго",
+          "countryIso2": "GT",
+          "flagEmoji": "🇬🇹",
+          "farmLng5": -91.47092,
+          "farmLat5": 15.32208
+        }
       }
     ]
   },
@@ -1755,6 +1825,76 @@ export const STATIC_DATA = {
         "farmLng5": -83.98576,
         "farmLat5": 9.83798
       }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          30.415374,
+          -1.800221
+        ]
+      },
+      "properties": {
+        "timestamp": "11/18/2025 17:45:37",
+        "email": "max14051993@gmail.com",
+        "uploader": "Maksim",
+        "originCountry": "Rwanda",
+        "originRegion": "Gakenke",
+        "farmName": "",
+        "process": "🍒 natural",
+        "process_norm": "natural",
+        "brewMethod": "batch brew",
+        "whereConsumed": "Home 🏠",
+        "cafeName": "Jacaranda",
+        "cafeUrl": "https://maps.app.goo.gl/32Q17DBvSssEEEHb7?g_st=ipc",
+        "consumedCity": "Barcelona",
+        "consumedAddr": "",
+        "recipe": "",
+        "roasterName": "Fresh black",
+        "roasterCity": "Варшава",
+        "photoUrl": "https://drive.google.com/thumbnail?id=1jKZsVanclnZBVilbr5yhPSv95wBxzpKb&sz=w1600",
+        "matchedName": "Gakenke",
+        "countryIso2": "RW",
+        "flagEmoji": "🇷🇼",
+        "farmLng5": 30.41537,
+        "farmLat5": -1.80022
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -91.47092,
+          15.322084
+        ]
+      },
+      "properties": {
+        "timestamp": "11/20/2025 14:12:22",
+        "email": "max14051993@gmail.com",
+        "uploader": "Maksim",
+        "originCountry": "Guatemala",
+        "originRegion": "Huehuetenango",
+        "farmName": "Bolsa",
+        "process": "💧 washed",
+        "process_norm": "washed",
+        "brewMethod": "batch brew",
+        "whereConsumed": "Home 🏠",
+        "cafeName": "Orval studio",
+        "cafeUrl": "",
+        "consumedCity": "Barcelona",
+        "consumedAddr": "",
+        "recipe": "",
+        "roasterName": "Worrow",
+        "roasterCity": "Barcelona",
+        "photoUrl": "https://drive.google.com/thumbnail?id=1bQWRfbg7ny39O4E-vVe-X3XpAIOIJxND&sz=w1600",
+        "matchedName": "Уэуэтенанго",
+        "countryIso2": "GT",
+        "flagEmoji": "🇬🇹",
+        "farmLng5": -91.47092,
+        "farmLat5": 15.32208
+      }
     }
   ],
   "cityCoordsMap": {
@@ -1853,6 +1993,30 @@ export const STATIC_DATA = {
       "lat": 41.008238,
       "countryCode": "TR",
       "countryName": "Turkey"
+    },
+    "варшава": {
+      "lng": 21.012229,
+      "lat": 52.229676,
+      "countryCode": "PL",
+      "countryName": "Poland"
+    },
+    "Варшава": {
+      "lng": 21.012229,
+      "lat": 52.229676,
+      "countryCode": "PL",
+      "countryName": "Poland"
+    },
+    "barcelona": {
+      "lng": 2.16859,
+      "lat": 41.3874,
+      "countryCode": "ES",
+      "countryName": "Spain"
+    },
+    "Barcelona": {
+      "lng": 2.16859,
+      "lat": 41.3874,
+      "countryCode": "ES",
+      "countryName": "Spain"
     }
   },
   "lineFeatures": [
@@ -3005,6 +3169,98 @@ export const STATIC_DATA = {
         "consumedLng5": 20.4569,
         "consumedLat5": 44.81781
       }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            30.415374,
+            -1.800221
+          ],
+          [
+            21.012229,
+            52.229676
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "farm_to_roaster",
+        "farmLng5": 30.41537,
+        "farmLat5": -1.80022,
+        "roasterLng5": 21.01223,
+        "roasterLat5": 52.22968
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            21.012229,
+            52.229676
+          ],
+          [
+            2.16859,
+            41.3874
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "roaster_to_consumed",
+        "roasterLng5": 21.01223,
+        "roasterLat5": 52.22968,
+        "consumedLng5": 2.16859,
+        "consumedLat5": 41.3874
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            -91.47092,
+            15.322084
+          ],
+          [
+            2.16859,
+            41.3874
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "farm_to_roaster",
+        "farmLng5": -91.47092,
+        "farmLat5": 15.32208,
+        "roasterLng5": 2.16859,
+        "roasterLat5": 41.3874
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [
+            2.16859,
+            41.3874
+          ],
+          [
+            2.16859,
+            41.3874
+          ]
+        ]
+      },
+      "properties": {
+        "kind": "roaster_to_consumed",
+        "roasterLng5": 2.16859,
+        "roasterLat5": 41.3874,
+        "consumedLng5": 2.16859,
+        "consumedLat5": 41.3874
+      }
     }
   ],
   "cityPoints": {
@@ -3183,12 +3439,55 @@ export const STATIC_DATA = {
           "kind": "both",
           "size": 3
         }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            21.012229,
+            52.229676
+          ]
+        },
+        "properties": {
+          "city": "Варшава",
+          "roasters": [
+            "Fresh Black"
+          ],
+          "places": [],
+          "home": false,
+          "kind": "roaster",
+          "size": 1
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            2.16859,
+            41.3874
+          ]
+        },
+        "properties": {
+          "city": "Barcelona",
+          "roasters": [
+            "Worrow"
+          ],
+          "places": [
+            "Jacaranda",
+            "Orval Studio"
+          ],
+          "home": true,
+          "kind": "both",
+          "size": 4
+        }
       }
     ]
   },
   "metrics": {
-    "total": 25,
-    "countries": 8,
+    "total": 27,
+    "countries": 9,
     "processTypes": 4,
     "countryCodes": [
       "KE",
@@ -3198,7 +3497,8 @@ export const STATIC_DATA = {
       "PE",
       "RW",
       "CR",
-      "ID"
+      "ID",
+      "GT"
     ],
     "continents": [
       "Africa",
@@ -3207,8 +3507,8 @@ export const STATIC_DATA = {
       "Asia"
     ],
     "hasAllCoffeeContinents": false,
-    "washedCount": 15,
-    "naturalCount": 4,
+    "washedCount": 16,
+    "naturalCount": 5,
     "honeyCount": 1,
     "hasHoney": true,
     "hasAnaerobic": true,
@@ -3231,7 +3531,8 @@ export const STATIC_DATA = {
     "latinCountries": [
       "CO",
       "PE",
-      "CR"
+      "CR",
+      "GT"
     ],
     "islandCountries": [
       "ID"
@@ -3251,12 +3552,13 @@ export const STATIC_DATA = {
       "kalita": false,
       "aeropress": false
     },
-    "homeCups": 17,
+    "homeCups": 19,
     "consumedCities": [
       "belgrade",
       "tbilisi",
       "istanbul",
-      "москва"
+      "москва",
+      "barcelona"
     ],
     "cafes": [
       "rocket coffee",
@@ -3266,7 +3568,9 @@ export const STATIC_DATA = {
       "sloj",
       "shukura",
       "shavi",
-      "montag"
+      "montag",
+      "jacaranda",
+      "orval studio"
     ],
     "roastersInHomeCity": 3,
     "roasterCountries": [
@@ -3274,9 +3578,11 @@ export const STATIC_DATA = {
       "GE",
       "RS",
       "IT",
-      "TR"
+      "TR",
+      "PL",
+      "ES"
     ],
-    "uniqueRegions": 21,
+    "uniqueRegions": 23,
     "ethiopiaRegions": 6,
     "colombiaRegions": 3,
     "maxRegionsInCountry": 6

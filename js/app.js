@@ -3,6 +3,7 @@ import {
   buildCityPoints,
   buildRouteFeatures,
   getVisitedCountriesIso2,
+  loadData,
 } from './data-loader.js';
 import { renderAchievements } from './ui-controls.js';
 import { createMapController } from './map-init.js';
@@ -13,6 +14,35 @@ const MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTB
 const theme = (new URLSearchParams(location.search).get('style') || 'light').toLowerCase();
 document.body.dataset.theme = theme;
 const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase();
+
+const urlParams = new URLSearchParams(location.search);
+
+const DEFAULT_GOOGLE_SHEET_ID = '';
+const DEFAULT_GOOGLE_SHEET_GID = '0';
+
+function getConfiguredCsvUrl() {
+  const explicitUrl = urlParams.get('csv') || document.querySelector('meta[name="google-sheet-csv"]')?.content;
+  if (explicitUrl) return explicitUrl;
+
+  const sheetId = urlParams.get('sheetId')
+    || document.querySelector('meta[name="google-sheet-id"]')?.content
+    || DEFAULT_GOOGLE_SHEET_ID;
+  const gid = urlParams.get('gid')
+    || document.querySelector('meta[name="google-sheet-gid"]')?.content
+    || DEFAULT_GOOGLE_SHEET_GID;
+  const sheetName = urlParams.get('sheetName')
+    || document.querySelector('meta[name="google-sheet-name"]')?.content;
+
+  if (!sheetId) return null;
+
+  if (sheetName) {
+    const query = new URLSearchParams({ tqx: 'out:csv', sheet: sheetName });
+    return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query.toString()}`;
+  }
+
+  const query = new URLSearchParams({ format: 'csv', gid });
+  return `https://docs.google.com/spreadsheets/d/${sheetId}/export?${query.toString()}`;
+}
 
 const COLLECTION_TITLE = 'My coffee experience';
 
@@ -26,6 +56,22 @@ setupInfoDisclosure({
 let mapController = null;
 let allPointFeatures = [];
 let cityCoords = {};
+
+async function loadDataset() {
+  const csvUrl = getConfiguredCsvUrl();
+  if (!csvUrl) {
+    console.warn('Google Sheets URL is not configured. Using bundled static dataset.');
+    return { dataset: STATIC_DATA, source: 'static' };
+  }
+
+  try {
+    const dataset = await loadData({ csvUrl, mapboxToken: MAPBOX_TOKEN });
+    return { dataset, source: 'google' };
+  } catch (error) {
+    console.error('Failed to load Google Sheets data. Falling back to static dataset.', error);
+    return { dataset: STATIC_DATA, source: 'static', error };
+  }
+}
 
 function getFilteredFeatures() {
   return allPointFeatures;
@@ -55,7 +101,7 @@ async function init() {
     const { mapboxgl } = await ensureVendorBundles();
     mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode, viewMode: 'points' });
     mapController.setRoutesVisibility(true);
-  } catch (dependencyError) {
+  } catch (dependencyError) { 
     console.error('Map dependency error:', dependencyError);
     const mapEl = document.getElementById('map');
     if (mapEl) {
@@ -65,9 +111,10 @@ async function init() {
   }
 
   try {
-    const baseData = STATIC_DATA;
-    allPointFeatures = baseData.pointFeatures || [];
-    cityCoords = baseData.cityCoordsMap || {};
+    const { dataset } = await loadDataset();
+    const geojsonPoints = dataset.geojsonPoints;
+    allPointFeatures = dataset.pointFeatures || geojsonPoints?.features || [];
+    cityCoords = dataset.cityCoordsMap || dataset.cityCoords || {};
 
     const titleEl = document.getElementById('collectionTitle');
     if (titleEl) titleEl.textContent = COLLECTION_TITLE;
@@ -75,8 +122,8 @@ async function init() {
 
     applyFilters({ fit: true });
 
-    if (baseData.metrics) {
-      renderAchievements(baseData.metrics);
+    if (dataset.metrics) {
+      renderAchievements(dataset.metrics);
     }
 
     if (Object.keys(cityCoords).length === 0) {

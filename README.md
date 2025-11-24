@@ -9,8 +9,18 @@ Coffeemap-mapbox-googleshhets
 - `data/coffee-log.csv` – экспорт исходной таблицы Google Sheets
 - `scripts/build-static-data.mjs` – генератор `static-dataset.js`
 
-## Обновление статичного набора данных
+## Подключение Google Sheets напрямую
 
-1. Обновите `data/coffee-log.csv` свежим экспортом из Google Sheets.
-2. Запустите `node --experimental-modules scripts/build-static-data.mjs`.
-3. Полученный файл `js/static-dataset.js` автоматически заменит предыдущую версию.
+Приложение может тянуть данные прямо из опубликованной таблицы, чтобы не держать CSV в репозитории.
+
+1. Откройте таблицу в Google Sheets и включите общий доступ «У кого есть ссылка».
+2. В `index.html` пропишите идентификатор таблицы (и при необходимости `gid` листа) в мета-тегах:
+   ```html
+   <meta name="google-sheet-id" content="ВАШ_ID" />
+   <meta name="google-sheet-gid" content="0" />
+   ```
+3. Альтернатива без правки файлов — передать URL или параметры в строке запроса:
+   - `?sheetId=...&gid=0` для `https://docs.google.com/spreadsheets/d/<ID>/export?format=csv&gid=<gid>`
+   - `?csv=<полный_URL>` если таблица уже опубликована как CSV.
+
+Если конфигурация отсутствует или загрузка таблицы недоступна, приложение автоматически использует собранный статичный набор `js/static-dataset.js`.

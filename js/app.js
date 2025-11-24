@@ -22,7 +22,8 @@ const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
 const DEFAULT_GOOGLE_SHEET_GID = '0';
 
 function getConfiguredCsvUrl() {
-  const explicitUrl = urlParams.get('csv');
+  const explicitUrl = urlParams.get('csv')
+    || document.querySelector('meta[name="google-sheet-csv"]')?.content;
   if (explicitUrl) return explicitUrl;
 
   const sheetId = urlParams.get('sheetId')
@@ -34,8 +35,11 @@ function getConfiguredCsvUrl() {
   const sheetName = urlParams.get('sheetName')
     || document.querySelector('meta[name="google-sheet-name"]')?.content;
 
-
-  if (!sheetId) return BUNDLED_CSV_URL;
+  if (sheetId) {
+    if (sheetName) {
+      const query = new URLSearchParams({ tqx: 'out:csv', sheet: sheetName });
+      return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query.toString()}`;
+    }
     const query = new URLSearchParams({ format: 'csv', gid });
     return `https://docs.google.com/spreadsheets/d/${sheetId}/export?${query.toString()}`;
   }

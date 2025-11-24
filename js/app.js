@@ -40,7 +40,6 @@ function getConfiguredCsvUrl() {
       const query = new URLSearchParams({ tqx: 'out:csv', sheet: sheetName });
       return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query.toString()}`;
     }
-
     const query = new URLSearchParams({ format: 'csv', gid });
     return `https://docs.google.com/spreadsheets/d/${sheetId}/export?${query.toString()}`;
   }

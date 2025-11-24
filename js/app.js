@@ -17,7 +17,7 @@ const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toL
 
 const urlParams = new URLSearchParams(location.search);
 
-const DEFAULT_GOOGLE_SHEET_ID = '';
+const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
 const DEFAULT_GOOGLE_SHEET_GID = '0';
 
 function getConfiguredCsvUrl() {

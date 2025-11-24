@@ -34,12 +34,8 @@ function getConfiguredCsvUrl() {
   const sheetName = urlParams.get('sheetName')
     || document.querySelector('meta[name="google-sheet-name"]')?.content;
 
-  if (sheetId) {
-    if (sheetName) {
-      const query = new URLSearchParams({ tqx: 'out:csv', sheet: sheetName });
-      return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query.toString()}`;
-    }
 
+  if (!sheetId) return BUNDLED_CSV_URL;
     const query = new URLSearchParams({ format: 'csv', gid });
     return `https://docs.google.com/spreadsheets/d/${sheetId}/export?${query.toString()}`;
   }

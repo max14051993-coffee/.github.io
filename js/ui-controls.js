@@ -153,13 +153,13 @@ const setupCountryDropdown = (button, dropdown, root) => {
   dropdown.dataset.bound = 'true';
 };
 
-function normalizeVisitedCountries(metrics) {
-  if (Array.isArray(metrics?.visitedCountries) && metrics.visitedCountries.length) {
-    return metrics.visitedCountries;
+function normalizeCountryList(metrics, detailedKey, fallbackKey) {
+  if (Array.isArray(metrics?.[detailedKey]) && metrics[detailedKey].length) {
+    return metrics[detailedKey];
   }
 
-  if (Array.isArray(metrics?.countryCodes) && metrics.countryCodes.length) {
-    return metrics.countryCodes.map((code) => ({
+  if (Array.isArray(metrics?.[fallbackKey]) && metrics[fallbackKey].length) {
+    return metrics[fallbackKey].map((code) => ({
       code: String(code || '').toUpperCase(),
       name: String(code || '').toUpperCase(),
       flag: '',
@@ -178,13 +178,25 @@ export function renderStats(metrics) {
   const countryDropdown = container?.querySelector('[data-country-dropdown]');
   const countryList = container?.querySelector('[data-country-list]');
   const countryStat = container?.querySelector('[data-country-stat]');
+  const roasterDropdown = container?.querySelector('[data-roaster-dropdown]');
+  const roasterList = container?.querySelector('[data-roaster-list]');
+  const roasterStat = container?.querySelector('[data-roaster-stat]');
+  const consumedDropdown = container?.querySelector('[data-consumed-dropdown]');
+  const consumedList = container?.querySelector('[data-consumed-list]');
+  const consumedStat = container?.querySelector('[data-consumed-stat]');
   if (!container || !cupsEl || !countriesEl || !roasterCountriesEl || !consumedCountriesEl) return;
 
   const total = Number(metrics?.total);
-  const visitedCountries = normalizeVisitedCountries(metrics);
+  const visitedCountries = normalizeCountryList(metrics, 'visitedCountries', 'countryCodes');
+  const roasterCountries = normalizeCountryList(metrics, 'roasterCountriesDetailed', 'roasterCountries');
+  const consumedCountries = normalizeCountryList(metrics, 'consumedCountriesDetailed', 'consumedCountries');
   const countries = Number.isFinite(metrics?.countries) ? Number(metrics.countries) : visitedCountries.length;
-  const roasterCountries = Number(metrics?.roasterCountries?.length ?? metrics?.roasterCountries);
-  const consumedCountries = Number(metrics?.consumedCountries?.length ?? metrics?.consumedCountries);
+  const roasterCountriesCount = Number.isFinite(metrics?.roasterCountries?.length ?? metrics?.roasterCountries)
+    ? Number(metrics?.roasterCountries?.length ?? metrics?.roasterCountries)
+    : roasterCountries.length;
+  const consumedCountriesCount = Number.isFinite(metrics?.consumedCountries?.length ?? metrics?.consumedCountries)
+    ? Number(metrics?.consumedCountries?.length ?? metrics?.consumedCountries)
+    : consumedCountries.length;
 
   if (Number.isFinite(total)) {
     cupsEl.textContent = total.toLocaleString('ru-RU');
@@ -209,19 +221,49 @@ export function renderStats(metrics) {
     }
   }
 
-  if (Number.isFinite(roasterCountries)) {
-    roasterCountriesEl.textContent = roasterCountries.toLocaleString('ru-RU');
+  if (Number.isFinite(roasterCountriesCount)) {
+    roasterCountriesEl.textContent = roasterCountriesCount.toLocaleString('ru-RU');
   }
 
-  if (Number.isFinite(consumedCountries)) {
-    consumedCountriesEl.textContent = consumedCountries.toLocaleString('ru-RU');
+  if (roasterDropdown && roasterList) {
+    if (roasterCountries.length) {
+      roasterList.innerHTML = renderCountryList(roasterCountries);
+      roasterDropdown.hidden = true;
+      if ('disabled' in roasterCountriesEl) roasterCountriesEl.disabled = false;
+      roasterCountriesEl.setAttribute('aria-expanded', 'false');
+      setupCountryDropdown(roasterCountriesEl, roasterDropdown, roasterStat || container);
+    } else {
+      roasterList.innerHTML = '';
+      roasterDropdown.hidden = true;
+      roasterCountriesEl.setAttribute('aria-expanded', 'false');
+      if ('disabled' in roasterCountriesEl) roasterCountriesEl.disabled = true;
+    }
+  }
+
+  if (Number.isFinite(consumedCountriesCount)) {
+    consumedCountriesEl.textContent = consumedCountriesCount.toLocaleString('ru-RU');
+  }
+
+  if (consumedDropdown && consumedList) {
+    if (consumedCountries.length) {
+      consumedList.innerHTML = renderCountryList(consumedCountries);
+      consumedDropdown.hidden = true;
+      if ('disabled' in consumedCountriesEl) consumedCountriesEl.disabled = false;
+      consumedCountriesEl.setAttribute('aria-expanded', 'false');
+      setupCountryDropdown(consumedCountriesEl, consumedDropdown, consumedStat || container);
+    } else {
+      consumedList.innerHTML = '';
+      consumedDropdown.hidden = true;
+      consumedCountriesEl.setAttribute('aria-expanded', 'false');
+      if ('disabled' in consumedCountriesEl) consumedCountriesEl.disabled = true;
+    }
   }
 
   container.hidden = !(
     Number.isFinite(total)
     || Number.isFinite(countries)
-    || Number.isFinite(roasterCountries)
-    || Number.isFinite(consumedCountries)
+    || Number.isFinite(roasterCountriesCount)
+    || Number.isFinite(consumedCountriesCount)
   );
 }
 

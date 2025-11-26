@@ -55,14 +55,24 @@
         </div>
       </div>
       <div class="map-stat-divider" aria-hidden="true"></div>
-      <div class="map-stat">
+      <div class="map-stat" data-roaster-stat>
         <div class="map-stat-label">Страны обжарки</div>
-        <div class="map-stat-value" data-stat-roaster-countries>—</div>
+        <button class="map-stat-value map-stat-value-button" type="button" data-stat-roaster-countries aria-expanded="false" aria-controls="roasterDropdown">
+          —
+        </button>
+        <div class="map-stat-dropdown" id="roasterDropdown" data-roaster-dropdown hidden>
+          <ul class="map-stat-dropdown-list" data-roaster-list></ul>
+        </div>
       </div>
       <div class="map-stat-divider" aria-hidden="true"></div>
-      <div class="map-stat">
+      <div class="map-stat" data-consumed-stat>
         <div class="map-stat-label">Где выпито</div>
-        <div class="map-stat-value" data-stat-consumed-countries>—</div>
+        <button class="map-stat-value map-stat-value-button" type="button" data-stat-consumed-countries aria-expanded="false" aria-controls="consumedDropdown">
+          —
+        </button>
+        <div class="map-stat-dropdown" id="consumedDropdown" data-consumed-dropdown hidden>
+          <ul class="map-stat-dropdown-list" data-consumed-list></ul>
+        </div>
       </div>
     </div>
   </div>

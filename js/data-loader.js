@@ -430,6 +430,7 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
   const roasterCountrySet = new Set();
   const consumedCountrySet = new Set();
   const countryDetails = new Map();
+  const cityCountryDetails = new Map();
 
   const filterHits = { v60: false, kalita: false, aeropress: false };
 
@@ -500,7 +501,17 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
     const roasterPt = properties.roasterCity ? getCityPt(properties.roasterCity, cityMap) : null;
     if (processNorm === 'washed' && roasterPt) geotagWashed = true;
     if (processNorm === 'honey' && roasterPt) geotagHoney = true;
-    if (roasterPt?.countryCode) roasterCountrySet.add(String(roasterPt.countryCode).toUpperCase());
+    if (roasterPt?.countryCode) {
+      const code = String(roasterPt.countryCode).toUpperCase();
+      roasterCountrySet.add(code);
+      if (!cityCountryDetails.has(code)) {
+        cityCountryDetails.set(code, {
+          code,
+          name: roasterPt.countryName || code,
+          flag: '',
+        });
+      }
+    }
 
     const roasterName = normalizeName(properties.roasterName).toLowerCase();
     const roasterCity = normalizeName(properties.roasterCity).toLowerCase();
@@ -511,7 +522,17 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
 
     const consumedCity = normalizeName(properties.consumedCity).toLowerCase();
     const consumedPt = properties.consumedCity ? getCityPt(properties.consumedCity, cityMap) : null;
-    if (consumedPt?.countryCode) consumedCountrySet.add(String(consumedPt.countryCode).toUpperCase());
+    if (consumedPt?.countryCode) {
+      const code = String(consumedPt.countryCode).toUpperCase();
+      consumedCountrySet.add(code);
+      if (!cityCountryDetails.has(code)) {
+        cityCountryDetails.set(code, {
+          code,
+          name: consumedPt.countryName || code,
+          flag: '',
+        });
+      }
+    }
     if (consumedCity) {
       consumedCityCounts.set(consumedCity, (consumedCityCounts.get(consumedCity) || 0) + 1);
     }
@@ -606,6 +627,19 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
     return nameA > nameB ? 1 : -1;
   });
 
+  const mergeCountryDetails = (codeSet) => [...codeSet].map((code) => {
+    const normalized = String(code || '').toUpperCase();
+    const details = countryDetails.get(normalized)
+      || cityCountryDetails.get(normalized)
+      || { code: normalized, name: normalized, flag: '' };
+    return details;
+  }).sort((a, b) => {
+    const nameA = (a.name || a.code || '').toLowerCase();
+    const nameB = (b.name || b.code || '').toLowerCase();
+    if (nameA === nameB) return 0;
+    return nameA > nameB ? 1 : -1;
+  });
+
   return {
     total: pointFeatures.length,
     countries: countriesSet.size,
@@ -635,7 +669,9 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
     cafes: [...cafeSet],
     roastersInHomeCity,
     roasterCountries: [...roasterCountrySet],
+    roasterCountriesDetailed: mergeCountryDetails(roasterCountrySet),
     consumedCountries: [...consumedCountrySet],
+    consumedCountriesDetailed: mergeCountryDetails(consumedCountrySet),
     uniqueRegions: globalRegions.size,
     ethiopiaRegions: ethiopiaRegions.size,
     colombiaRegions: colombiaRegions.size,

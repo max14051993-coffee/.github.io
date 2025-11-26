@@ -45,9 +45,14 @@
         <div class="map-stat-value" data-stat-cups>—</div>
       </div>
       <div class="map-stat-divider" aria-hidden="true"></div>
-      <div class="map-stat">
+      <div class="map-stat" data-country-stat>
         <div class="map-stat-label">Страны</div>
-        <div class="map-stat-value" data-stat-countries>—</div>
+        <button class="map-stat-value map-stat-value-button" type="button" data-stat-countries aria-expanded="false" aria-controls="countryDropdown">
+          —
+        </button>
+        <div class="map-stat-dropdown" id="countryDropdown" data-country-dropdown hidden>
+          <ul class="map-stat-dropdown-list" data-country-list></ul>
+        </div>
       </div>
       <div class="map-stat-divider" aria-hidden="true"></div>
       <div class="map-stat">

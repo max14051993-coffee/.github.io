@@ -70,17 +70,21 @@ const isoToFlagEmoji = (isoCode) => {
   return String.fromCodePoint(...code.split('').map((char) => char.codePointAt(0) + base));
 };
 
-const renderCountryFlag = (code, flagEmoji) => {
-  const normalizedCode = code ? String(code).toUpperCase() : '';
-  const emoji = flagEmoji || isoToFlagEmoji(normalizedCode);
+const renderCountryFlag = (code, rawFlag) => {
+  const rawFlagValue = String(rawFlag || '').trim();
+  const looksLikeIso = /^[A-Za-z]{2}$/.test(rawFlagValue);
+  const normalizedCode = (code || (looksLikeIso ? rawFlagValue : '') || '').toString().toUpperCase();
+  const emoji = !looksLikeIso && rawFlagValue ? rawFlagValue : isoToFlagEmoji(normalizedCode);
+
+  if (normalizedCode) {
+    const lower = escapeAttr(normalizedCode.toLowerCase());
+    return `<span class="map-stat-dropdown-flag"><img src="https://flagcdn.com/24x18/${lower}.png" alt="${escapeAttr(normalizedCode)}" width="24" height="18" loading="lazy" decoding="async"></span>`;
+  }
+
   if (emoji) {
     return `<span class="map-stat-dropdown-flag">${escapeHtml(emoji)}</span>`;
   }
-  if (normalizedCode) {
-    const lower = escapeAttr(String(normalizedCode).toLowerCase());
 
-    return `<span class="map-stat-dropdown-flag"><img src="https://flagcdn.com/24x18/${lower}.png" alt="" loading="lazy" decoding="async"></span>`;
-  }
   return '<span class="map-stat-dropdown-flag" aria-hidden="true">🏳️</span>';
 };
 

@@ -429,6 +429,7 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
   const roastersByCity = new Map();
   const roasterCountrySet = new Set();
   const consumedCountrySet = new Set();
+  const countryDetails = new Map();
 
   const filterHits = { v60: false, kalita: false, aeropress: false };
 
@@ -452,6 +453,15 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
       if (ASIA_ISO.has(iso)) asianCountries.add(iso);
       if (LATIN_AMERICA_ISO.has(iso)) latinCountries.add(iso);
       if (ISLAND_COUNTRIES.has(iso)) islandCountries.add(iso);
+
+      const countryName = String(properties.originCountry || '').trim();
+      const flagEmoji = String(properties.flagEmoji || '').trim();
+      const existing = countryDetails.get(iso) || { code: iso, name: '', flag: '' };
+      countryDetails.set(iso, {
+        code: iso,
+        name: countryName || existing.name || iso,
+        flag: flagEmoji || existing.flag || '',
+      });
     }
 
     const region = normalizeName(properties.originRegion).toLowerCase();
@@ -589,11 +599,19 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
 
   const hasAllCoffeeContinents = [...COFFEE_CONTINENTS].every((continent) => continentSet.has(continent));
 
+  const visitedCountriesDetailed = [...countryDetails.values()].sort((a, b) => {
+    const nameA = (a.name || a.code || '').toLowerCase();
+    const nameB = (b.name || b.code || '').toLowerCase();
+    if (nameA === nameB) return 0;
+    return nameA > nameB ? 1 : -1;
+  });
+
   return {
     total: pointFeatures.length,
     countries: countriesSet.size,
     processTypes: processTypes.size,
     countryCodes: [...countriesSet],
+    visitedCountries: visitedCountriesDetailed,
     continents: [...continentSet],
     hasAllCoffeeContinents,
     washedCount,

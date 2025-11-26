@@ -63,16 +63,83 @@ const multiFlagProgress = (flags) => {
   return ratioProgress(completed, items.length);
 };
 
+const renderCountryFlag = (code, flagEmoji) => {
+  if (flagEmoji) {
+    return `<span class="map-stat-dropdown-flag">${escapeHtml(flagEmoji)}</span>`;
+  }
+  if (code) {
+    const lower = escapeAttr(String(code).toLowerCase());
+    return `<span class="map-stat-dropdown-flag"><img src="https://flagcdn.com/24x18/${lower}.png" alt="" loading="lazy" decoding="async"></span>`;
+  }
+  return '<span class="map-stat-dropdown-flag" aria-hidden="true">🏳️</span>';
+};
+
+const renderCountryList = (countries) => {
+  if (!Array.isArray(countries)) return '';
+  return countries.map((item) => {
+    const name = item?.name || item?.code || 'Неизвестно';
+    const code = item?.code ? String(item.code).toUpperCase() : '';
+    const flag = renderCountryFlag(code, item?.flag);
+    return `<li class="map-stat-dropdown-item">${flag}<span>${escapeHtml(name)}</span>${code ? `<span class="sr-only">(${escapeHtml(code)})</span>` : ''}</li>`;
+  }).join('');
+};
+
+const setupCountryDropdown = (button, dropdown, root) => {
+  if (!button || !dropdown || dropdown.dataset.bound === 'true') return;
+
+  const close = () => {
+    dropdown.hidden = true;
+    button.setAttribute('aria-expanded', 'false');
+  };
+
+  const open = () => {
+    if (!dropdown.children.length) return;
+    dropdown.hidden = false;
+    button.setAttribute('aria-expanded', 'true');
+  };
+
+  const handleToggle = (event) => {
+    event.stopPropagation();
+    const expanded = button.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      close();
+    } else {
+      open();
+    }
+  };
+
+  const handleDocumentClick = (event) => {
+    if (!root?.contains(event.target)) close();
+  };
+
+  const handleKeydown = (event) => {
+    if (event.key !== 'Escape') return;
+    close();
+    if (typeof button.focus === 'function') {
+      button.focus();
+    }
+  };
+
+  button.addEventListener('click', handleToggle);
+  document.addEventListener('click', handleDocumentClick);
+  document.addEventListener('keydown', handleKeydown);
+  dropdown.dataset.bound = 'true';
+};
+
 export function renderStats(metrics) {
   const container = document.querySelector('[data-stats]');
   const cupsEl = container?.querySelector('[data-stat-cups]');
   const countriesEl = container?.querySelector('[data-stat-countries]');
   const roasterCountriesEl = container?.querySelector('[data-stat-roaster-countries]');
   const consumedCountriesEl = container?.querySelector('[data-stat-consumed-countries]');
+  const countryDropdown = container?.querySelector('[data-country-dropdown]');
+  const countryList = container?.querySelector('[data-country-list]');
+  const countryStat = container?.querySelector('[data-country-stat]');
   if (!container || !cupsEl || !countriesEl || !roasterCountriesEl || !consumedCountriesEl) return;
 
   const total = Number(metrics?.total);
-  const countries = Number(metrics?.countries);
+  const visitedCountries = Array.isArray(metrics?.visitedCountries) ? metrics.visitedCountries : [];
+  const countries = Number.isFinite(metrics?.countries) ? Number(metrics.countries) : visitedCountries.length;
   const roasterCountries = Number(metrics?.roasterCountries?.length ?? metrics?.roasterCountries);
   const consumedCountries = Number(metrics?.consumedCountries?.length ?? metrics?.consumedCountries);
 
@@ -82,6 +149,21 @@ export function renderStats(metrics) {
 
   if (Number.isFinite(countries)) {
     countriesEl.textContent = countries.toLocaleString('ru-RU');
+  }
+
+  if (countryDropdown && countryList) {
+    if (visitedCountries.length) {
+      countryList.innerHTML = renderCountryList(visitedCountries);
+      countryDropdown.hidden = true;
+      if ('disabled' in countriesEl) countriesEl.disabled = false;
+      countriesEl.setAttribute('aria-expanded', 'false');
+      setupCountryDropdown(countriesEl, countryDropdown, countryStat || container);
+    } else {
+      countryList.innerHTML = '';
+      countryDropdown.hidden = true;
+      countriesEl.setAttribute('aria-expanded', 'false');
+      if ('disabled' in countriesEl) countriesEl.disabled = true;
+    }
   }
 
   if (Number.isFinite(roasterCountries)) {

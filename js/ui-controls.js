@@ -78,6 +78,7 @@ const renderCountryFlag = (code, flagEmoji) => {
   }
   if (normalizedCode) {
     const lower = escapeAttr(String(normalizedCode).toLowerCase());
+
     return `<span class="map-stat-dropdown-flag"><img src="https://flagcdn.com/24x18/${lower}.png" alt="" loading="lazy" decoding="async"></span>`;
   }
   return '<span class="map-stat-dropdown-flag" aria-hidden="true">🏳️</span>';

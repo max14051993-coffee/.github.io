@@ -166,6 +166,7 @@ body[data-theme="dark"]{
   flex-direction:column;
   gap:4px;
   min-width:108px;
+  position:relative;
 }
 
 .map-stat[data-country-stat]{

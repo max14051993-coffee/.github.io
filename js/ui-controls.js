@@ -126,6 +126,22 @@ const setupCountryDropdown = (button, dropdown, root) => {
   dropdown.dataset.bound = 'true';
 };
 
+function normalizeVisitedCountries(metrics) {
+  if (Array.isArray(metrics?.visitedCountries) && metrics.visitedCountries.length) {
+    return metrics.visitedCountries;
+  }
+
+  if (Array.isArray(metrics?.countryCodes) && metrics.countryCodes.length) {
+    return metrics.countryCodes.map((code) => ({
+      code: String(code || '').toUpperCase(),
+      name: String(code || '').toUpperCase(),
+      flag: '',
+    }));
+  }
+
+  return [];
+}
+
 export function renderStats(metrics) {
   const container = document.querySelector('[data-stats]');
   const cupsEl = container?.querySelector('[data-stat-cups]');
@@ -138,7 +154,7 @@ export function renderStats(metrics) {
   if (!container || !cupsEl || !countriesEl || !roasterCountriesEl || !consumedCountriesEl) return;
 
   const total = Number(metrics?.total);
-  const visitedCountries = Array.isArray(metrics?.visitedCountries) ? metrics.visitedCountries : [];
+  const visitedCountries = normalizeVisitedCountries(metrics);
   const countries = Number.isFinite(metrics?.countries) ? Number(metrics.countries) : visitedCountries.length;
   const roasterCountries = Number(metrics?.roasterCountries?.length ?? metrics?.roasterCountries);
   const consumedCountries = Number(metrics?.consumedCountries?.length ?? metrics?.consumedCountries);

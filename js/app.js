@@ -19,10 +19,10 @@ const urlParams = new URLSearchParams(location.search);
 const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
 const DEFAULT_GOOGLE_SHEET_GID = '0';
 
-function getConfiguredCsvUrl() {
+function getConfiguredSheetConfig() {
   const explicitUrl = urlParams.get('csv')
     || document.querySelector('meta[name="google-sheet-csv"]')?.content;
-  if (explicitUrl) return explicitUrl;
+  if (explicitUrl) return { csvUrl: explicitUrl, sheetId: null, gid: null, sheetName: null };
 
   const sheetId = urlParams.get('sheetId')
     || document.querySelector('meta[name="google-sheet-id"]')?.content
@@ -31,18 +31,28 @@ function getConfiguredCsvUrl() {
     || document.querySelector('meta[name="google-sheet-gid"]')?.content
     || DEFAULT_GOOGLE_SHEET_GID;
   const sheetName = urlParams.get('sheetName')
-    || document.querySelector('meta[name="google-sheet-name"]')?.content;
+    || document.querySelector('meta[name="google-sheet-name"]')?.content
+    || null;
 
-  if (sheetId) {
-    if (sheetName) {
-      const query = new URLSearchParams({ tqx: 'out:csv', sheet: sheetName });
-      return `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query.toString()}`;
-    }
-    const query = new URLSearchParams({ format: 'csv', gid });
-    return `https://docs.google.com/spreadsheets/d/${sheetId}/export?${query.toString()}`;
+  if (!sheetId) return { csvUrl: null, sheetId: null, gid: null, sheetName: null };
+
+  if (sheetName) {
+    const query = new URLSearchParams({ tqx: 'out:csv', sheet: sheetName, tq: 'select *' });
+    return {
+      csvUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query.toString()}`,
+      sheetId,
+      gid,
+      sheetName,
+    };
   }
 
-  return null;
+  const query = new URLSearchParams({ format: 'csv', gid });
+  return {
+    csvUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/export?${query.toString()}`,
+    sheetId,
+    gid,
+    sheetName,
+  };
 }
 
 const COLLECTION_TITLE = 'My coffee experience';
@@ -59,11 +69,29 @@ let allPointFeatures = [];
 let cityCoords = {};
 
 async function loadDataset() {
-  const csvUrl = getConfiguredCsvUrl();
+  const sheetConfig = getConfiguredSheetConfig();
+  const { csvUrl, sheetId, gid, sheetName } = sheetConfig;
   if (!csvUrl) throw new Error('Не задан URL опубликованной таблицы Google Sheets.');
 
-  const dataset = await loadData({ csvUrl, mapboxToken: MAPBOX_TOKEN });
-  return { dataset, source: 'csv', csvUrl };
+  try {
+    const dataset = await loadData({ csvUrl, mapboxToken: MAPBOX_TOKEN });
+    return { dataset, source: 'csv', csvUrl };
+  } catch (primaryError) {
+    const fallbackQuery = new URLSearchParams({ tqx: 'out:csv', tq: 'select *' });
+    if (gid) fallbackQuery.set('gid', gid);
+    if (sheetName) fallbackQuery.set('sheet', sheetName);
+
+    if (sheetId) {
+      const fallbackUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${fallbackQuery.toString()}`;
+      if (fallbackUrl !== csvUrl) {
+        console.warn('Primary CSV load failed, trying gviz CSV endpoint', primaryError);
+        const dataset = await loadData({ csvUrl: fallbackUrl, mapboxToken: MAPBOX_TOKEN });
+        return { dataset, source: 'csv', csvUrl: fallbackUrl };
+      }
+    }
+
+    throw primaryError;
+  }
 }
 
 function getFilteredFeatures() {

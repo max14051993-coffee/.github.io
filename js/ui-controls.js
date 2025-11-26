@@ -63,6 +63,26 @@ const multiFlagProgress = (flags) => {
   return ratioProgress(completed, items.length);
 };
 
+export function renderStats(metrics) {
+  const container = document.querySelector('[data-stats]');
+  const cupsEl = container?.querySelector('[data-stat-cups]');
+  const countriesEl = container?.querySelector('[data-stat-countries]');
+  if (!container || !cupsEl || !countriesEl) return;
+
+  const total = Number(metrics?.total);
+  const countries = Number(metrics?.countries);
+
+  if (Number.isFinite(total)) {
+    cupsEl.textContent = total.toLocaleString('ru-RU');
+  }
+
+  if (Number.isFinite(countries)) {
+    countriesEl.textContent = countries.toLocaleString('ru-RU');
+  }
+
+  container.hidden = !(Number.isFinite(total) || Number.isFinite(countries));
+}
+
 const ACHIEVEMENTS = [
   {
     id: 'world_wanderer',

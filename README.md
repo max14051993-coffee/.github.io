@@ -5,9 +5,7 @@ Coffeemap-mapbox-googleshhets
 - `index.html` – main entry point
 - `css/style.css` – extracted styles
 - `js/app.js` – extracted scripts
-- `js/static-dataset.js` – статичная выборка данных (генерируется скриптом)
-- `data/coffee-log.csv` – экспорт исходной таблицы Google Sheets
-- `scripts/build-static-data.mjs` – генератор `static-dataset.js`
+- Google Sheets задаёт единственный источник данных для карты
 
 ## Подключение Google Sheets напрямую
 
@@ -24,4 +22,4 @@ Coffeemap-mapbox-googleshhets
    - `?sheetId=...&gid=0` для `https://docs.google.com/spreadsheets/d/<ID>/export?format=csv&gid=<gid>`
    - `?csv=<полный_URL>` если таблица уже опубликована как CSV.
 
-Если конфигурация отсутствует или загрузка таблицы недоступна, приложение автоматически использует собранный статичный набор `js/static-dataset.js`.
+Приложение не содержит локальных файлов с данными и работает только с опубликованной таблицей Google Sheets.

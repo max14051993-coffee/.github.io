@@ -70,6 +70,79 @@ const isoToFlagEmoji = (isoCode) => {
   return String.fromCodePoint(...code.split('').map((char) => char.codePointAt(0) + base));
 };
 
+const parseSize = (value) => Number.parseFloat(value) || 0;
+
+const measureContext = (() => {
+  if (!globalScope?.document?.createElement) return null;
+  const canvas = globalScope.document.createElement('canvas');
+  return canvas.getContext('2d');
+})();
+
+const calculateDropdownWidth = (dropdown) => {
+  if (!measureContext || !dropdown) return null;
+  const items = dropdown.querySelectorAll('.map-stat-dropdown-item');
+  if (!items.length) return null;
+
+  let font = '';
+  let longestName = 0;
+
+  items.forEach((item) => {
+    const nameEl = item?.querySelector('.map-stat-dropdown-flag + span');
+    const text = nameEl?.textContent?.trim();
+    if (!text) return;
+
+    if (!font) {
+      const itemStyle = globalScope.getComputedStyle ? getComputedStyle(item) : null;
+      if (itemStyle) {
+        font = itemStyle.font || `${itemStyle.fontWeight} ${itemStyle.fontSize} ${itemStyle.fontFamily}`;
+      }
+    }
+
+    if (font) {
+      measureContext.font = font;
+      longestName = Math.max(longestName, measureContext.measureText(text).width);
+    }
+  });
+
+  if (!font || !longestName) return null;
+
+  const dropdownStyle = globalScope.getComputedStyle ? getComputedStyle(dropdown) : null;
+  const firstItem = items[0];
+  const itemStyle = firstItem && globalScope.getComputedStyle ? getComputedStyle(firstItem) : null;
+  const gap = parseSize(itemStyle?.columnGap || itemStyle?.gap);
+  const padding = parseSize(dropdownStyle?.paddingLeft) + parseSize(dropdownStyle?.paddingRight);
+  const border = parseSize(dropdownStyle?.borderLeftWidth) + parseSize(dropdownStyle?.borderRightWidth);
+  const flagStyle = firstItem?.querySelector('.map-stat-dropdown-flag')
+    ? getComputedStyle(firstItem.querySelector('.map-stat-dropdown-flag'))
+    : null;
+  const flagWidth = parseSize(flagStyle?.width);
+
+  return Math.ceil(longestName + gap + flagWidth + padding + border);
+};
+
+const setDropdownWidth = (dropdown) => {
+  const width = calculateDropdownWidth(dropdown);
+  if (Number.isFinite(width) && width > 0) {
+    dropdown.style.width = `${width}px`;
+  }
+};
+
+const positionDropdownBelowButton = (dropdown, button) => {
+  if (!dropdown || !button) return;
+  const parent = dropdown.offsetParent;
+  if (!parent) return;
+
+  const GAP = 10;
+  const buttonRect = button.getBoundingClientRect();
+  const parentRect = parent.getBoundingClientRect();
+
+  const left = buttonRect.left - parentRect.left;
+  const top = (buttonRect.top - parentRect.top) + button.offsetHeight + GAP;
+
+  dropdown.style.left = `${left}px`;
+  dropdown.style.top = `${top}px`;
+};
+
 const renderCountryFlag = (code, rawFlag) => {
   const rawFlagValue = String(rawFlag || '').trim();
   const looksLikeIso = /^[A-Za-z]{2}$/.test(rawFlagValue);
@@ -121,6 +194,7 @@ const setupCountryDropdown = (button, dropdown, root) => {
 
   const open = () => {
     if (!dropdown.children.length) return;
+    positionDropdownBelowButton(dropdown, button);
     dropdown.hidden = false;
     button.setAttribute('aria-expanded', 'true');
   };
@@ -209,6 +283,7 @@ export function renderStats(metrics) {
   if (countryDropdown && countryList) {
     if (visitedCountries.length) {
       countryList.innerHTML = renderCountryList(visitedCountries);
+      setDropdownWidth(countryDropdown);
       countryDropdown.hidden = true;
       if ('disabled' in countriesEl) countriesEl.disabled = false;
       countriesEl.setAttribute('aria-expanded', 'false');
@@ -228,6 +303,7 @@ export function renderStats(metrics) {
   if (roasterDropdown && roasterList) {
     if (roasterCountries.length) {
       roasterList.innerHTML = renderCountryList(roasterCountries);
+      setDropdownWidth(roasterDropdown);
       roasterDropdown.hidden = true;
       if ('disabled' in roasterCountriesEl) roasterCountriesEl.disabled = false;
       roasterCountriesEl.setAttribute('aria-expanded', 'false');
@@ -247,6 +323,7 @@ export function renderStats(metrics) {
   if (consumedDropdown && consumedList) {
     if (consumedCountries.length) {
       consumedList.innerHTML = renderCountryList(consumedCountries);
+      setDropdownWidth(consumedDropdown);
       consumedDropdown.hidden = true;
       if ('disabled' in consumedCountriesEl) consumedCountriesEl.disabled = false;
       consumedCountriesEl.setAttribute('aria-expanded', 'false');

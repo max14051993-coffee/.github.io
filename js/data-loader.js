@@ -428,6 +428,7 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
   const cafeSet = new Set();
   const roastersByCity = new Map();
   const roasterCountrySet = new Set();
+  const consumedCountrySet = new Set();
 
   const filterHits = { v60: false, kalita: false, aeropress: false };
 
@@ -499,6 +500,8 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
     }
 
     const consumedCity = normalizeName(properties.consumedCity).toLowerCase();
+    const consumedPt = properties.consumedCity ? getCityPt(properties.consumedCity, cityMap) : null;
+    if (consumedPt?.countryCode) consumedCountrySet.add(String(consumedPt.countryCode).toUpperCase());
     if (consumedCity) {
       consumedCityCounts.set(consumedCity, (consumedCityCounts.get(consumedCity) || 0) + 1);
     }
@@ -614,6 +617,7 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
     cafes: [...cafeSet],
     roastersInHomeCity,
     roasterCountries: [...roasterCountrySet],
+    consumedCountries: [...consumedCountrySet],
     uniqueRegions: globalRegions.size,
     ethiopiaRegions: ethiopiaRegions.size,
     colombiaRegions: colombiaRegions.size,

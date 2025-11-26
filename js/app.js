@@ -5,7 +5,7 @@ import {
   getVisitedCountriesIso2,
   loadData,
 } from './data-loader.js';
-import { renderAchievements } from './ui-controls.js';
+import { renderAchievements, renderStats } from './ui-controls.js';
 import { createMapController } from './map-init.js';
 import { ensureVendorBundles } from './vendor-loader.js';
 
@@ -145,6 +145,7 @@ async function init() {
 
     if (dataset.metrics) {
       renderAchievements(dataset.metrics);
+      renderStats(dataset.metrics);
     }
 
     window.addEventListener('resize', debounce(() => {

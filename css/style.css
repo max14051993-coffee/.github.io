@@ -148,6 +148,8 @@ body[data-theme="dark"]{
   display:flex;
   align-items:center;
   gap:10px;
+  flex-wrap:wrap;
+  row-gap:8px;
   padding:10px 14px;
   border-radius:16px;
   background:var(--surface);
@@ -163,7 +165,7 @@ body[data-theme="dark"]{
   display:flex;
   flex-direction:column;
   gap:4px;
-  min-width:84px;
+  min-width:108px;
 }
 
 .map-stat-label{
@@ -192,11 +194,15 @@ body[data-theme="dark"]{
     right:16px;
     left:16px;
     justify-content:space-between;
-    gap:14px;
+    gap:12px 14px;
   }
 
   .map-stat{
     min-width:0;
+  }
+
+  .map-stat-divider{
+    display:none;
   }
 }
 

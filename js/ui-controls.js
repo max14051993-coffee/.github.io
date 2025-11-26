@@ -67,10 +67,14 @@ export function renderStats(metrics) {
   const container = document.querySelector('[data-stats]');
   const cupsEl = container?.querySelector('[data-stat-cups]');
   const countriesEl = container?.querySelector('[data-stat-countries]');
-  if (!container || !cupsEl || !countriesEl) return;
+  const roasterCountriesEl = container?.querySelector('[data-stat-roaster-countries]');
+  const consumedCountriesEl = container?.querySelector('[data-stat-consumed-countries]');
+  if (!container || !cupsEl || !countriesEl || !roasterCountriesEl || !consumedCountriesEl) return;
 
   const total = Number(metrics?.total);
   const countries = Number(metrics?.countries);
+  const roasterCountries = Number(metrics?.roasterCountries?.length ?? metrics?.roasterCountries);
+  const consumedCountries = Number(metrics?.consumedCountries?.length ?? metrics?.consumedCountries);
 
   if (Number.isFinite(total)) {
     cupsEl.textContent = total.toLocaleString('ru-RU');
@@ -80,7 +84,20 @@ export function renderStats(metrics) {
     countriesEl.textContent = countries.toLocaleString('ru-RU');
   }
 
-  container.hidden = !(Number.isFinite(total) || Number.isFinite(countries));
+  if (Number.isFinite(roasterCountries)) {
+    roasterCountriesEl.textContent = roasterCountries.toLocaleString('ru-RU');
+  }
+
+  if (Number.isFinite(consumedCountries)) {
+    consumedCountriesEl.textContent = consumedCountries.toLocaleString('ru-RU');
+  }
+
+  container.hidden = !(
+    Number.isFinite(total)
+    || Number.isFinite(countries)
+    || Number.isFinite(roasterCountries)
+    || Number.isFinite(consumedCountries)
+  );
 }
 
 const ACHIEVEMENTS = [

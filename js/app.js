@@ -8,7 +8,6 @@ import {
 import { renderAchievements } from './ui-controls.js';
 import { createMapController } from './map-init.js';
 import { ensureVendorBundles } from './vendor-loader.js';
-import { STATIC_DATA } from './static-dataset.js';
 
 const MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
 const theme = (new URLSearchParams(location.search).get('style') || 'light').toLowerCase();
@@ -17,7 +16,6 @@ const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toL
 
 const urlParams = new URLSearchParams(location.search);
 
-const BUNDLED_CSV_URL = 'data/coffee-log.csv';
 const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
 const DEFAULT_GOOGLE_SHEET_GID = '0';
 
@@ -44,8 +42,7 @@ function getConfiguredCsvUrl() {
     return `https://docs.google.com/spreadsheets/d/${sheetId}/export?${query.toString()}`;
   }
 
-  const bundledCsv = document.querySelector('meta[name="google-sheet-csv"]')?.content;
-  return bundledCsv || BUNDLED_CSV_URL;
+  return null;
 }
 
 const COLLECTION_TITLE = 'My coffee experience';
@@ -62,26 +59,11 @@ let allPointFeatures = [];
 let cityCoords = {};
 
 async function loadDataset() {
-  const csvUrl = getConfiguredCsvUrl() || BUNDLED_CSV_URL;
+  const csvUrl = getConfiguredCsvUrl();
+  if (!csvUrl) throw new Error('Не задан URL опубликованной таблицы Google Sheets.');
 
-  try {
-    const dataset = await loadData({ csvUrl, mapboxToken: MAPBOX_TOKEN });
-    return { dataset, source: 'csv', csvUrl };
-  } catch (primaryError) {
-    if (csvUrl !== BUNDLED_CSV_URL) {
-      try {
-        const dataset = await loadData({ csvUrl: BUNDLED_CSV_URL, mapboxToken: MAPBOX_TOKEN });
-        console.warn(`Failed to load CSV from ${csvUrl}. Using bundled CSV instead.`, primaryError);
-        return { dataset, source: 'csv', csvUrl: BUNDLED_CSV_URL, error: primaryError };
-      } catch (fallbackError) {
-        console.error('Failed to load both configured and bundled CSV. Falling back to static dataset.', fallbackError);
-        return { dataset: STATIC_DATA, source: 'static', error: fallbackError };
-      }
-    }
-
-    console.error('Failed to load bundled CSV. Falling back to static dataset.', primaryError);
-    return { dataset: STATIC_DATA, source: 'static', error: primaryError };
-  }
+  const dataset = await loadData({ csvUrl, mapboxToken: MAPBOX_TOKEN });
+  return { dataset, source: 'csv', csvUrl };
 }
 
 function getFilteredFeatures() {
@@ -112,7 +94,7 @@ async function init() {
     const { mapboxgl } = await ensureVendorBundles();
     mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode, viewMode: 'points' });
     mapController.setRoutesVisibility(true);
-  } catch (dependencyError) { 
+  } catch (dependencyError) {
     console.error('Map dependency error:', dependencyError);
     const mapEl = document.getElementById('map');
     if (mapEl) {
@@ -137,16 +119,16 @@ async function init() {
       renderAchievements(dataset.metrics);
     }
 
-    if (Object.keys(cityCoords).length === 0) {
-      console.warn('Static dataset does not include city coordinates. Route lines will be hidden.');
-    }
-
     window.addEventListener('resize', debounce(() => {
       mapController?.refresh3DLayers();
       mapController?.resize();
     }, 150));
   } catch (err) {
     console.error('CSV error:', err);
+    const mapEl = document.getElementById('map');
+    if (mapEl) {
+      mapEl.innerHTML = '<div class="map-error">Не удалось загрузить таблицу Google Sheets. Проверьте доступ по ссылке.</div>';
+    }
   }
 }
 

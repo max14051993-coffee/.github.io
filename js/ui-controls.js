@@ -63,12 +63,22 @@ const multiFlagProgress = (flags) => {
   return ratioProgress(completed, items.length);
 };
 
+const isoToFlagEmoji = (isoCode) => {
+  const code = String(isoCode || '').trim().toUpperCase();
+  if (!/^[A-Z]{2}$/.test(code)) return '';
+  const base = 127397; // Unicode regional indicator base
+  return String.fromCodePoint(...code.split('').map((char) => char.codePointAt(0) + base));
+};
+
 const renderCountryFlag = (code, flagEmoji) => {
-  if (flagEmoji) {
-    return `<span class="map-stat-dropdown-flag">${escapeHtml(flagEmoji)}</span>`;
+  const normalizedCode = code ? String(code).toUpperCase() : '';
+  const emoji = flagEmoji || isoToFlagEmoji(normalizedCode);
+  if (emoji) {
+    return `<span class="map-stat-dropdown-flag">${escapeHtml(emoji)}</span>`;
   }
-  if (code) {
-    const lower = escapeAttr(String(code).toLowerCase());
+  if (normalizedCode) {
+    const lower = escapeAttr(String(normalizedCode).toLowerCase());
+
     return `<span class="map-stat-dropdown-flag"><img src="https://flagcdn.com/24x18/${lower}.png" alt="" loading="lazy" decoding="async"></span>`;
   }
   return '<span class="map-stat-dropdown-flag" aria-hidden="true">🏳️</span>';

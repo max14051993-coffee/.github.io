@@ -127,6 +127,22 @@ const setDropdownWidth = (dropdown) => {
   }
 };
 
+const positionDropdownBelowButton = (dropdown, button) => {
+  if (!dropdown || !button) return;
+  const parent = dropdown.offsetParent;
+  if (!parent) return;
+
+  const GAP = 10;
+  const buttonRect = button.getBoundingClientRect();
+  const parentRect = parent.getBoundingClientRect();
+
+  const left = buttonRect.left - parentRect.left;
+  const top = (buttonRect.top - parentRect.top) + button.offsetHeight + GAP;
+
+  dropdown.style.left = `${left}px`;
+  dropdown.style.top = `${top}px`;
+};
+
 const renderCountryFlag = (code, rawFlag) => {
   const rawFlagValue = String(rawFlag || '').trim();
   const looksLikeIso = /^[A-Za-z]{2}$/.test(rawFlagValue);
@@ -178,6 +194,7 @@ const setupCountryDropdown = (button, dropdown, root) => {
 
   const open = () => {
     if (!dropdown.children.length) return;
+    positionDropdownBelowButton(dropdown, button);
     dropdown.hidden = false;
     button.setAttribute('aria-expanded', 'true');
   };

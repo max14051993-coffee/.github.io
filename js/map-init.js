@@ -214,11 +214,13 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     throw new Error('Mapbox GL JS is not available');
   }
   mapboxgl.accessToken = accessToken;
+  const initialView = { center: [12, 20], zoom: 1.6 };
+
   const map = new mapboxgl.Map({
     container: 'map',
     style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
-    center: [12, 20],
-    zoom: 1.6,
+    center: initialView.center,
+    zoom: initialView.zoom,
     attributionControl: true,
     renderWorldCopies: false,
   });
@@ -241,6 +243,18 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     } else {
       map.once('load', fn);
     }
+  };
+
+  const resetView = () => {
+    withMapReady(() => {
+      map.easeTo({
+        center: initialView.center,
+        zoom: initialView.zoom,
+        bearing: 0,
+        pitch: 0,
+        duration: 700,
+      });
+    });
   };
 
   const applyTerrainPreference = () => {
@@ -682,6 +696,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     setCountriesVisibility,
     clearRouteHighlight,
     highlightRouteFor,
+    resetView,
     resize: () => map.resize(),
     refresh3DLayers: applyTerrainPreference,
     set3DLayersEnabled,

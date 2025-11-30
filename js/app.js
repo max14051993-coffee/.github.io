@@ -67,6 +67,14 @@ setupInfoDisclosure({
 let mapController = null;
 let allPointFeatures = [];
 let cityCoords = {};
+const resetViewButton = document.querySelector('[data-reset-view]');
+
+function setupResetViewButton() {
+  if (!resetViewButton) return;
+  resetViewButton.addEventListener('click', () => {
+    mapController?.resetView();
+  });
+}
 
 async function loadDataset() {
   const sheetConfig = getConfiguredSheetConfig();
@@ -122,6 +130,7 @@ async function init() {
     const { mapboxgl } = await ensureVendorBundles();
     mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode, viewMode: 'points' });
     mapController.setRoutesVisibility(true);
+    setupResetViewButton();
   } catch (dependencyError) {
     console.error('Map dependency error:', dependencyError);
     const mapEl = document.getElementById('map');

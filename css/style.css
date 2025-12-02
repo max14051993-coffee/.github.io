@@ -11,7 +11,8 @@ html,body{
 body{
   margin:0;
   font-family:var(--font-base);
-  line-height:1.55;
+  font-size:var(--text-md);
+  line-height:1.6;
   background:var(--page-bg);
   color:var(--text);
   -webkit-font-smoothing:antialiased;
@@ -26,7 +27,8 @@ body{
 
 h1,h2,h3{
   margin:0;
-  font-weight:inherit;
+  font-weight:var(--font-weight-bold);
+  letter-spacing:-0.02em;
 }
 
 p{
@@ -36,7 +38,7 @@ p{
 a{
   color:var(--accent);
   text-decoration:none;
-  font-weight:500;
+  font-weight:var(--font-weight-medium);
 }
 
 a:hover{
@@ -44,9 +46,18 @@ a:hover{
 }
 
 :root{
-  --font-base:system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif,'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';
+  --font-base:'Manrope','Inter','Segoe UI',system-ui,-apple-system,Roboto,'Helvetica Neue',Arial,sans-serif,'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';
   --font-card:var(--font-base);
   --font-ui:var(--font-base);
+  --font-weight-regular:400;
+  --font-weight-medium:600;
+  --font-weight-bold:700;
+  --text-xs:12px;
+  --text-sm:14px;
+  --text-md:16px;
+  --text-lg:18px;
+  --text-xl:22px;
+  --text-2xl:28px;
   --page-bg:radial-gradient(circle at top left,#fdf4ec 0%,#f5f8ff 40%,#eef1f8 100%);
   --surface:rgba(255,255,255,0.72);
   --surface-strong:rgba(255,255,255,0.85);
@@ -86,6 +97,7 @@ body[data-theme="dark"]{
   box-shadow:var(--surface-shadow);
   padding:24px;
   font-family:var(--font-card);
+  font-weight:var(--font-weight-regular);
 }
 
 .map-stage{
@@ -184,8 +196,9 @@ body[data-theme="dark"]{
   background:var(--surface);
   color:var(--text);
   font-family:var(--font-ui);
-  font-weight:650;
-  font-size:15px;
+  font-weight:var(--font-weight-bold);
+  font-size:var(--text-sm);
+  letter-spacing:0.01em;
   box-shadow:var(--surface-shadow);
   backdrop-filter:blur(18px);
   cursor:pointer;
@@ -210,7 +223,7 @@ body[data-theme="dark"]{
 
 .map-reset-button [aria-hidden="true"]{
   color:var(--accent);
-  font-size:18px;
+  font-size:var(--text-lg);
   line-height:1;
 }
 
@@ -227,16 +240,19 @@ body[data-theme="dark"]{
 }
 
 .map-stat-label{
-  font-size:12px;
-  letter-spacing:0.02em;
+  font-size:var(--text-xs);
+  letter-spacing:0.08em;
   text-transform:uppercase;
   color:var(--muted);
 }
 
 .map-stat-value{
-  font-size:20px;
-  font-weight:700;
+  font-size:var(--text-xl);
+  font-weight:var(--font-weight-bold);
+  letter-spacing:-0.01em;
   color:var(--text);
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;
 }
 
 .map-stat-value-button{
@@ -295,7 +311,7 @@ body[data-theme="dark"]{
   display:flex;
   align-items:center;
   gap:10px;
-  font-size:15px;
+  font-size:var(--text-sm);
   color:var(--text);
 }
 
@@ -309,7 +325,7 @@ body[data-theme="dark"]{
   justify-content:center;
   background:var(--pill-bg);
   border:1px solid var(--surface-border);
-  font-size:18px;
+  font-size:var(--text-md);
 }
 
 .map-stat-dropdown-flag img{
@@ -353,8 +369,9 @@ body[data-theme="dark"]{
 }
 
 .map-banner .map-title{
-  font-size:28px;
-  font-weight:700;
+  font-size:clamp(var(--text-lg), 4vw, var(--text-2xl));
+  font-weight:var(--font-weight-bold);
+  letter-spacing:-0.02em;
   color:var(--text);
   flex:1;
   text-align:left;
@@ -369,7 +386,7 @@ body[data-theme="dark"]{
   border-radius:50%;
   background:var(--accent-soft);
   color:var(--accent);
-  font-size:18px;
+  font-size:var(--text-md);
   line-height:1;
   cursor:pointer;
   transition:background-color 0.2s ease,color 0.2s ease;
@@ -398,7 +415,7 @@ body[data-theme="dark"]{
 .map-banner .map-subtitle{
   margin:6px 0 0;
   color:var(--muted);
-  font-size:15px;
+  font-size:var(--text-sm);
   line-height:1.6;
 }
 
@@ -455,8 +472,8 @@ body[data-theme="dark"]{
   background:var(--surface);
   color:var(--muted);
   font-family:var(--font-ui);
-  font-size:0.9rem;
-  line-height:1.4;
+  font-size:var(--text-sm);
+  line-height:1.5;
 }
 
 .achievements-message--loading .achievements-spinner{
@@ -530,7 +547,7 @@ body[data-theme="dark"] .achievements-message--error{
   display:flex;
   align-items:center;
   justify-content:center;
-  font-size:20px;
+  font-size:var(--text-xl);
   position:relative;
   z-index:1;
   overflow:hidden;
@@ -600,7 +617,7 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
   color:var(--text);
   border:1px solid var(--surface-border);
   box-shadow:0 12px 20px -18px rgba(17,24,39,0.6);
-  font-size:13px;
+  font-size:var(--text-sm);
   line-height:1.35;
   white-space:normal;
   width:max-content;
@@ -638,7 +655,7 @@ body[data-theme="dark"] .ach-badge.is-partial .ach-icon::before{
   padding:24px;
   text-align:center;
   font-family:var(--font-ui);
-  font-size:16px;
+  font-size:var(--text-md);
   line-height:1.5;
   color:var(--muted);
   background:linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.94));
@@ -669,7 +686,7 @@ body[data-theme="dark"] .map-error{
   overflow:hidden;
   background:var(--surface-strong);
   border:1px solid var(--surface-border);
-  font:14px/1.4 var(--font-card);
+  font:var(--text-sm)/1.5 var(--font-card);
   color:var(--text);
 }
 
@@ -691,8 +708,8 @@ body[data-theme="dark"] .map-error{
 }
 
 .popup-title{
-  font-weight:700;
-  font-size:18px;
+  font-weight:var(--font-weight-bold);
+  font-size:var(--text-lg);
   margin:2px 0 6px;
   color:var(--text);
 }
@@ -720,7 +737,7 @@ body[data-theme="dark"] .map-error{
   top:14px;
   right:14px;
   z-index:2;
-  font-size:12px;
+  font-size:var(--text-xs);
   padding:6px 12px;
   border-radius:999px;
   border:1px solid transparent;
@@ -730,7 +747,7 @@ body[data-theme="dark"] .map-error{
 
 .popup-nav button{
   font-family:inherit;
-  font-weight:600;
+  font-weight:var(--font-weight-medium);
   color:var(--text);
   background:var(--surface-strong);
   border-radius:12px;
@@ -792,14 +809,6 @@ body[data-theme="dark"] .map-error{
     padding:16px 18px;
   }
 
-  .map-banner .map-title{
-    font-size:24px;
-  }
-
-  .map-banner .map-subtitle{
-    font-size:14px;
-  }
-
 }
 
 @media (max-width:420px){
@@ -831,16 +840,9 @@ body[data-theme="dark"] .map-error{
   }
 
   .map-banner .map-title{
-    font-size:21px;
     text-align:left;
     white-space:normal;
   }
-
-  .map-banner .map-subtitle{
-    font-size:13px;
-    line-height:1.5;
-  }
-
   .achievements{
     grid-template-columns:repeat(1, minmax(0,var(--ach-grid-size)));
   }
@@ -856,10 +858,6 @@ body[data-theme="dark"] .map-error{
 @media (max-width:360px){
   .map-banner{
     padding:12px 14px;
-  }
-
-  .map-banner .map-title{
-    font-size:19px;
   }
 
   .popup-card{

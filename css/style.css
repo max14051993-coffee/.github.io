@@ -251,6 +251,8 @@ body[data-theme="dark"]{
   font-weight:var(--font-weight-bold);
   letter-spacing:-0.01em;
   color:var(--text);
+  font-variant-numeric:tabular-nums;
+  font-feature-settings:"tnum" 1;
 }
 
 .map-stat-value-button{

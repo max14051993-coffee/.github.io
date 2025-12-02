@@ -9,12 +9,31 @@ import { renderAchievements, renderStats } from './ui-controls.js';
 import { createMapController } from './map-init.js';
 import { ensureVendorBundles } from './vendor-loader.js';
 
-const MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
+const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
+
+function resolveMapboxToken(params) {
+  const explicitToken = params.get('mapboxToken')
+    || document.querySelector('meta[name="mapbox-access-token"]')?.content;
+
+  return explicitToken?.trim() || DEFAULT_MAPBOX_TOKEN;
+}
 const theme = (new URLSearchParams(location.search).get('style') || 'light').toLowerCase();
 document.body.dataset.theme = theme;
 const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase();
 
 const urlParams = new URLSearchParams(location.search);
+
+const MAPBOX_TOKEN = resolveMapboxToken(urlParams);
+
+function assertMapboxToken() {
+  if (MAPBOX_TOKEN) return;
+  const message = 'Mapbox access token is not configured. Add ?mapboxToken=... to the URL or set a <meta name="mapbox-access-token"> tag.';
+  const mapEl = document.getElementById('map');
+  if (mapEl) {
+    mapEl.innerHTML = '<div class="map-error">Не удалось загрузить карту: не задан Mapbox access token.</div>';
+  }
+  throw new Error(message);
+}
 
 const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
 const DEFAULT_GOOGLE_SHEET_GID = '0';
@@ -126,6 +145,7 @@ function applyFilters({ fit = false } = {}) {
 }
 
 async function init() {
+  assertMapboxToken();
   try {
     const { mapboxgl } = await ensureVendorBundles();
     mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode, viewMode: 'points' });
@@ -148,7 +168,6 @@ async function init() {
 
     const titleEl = document.getElementById('collectionTitle');
     if (titleEl) titleEl.textContent = COLLECTION_TITLE;
-    document.title = COLLECTION_TITLE;
 
     applyFilters({ fit: true });
 

@@ -9,8 +9,8 @@ import { renderAchievements, renderStats } from './ui-controls.js';
 import { createMapController } from './map-init.js';
 import { ensureVendorBundles } from './vendor-loader.js';
 
-const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
 
+const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
 function resolveMapboxToken(params) {
   const explicitToken = params.get('mapboxToken')
     || document.querySelector('meta[name="mapbox-access-token"]')?.content;

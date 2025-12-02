@@ -42,8 +42,6 @@ function dedupeFeatures(arr) {
   return out;
 }
 
-// Замените существующую функцию ensureTerrain(...) на этот код:
-
 function ensureTerrain(map, { enable3dLayers = true } = {}) {
   const shouldDisable3D = !enable3dLayers || prefersReducedMotion() || isCompactViewport();
   const terrainIsActive = typeof map.getTerrain === 'function' && !!map.getTerrain();

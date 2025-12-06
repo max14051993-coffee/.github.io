@@ -441,7 +441,7 @@ body[data-theme="dark"]{
   justify-self:start;
   position:relative;
   z-index:3;
-  pointer-events:auto;
+  pointer-events:none;
 }
 
 
@@ -459,6 +459,7 @@ body[data-theme="dark"]{
   justify-items:start;
   align-items:start;
   width:100%;
+  pointer-events:none;
 }
 
 .achievements-message{
@@ -526,6 +527,7 @@ body[data-theme="dark"] .achievements-message--error{
   outline:0;
   overflow:visible;
   z-index:0;
+  pointer-events:auto;
 }
 
 .ach-badge:hover,

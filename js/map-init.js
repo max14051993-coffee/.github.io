@@ -1,4 +1,4 @@
-import { driveImgHtml, escapeAttr, escapeHtml } from './utils.js';
+import { driveImgHtml, escapeAttr, escapeHtml, normalizeName } from './utils.js';
 import { processColors } from './ui-controls.js';
 import { buildVisitedFilter, getCityPt } from './data-loader.js';
 
@@ -233,6 +233,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     routesVisible: true,
     countriesVisible: true,
     viewMode: viewMode === 'points' ? 'points' : 'cities',
+    pointFeatures: [],
   };
 
   const withMapReady = (fn) => {
@@ -594,6 +595,15 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
 
     map.on('click', 'city-points', (e) => {
       const feature = e.features[0];
+      const city = feature.properties?.city || '';
+      const kind = feature.properties?.kind || 'both';
+      const matches = collectFeaturesForCity(city, kind);
+
+      if (matches.length) {
+        showMultiPopup(matches, feature.geometry.coordinates);
+        return;
+      }
+
       new mapboxgl.Popup({ offset: 10 })
         .setLngLat(feature.geometry.coordinates)
         .setHTML(cityPopupHTML(feature.properties))
@@ -604,6 +614,32 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     map.on('mouseleave', 'city-points', () => map.getCanvas().style.cursor = '');
 
     state.interactionsBound = true;
+  };
+
+  const collectFeaturesForCity = (city, kind) => {
+    const target = normalizeName(city).toLowerCase();
+    if (!target) return [];
+
+    const includeRoaster = kind === 'roaster' || kind === 'both';
+    const includeConsumed = kind === 'consumed' || kind === 'both';
+
+    const related = [];
+    for (const feature of state.pointFeatures || []) {
+      const props = feature.properties || {};
+      const roasterCity = normalizeName(props.roasterCity).toLowerCase();
+      const consumedCity = normalizeName(props.consumedCity).toLowerCase();
+
+      if (includeRoaster && roasterCity && roasterCity === target) {
+        related.push(feature);
+        continue;
+      }
+
+      if (includeConsumed && consumedCity && consumedCity === target) {
+        related.push(feature);
+      }
+    }
+
+    return dedupeFeatures(related);
   };
 
   const cityPopupHTML = (props) => {
@@ -667,8 +703,9 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     render();
   };
 
-  const updateData = ({ geojsonPoints, lineFeatures, cityPoints, visitedCountries, cityCoords }, { fit = false } = {}) => {
+  const updateData = ({ geojsonPoints, lineFeatures, cityPoints, visitedCountries, cityCoords, pointFeatures }, { fit = false } = {}) => {
     state.cityCoords = cityCoords || {};
+    state.pointFeatures = pointFeatures || state.pointFeatures;
     withMapReady(() => {
       ensureSources({ geojsonPoints, lineFeatures, cityPoints });
       initializeLayers();

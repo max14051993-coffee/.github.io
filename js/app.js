@@ -140,6 +140,7 @@ function applyFilters({ fit = false } = {}) {
     cityPoints,
     visitedCountries: visited,
     cityCoords,
+    pointFeatures: features,
   }, { fit });
   return features;
 }

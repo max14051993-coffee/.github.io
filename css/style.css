@@ -351,6 +351,13 @@ body[data-theme="dark"]{
     gap:12px 14px;
   }
 
+  .map-banner,
+  .map-stats,
+  .map-reset-button,
+  .map-error{
+    backdrop-filter:none;
+  }
+
   .map-stat{
     min-width:0;
   }

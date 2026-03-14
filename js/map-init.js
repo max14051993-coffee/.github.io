@@ -4,6 +4,7 @@ import { buildVisitedFilter, getCityPt } from './data-loader.js';
 
 const EPS = 1e-6;
 const TERRAIN_WIDTH_BREAKPOINT = 768;
+const LOW_POWER_CONNECTION_TYPES = new Set(['slow-2g', '2g', '3g']);
 
 const sameCoord = (a, b) => Math.abs(a[0] - b[0]) < EPS && Math.abs(a[1] - b[1]) < EPS;
 
@@ -17,6 +18,34 @@ const isCompactViewport = () => {
   if (typeof window.innerWidth !== 'number') return false;
   return window.innerWidth > 0 && window.innerWidth < TERRAIN_WIDTH_BREAKPOINT;
 };
+
+function getRuntimePerformanceProfile() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return {
+      isLowPower: false,
+      shouldReduceInteractions: false,
+      animationDuration: 700,
+    };
+  }
+
+  const hardwareConcurrency = Number(navigator.hardwareConcurrency || 0);
+  const lowCpu = hardwareConcurrency > 0 && hardwareConcurrency <= 4;
+
+  const deviceMemory = Number(navigator.deviceMemory || 0);
+  const lowMemory = deviceMemory > 0 && deviceMemory <= 4;
+
+  const connection = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+  const effectiveType = String(connection?.effectiveType || '').toLowerCase();
+  const saveData = connection?.saveData === true;
+  const slowNetwork = LOW_POWER_CONNECTION_TYPES.has(effectiveType);
+
+  const isLowPower = lowCpu || lowMemory || slowNetwork || saveData;
+  return {
+    isLowPower,
+    shouldReduceInteractions: isLowPower,
+    animationDuration: isLowPower ? 420 : 700,
+  };
+}
 
 function dedupeFeatures(arr) {
   const seen = new Set();
@@ -42,8 +71,8 @@ function dedupeFeatures(arr) {
   return out;
 }
 
-function ensureTerrain(map, { enable3dLayers = true } = {}) {
-  const shouldDisable3D = !enable3dLayers || prefersReducedMotion() || isCompactViewport();
+function ensureTerrain(map, { enable3dLayers = true, forceDisable3D = false } = {}) {
+  const shouldDisable3D = !enable3dLayers || forceDisable3D || prefersReducedMotion() || isCompactViewport();
   const terrainIsActive = typeof map.getTerrain === 'function' && !!map.getTerrain();
 
   if (shouldDisable3D) {
@@ -214,6 +243,8 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
   mapboxgl.accessToken = accessToken;
   const initialView = { center: [12, 20], zoom: 1.6 };
 
+  const perfProfile = getRuntimePerformanceProfile();
+
   const map = new mapboxgl.Map({
     container: 'map',
     style: theme === 'dark' ? 'mapbox://styles/mapbox/dark-v11' : 'mapbox://styles/mapbox/light-v11',
@@ -225,6 +256,11 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
   map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
   map.doubleClickZoom.disable();
 
+  if (perfProfile.shouldReduceInteractions) {
+    map.dragRotate.disable();
+    map.touchZoomRotate.disableRotation();
+  }
+
   const state = {
     cityCoords: {},
     flagMode: (flagMode || 'img').toLowerCase(),
@@ -232,8 +268,12 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     interactionsBound: false,
     routesVisible: true,
     countriesVisible: true,
+    allow3DLayers: enable3dLayers !== false,
     viewMode: viewMode === 'points' ? 'points' : 'cities',
     pointFeatures: [],
+    animationDuration: perfProfile.animationDuration,
+    reduceInteractions: perfProfile.shouldReduceInteractions,
+    lowPowerMode: perfProfile.isLowPower,
   };
 
   const withMapReady = (fn) => {
@@ -251,13 +291,16 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         zoom: initialView.zoom,
         bearing: 0,
         pitch: 0,
-        duration: 700,
+        duration: state.animationDuration,
       });
     });
   };
 
   const applyTerrainPreference = () => {
-    withMapReady(() => ensureTerrain(map, { enable3dLayers: state.allow3DLayers }));
+    withMapReady(() => ensureTerrain(map, {
+      enable3dLayers: state.allow3DLayers,
+      forceDisable3D: state.lowPowerMode,
+    }));
   };
 
   const applyViewMode = () => {
@@ -296,7 +339,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     if (!geojson?.features?.length) return;
     const bounds = new mapboxgl.LngLatBounds();
     geojson.features.forEach((feature) => bounds.extend(feature.geometry.coordinates));
-    map.fitBounds(bounds, { padding: 40, duration: 700, maxZoom: 10 });
+    map.fitBounds(bounds, { padding: 40, duration: state.animationDuration, maxZoom: 10 });
   };
 
   const highlightRouteFor = (properties, coord) => {
@@ -568,7 +611,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     map.on('click', 'clusters', (e) => {
       const feature = map.queryRenderedFeatures(e.point, { layers: ['clusters'] })[0];
       map.getSource('brews').getClusterExpansionZoom(feature.properties.cluster_id, (err, zoom) => {
-        if (!err) map.easeTo({ center: feature.geometry.coordinates, zoom });
+        if (!err) map.easeTo({ center: feature.geometry.coordinates, zoom, duration: state.animationDuration });
       });
     });
 
@@ -588,10 +631,12 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
       if (!feats.length) clearRouteHighlight();
     });
 
-    map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
-    map.on('mouseenter', 'unclustered', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'unclustered', () => map.getCanvas().style.cursor = '');
+    if (!state.reduceInteractions) {
+      map.on('mouseenter', 'clusters', () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', 'clusters', () => map.getCanvas().style.cursor = '');
+      map.on('mouseenter', 'unclustered', () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', 'unclustered', () => map.getCanvas().style.cursor = '');
+    }
 
     map.on('click', 'city-points', (e) => {
       const feature = e.features[0];
@@ -610,8 +655,10 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         .addTo(map);
     });
 
-    map.on('mouseenter', 'city-points', () => map.getCanvas().style.cursor = 'pointer');
-    map.on('mouseleave', 'city-points', () => map.getCanvas().style.cursor = '');
+    if (!state.reduceInteractions) {
+      map.on('mouseenter', 'city-points', () => map.getCanvas().style.cursor = 'pointer');
+      map.on('mouseleave', 'city-points', () => map.getCanvas().style.cursor = '');
+    }
 
     state.interactionsBound = true;
   };

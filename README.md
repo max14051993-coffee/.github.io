@@ -5,7 +5,7 @@ Coffeemap-mapbox-googleshhets
 - `index.html` – main entry point
 - `css/style.css` – extracted styles
 - `js/app.js` – extracted scripts
-- Google Sheets задаёт единственный источник данных для карты
+- Google Sheets задаёт единственный источник данных для карт
 
 ## Подключение Google Sheets напрямую
 

@@ -76,7 +76,57 @@ function getConfiguredSheetConfig() {
 
 const COLLECTION_TITLE = 'My coffee experience';
 
+const achievementsUi = {
+  root: document.querySelector('[data-achievements-root]'),
+  panel: document.querySelector('[data-achievements-panel]'),
+  toggle: document.querySelector('[data-achievements-toggle]'),
+};
+
+const achievementToggleLabels = {
+  collapsed: achievementsUi.toggle?.dataset.labelCollapsed || 'Показать достижения',
+  expanded: achievementsUi.toggle?.dataset.labelExpanded || 'Скрыть достижения',
+};
+
+function setAchievementsExpanded(expanded) {
+  if (!achievementsUi.toggle || !achievementsUi.panel) return;
+  achievementsUi.toggle.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+  achievementsUi.panel.hidden = !expanded;
+  achievementsUi.toggle.textContent = expanded
+    ? achievementToggleLabels.expanded
+    : achievementToggleLabels.collapsed;
+}
+
+function initAchievementsToggle() {
+  if (!achievementsUi.toggle || !achievementsUi.panel) return;
+  setAchievementsExpanded(false);
+  achievementsUi.toggle.addEventListener('click', () => {
+    const expanded = achievementsUi.toggle.getAttribute('aria-expanded') === 'true';
+    setAchievementsExpanded(!expanded);
+  });
+}
+
+function revealAchievementsRoot() {
+  if (achievementsUi.root) {
+    achievementsUi.root.hidden = false;
+  }
+}
+
 document.title = COLLECTION_TITLE;
+initAchievementsToggle();
+
+function showAchievementsStatus(message, variant = 'info') {
+  const list = document.getElementById('achievements');
+  const container = list?.closest('[data-achievements-panel]');
+  if (!list || !container) return;
+  const classes = ['achievements-message'];
+  if (variant === 'loading') classes.push('achievements-message--loading');
+  if (variant === 'error') classes.push('achievements-message--error');
+  const content = variant === 'loading'
+    ? `<span class="achievements-spinner" aria-hidden="true"></span><span>${message}</span>`
+    : message;
+  revealAchievementsRoot();
+  list.innerHTML = `<div class="${classes.join(' ')}" role="status">${content}</div>`;
+}
 
 setupInfoDisclosure({
   toggle: document.querySelector('[data-map-info-toggle]'),

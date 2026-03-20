@@ -616,7 +616,8 @@ const ACHIEVEMENTS = [
 
 export function renderAchievements(metrics) {
   const el = document.getElementById('achievements');
-  const container = el?.closest('[data-achievements-container]');
+  const container = el?.closest('[data-achievements-panel]');
+  const root = container?.closest('[data-achievements-root]');
   if (!el) return;
 
   const evaluated = ACHIEVEMENTS.map((achievement, index) => {
@@ -646,10 +647,10 @@ export function renderAchievements(metrics) {
 
   if (!visible.length) {
     el.innerHTML = '';
-    if (container) container.hidden = true;
+    if (root) root.hidden = true;
     return;
   }
-  if (container) container.hidden = false;
+  if (root) root.hidden = false;
 
   el.innerHTML = sorted.map((achievement) => {
     const isPartial = !achievement.earned && achievement.progress > 0;

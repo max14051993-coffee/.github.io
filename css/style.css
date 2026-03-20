@@ -456,6 +456,40 @@ body[data-theme="dark"]{
   display:none;
 }
 
+.achievements-toggle{
+  font-family:var(--font-ui);
+  font-size:15px;
+  font-weight:600;
+  border-radius:999px;
+  border:1px solid var(--surface-border);
+  background:var(--surface);
+  color:var(--text);
+  padding:8px 18px;
+  cursor:pointer;
+  transition:background-color 0.2s ease,border-color 0.2s ease,transform 0.2s ease;
+}
+
+.achievements-toggle:hover,
+.achievements-toggle:focus-visible{
+  background:var(--pill-bg);
+  border-color:var(--pill-border);
+  outline:none;
+}
+
+.achievements-toggle:focus:not(:focus-visible){
+  outline:none;
+}
+
+.achievements-toggle[aria-expanded="true"]{
+  background:var(--accent-soft);
+  border-color:var(--accent);
+  color:var(--accent);
+}
+
+.achievements-panel{
+  width:100%;
+}
+
 .achievements{
   --ach-grid-size:var(--ach-badge-size,48px);
   display:grid;

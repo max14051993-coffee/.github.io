@@ -448,7 +448,7 @@ body[data-theme="dark"]{
   justify-self:start;
   position:relative;
   z-index:3;
-  pointer-events:none;
+  pointer-events:auto;
 }
 
 

@@ -18,18 +18,53 @@ export function extractDriveId(url) {
   return match ? match[1] : null;
 }
 
-export function driveImgHtml(url) {
+const POPUP_IMAGE_MOBILE_WIDTH = 480;
+const POPUP_IMAGE_DESKTOP_WIDTH = 800;
+const POPUP_IMAGE_MOBILE_BREAKPOINT = 720;
+
+function popupImageWidth() {
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    return window.matchMedia(`(max-width:${POPUP_IMAGE_MOBILE_BREAKPOINT}px)`).matches
+      ? POPUP_IMAGE_MOBILE_WIDTH
+      : POPUP_IMAGE_DESKTOP_WIDTH;
+  }
+  return POPUP_IMAGE_DESKTOP_WIDTH;
+}
+
+function withDriveImageWidth(url, width) {
   if (!url) return '';
   if (/thumbnail\?id=/.test(url)) {
-    return `<img class="popup-cover" loading="lazy" src="${escapeAttr(url)}" alt="photo">`;
+    try {
+      const parsed = new URL(url);
+      parsed.searchParams.set('sz', `w${width}`);
+      return parsed.toString();
+    } catch {
+      const joiner = /[?&]sz=/.test(url) ? '' : `${url.includes('?') ? '&' : '?'}sz=w${width}`;
+      return url.replace(/([?&]sz=)w\d+/i, `$1w${width}`) + joiner;
+    }
+  }
+  if (/lh3\.googleusercontent\.com\/d\//.test(url)) {
+    return /=(?:w|s)\d+/i.test(url)
+      ? url.replace(/=(?:w|s)\d+/i, `=w${width}`)
+      : `${url}=w${width}`;
+  }
+  return url;
+}
+
+export function driveImgHtml(url) {
+  if (!url) return '';
+  const width = popupImageWidth();
+  if (/thumbnail\?id=/.test(url)) {
+    const sizedUrl = withDriveImageWidth(url, width);
+    return `<img class="popup-cover" loading="lazy" src="${escapeAttr(sizedUrl)}" alt="photo">`;
   }
   const id = extractDriveId(url);
   const chain = id ? [
-    `https://drive.google.com/thumbnail?id=${id}&sz=w1600`,
-    `https://lh3.googleusercontent.com/d/${id}=w1600`,
+    `https://drive.google.com/thumbnail?id=${id}&sz=w${width}`,
+    `https://lh3.googleusercontent.com/d/${id}=w${width}`,
     `https://drive.google.com/uc?export=view&id=${id}`,
     `https://drive.google.com/uc?export=download&id=${id}`,
-  ] : [url];
+  ] : [withDriveImageWidth(url, width)];
   const [first, ...rest] = chain;
   const fallbackAttr = ` data-fallback="${escapeAttr(JSON.stringify(rest))}"`;
   return `<img class="popup-cover" loading="lazy" src="${escapeAttr(first)}" alt="photo"${fallbackAttr}>`;

@@ -758,7 +758,7 @@ function parseCsvText(csvText) {
 }
 
 async function downloadCsv(csvUrl, { signal } = {}) {
-  const response = await fetch(csvUrl, { signal, cache: 'no-cache' });
+  const response = await fetch(csvUrl, { signal });
   if (!response.ok) {
     throw new Error(`Failed to fetch CSV: ${response.status} ${response.statusText}`);
   }

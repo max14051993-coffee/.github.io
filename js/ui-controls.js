@@ -21,7 +21,7 @@ const resolveAchievementIcon = (id) => {
     return iconOverrides[id];
   }
   if (!iconBasePath) return null;
-  return `${iconBasePath}/${id}.png`;
+  return `${iconBasePath}/${id}.webp`;
 };
 
 export function processColors(pType) {
@@ -686,7 +686,7 @@ export function renderAchievements(metrics) {
       const hasFallback = Boolean(achievement.emoji);
       const fallbackAttr = hasFallback ? ' data-fallback="true"' : '';
       iconHtmlParts.push(`
-          <img class="ach-icon-image" src="${escapeAttr(achievement.icon)}" alt="" loading="lazy" decoding="async"${fallbackAttr}>
+          <img class="ach-icon-image" src="${escapeAttr(achievement.icon)}" alt="" width="128" height="128" loading="lazy" decoding="async"${fallbackAttr}>
         `.trim());
     }
     if (achievement.emoji) {

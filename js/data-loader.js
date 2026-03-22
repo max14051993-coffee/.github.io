@@ -294,7 +294,13 @@ function getExplicitPoint(lat, lng) {
 }
 
 export function getPointFromCoordsOrCity(lat, lng, cityName, cityMap) {
-  return getExplicitPoint(lat, lng) || getCityPt(cityName, cityMap);
+  const explicit = getExplicitPoint(lat, lng);
+  const cityPoint = getCityPt(cityName, cityMap);
+
+  if (explicit) {
+    return cityPoint ? { ...cityPoint, ...explicit } : explicit;
+  }
+  return cityPoint;
 }
 
 export function buildRouteFeatures(pointFeatures, cityMap) {

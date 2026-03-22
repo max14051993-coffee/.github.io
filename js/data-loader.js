@@ -20,11 +20,15 @@ const HEADERS = {
   roasterCity:     ['Roaster city'],
   roasterLat:      ['Roaster latitude'],
   roasterLng:      ['Roaster longitude'],
+  roasterCountryIso2: ['roasterCountryIso2'],
+  roasterCountryName: ['roasterCountryName'],
   fileUpload:      ['File upload', 'File upload '],
   lat:             ['Latitude (lat)', 'Latitude'],
   lng:             ['Longitude (lng)', 'Longitude'],
   consumedLat:     ['Consumed latitude'],
   consumedLng:     ['Consumed longitude'],
+  consumedCountryIso2: ['consumedCountryIso2'],
+  consumedCountryName: ['consumedCountryName'],
   photoUrl:        ['Photo (URL)'],
   geocodeSource:   ['Geocode source'],
   geocodeAccuracy: ['Geocode accuracy'],
@@ -161,8 +165,12 @@ export function rowsToGeoJSON(rows) {
       roasterCity:     pick(HEADERS.roasterCity),
       roasterLat,
       roasterLng,
+      roasterCountryIso2: pick(HEADERS.roasterCountryIso2),
+      roasterCountryName: pick(HEADERS.roasterCountryName),
       consumedLat,
       consumedLng,
+      consumedCountryIso2: pick(HEADERS.consumedCountryIso2),
+      consumedCountryName: pick(HEADERS.consumedCountryName),
       photoUrl:        photo,
       matchedName:     pick(HEADERS.matchedName),
       countryIso2:     pick(HEADERS.countryIso2),
@@ -291,6 +299,22 @@ export function getCityPt(name, cityMap) {
 
 function getExplicitPoint(lat, lng) {
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function getPreferredCountryDetails(properties, isoKey, nameKey, fallbackPoint) {
+  const code = String(properties?.[isoKey] || '').trim().toUpperCase();
+  const name = String(properties?.[nameKey] || '').trim();
+  if (code) {
+    return { code, name: name || fallbackPoint?.countryName || code };
+  }
+  const fallbackCode = String(fallbackPoint?.countryCode || '').trim().toUpperCase();
+  if (fallbackCode) {
+    return {
+      code: fallbackCode,
+      name: name || fallbackPoint?.countryName || fallbackCode,
+    };
+  }
+  return null;
 }
 
 export function getPointFromCoordsOrCity(lat, lng, cityName, cityMap) {
@@ -553,13 +577,18 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
     );
     if (processNorm === 'washed' && roasterPt) geotagWashed = true;
     if (processNorm === 'honey' && roasterPt) geotagHoney = true;
-    if (roasterPt?.countryCode) {
-      const code = String(roasterPt.countryCode).toUpperCase();
-      roasterCountrySet.add(code);
-      if (!cityCountryDetails.has(code)) {
-        cityCountryDetails.set(code, {
-          code,
-          name: roasterPt.countryName || code,
+    const roasterCountry = getPreferredCountryDetails(
+      properties,
+      'roasterCountryIso2',
+      'roasterCountryName',
+      roasterPt,
+    );
+    if (roasterCountry) {
+      roasterCountrySet.add(roasterCountry.code);
+      if (!cityCountryDetails.has(roasterCountry.code)) {
+        cityCountryDetails.set(roasterCountry.code, {
+          code: roasterCountry.code,
+          name: roasterCountry.name,
           flag: '',
         });
       }
@@ -579,13 +608,18 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
       properties.consumedCity,
       cityMap,
     );
-    if (consumedPt?.countryCode) {
-      const code = String(consumedPt.countryCode).toUpperCase();
-      consumedCountrySet.add(code);
-      if (!cityCountryDetails.has(code)) {
-        cityCountryDetails.set(code, {
-          code,
-          name: consumedPt.countryName || code,
+    const consumedCountry = getPreferredCountryDetails(
+      properties,
+      'consumedCountryIso2',
+      'consumedCountryName',
+      consumedPt,
+    );
+    if (consumedCountry) {
+      consumedCountrySet.add(consumedCountry.code);
+      if (!cityCountryDetails.has(consumedCountry.code)) {
+        cityCountryDetails.set(consumedCountry.code, {
+          code: consumedCountry.code,
+          name: consumedCountry.name,
           flag: '',
         });
       }

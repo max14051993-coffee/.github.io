@@ -18,9 +18,13 @@ const HEADERS = {
   recipe:          ['Recipe'],
   roasterName:     ['Roaster name'],
   roasterCity:     ['Roaster city'],
+  roasterLat:      ['Roaster latitude'],
+  roasterLng:      ['Roaster longitude'],
   fileUpload:      ['File upload', 'File upload '],
   lat:             ['Latitude (lat)', 'Latitude'],
   lng:             ['Longitude (lng)', 'Longitude'],
+  consumedLat:     ['Consumed latitude'],
+  consumedLng:     ['Consumed longitude'],
   photoUrl:        ['Photo (URL)'],
   geocodeSource:   ['Geocode source'],
   geocodeAccuracy: ['Geocode accuracy'],
@@ -123,6 +127,11 @@ export function rowsToGeoJSON(rows) {
     const lng = toNumber(pick(HEADERS.lng));
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
+    const roasterLat = toNumber(pick(HEADERS.roasterLat));
+    const roasterLng = toNumber(pick(HEADERS.roasterLng));
+    const consumedLat = toNumber(pick(HEADERS.consumedLat));
+    const consumedLng = toNumber(pick(HEADERS.consumedLng));
+
     const farmLng5 = +lng.toFixed(5);
     const farmLat5 = +lat.toFixed(5);
 
@@ -150,6 +159,10 @@ export function rowsToGeoJSON(rows) {
       recipe:          pick(HEADERS.recipe),
       roasterName:     pick(HEADERS.roasterName),
       roasterCity:     pick(HEADERS.roasterCity),
+      roasterLat,
+      roasterLng,
+      consumedLat,
+      consumedLng,
       photoUrl:        photo,
       matchedName:     pick(HEADERS.matchedName),
       countryIso2:     pick(HEADERS.countryIso2),
@@ -276,6 +289,14 @@ export function getCityPt(name, cityMap) {
   return cityMap[norm] || cityMap[raw] || cityMap[raw.toLowerCase()] || null;
 }
 
+function getExplicitPoint(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+export function getPointFromCoordsOrCity(lat, lng, cityName, cityMap) {
+  return getExplicitPoint(lat, lng) || getCityPt(cityName, cityMap);
+}
+
 export function buildRouteFeatures(pointFeatures, cityMap) {
   const lines = [];
 
@@ -293,25 +314,35 @@ export function buildRouteFeatures(pointFeatures, cityMap) {
     const farmLng5 = +properties.farmLng5;
     const farmLat5 = +properties.farmLat5;
 
-    const roasterCity = getCityPt(properties.roasterCity, cityMap);
-    const consumedCity = getCityPt(properties.consumedCity, cityMap);
+    const roasterPoint = getPointFromCoordsOrCity(
+      properties.roasterLat,
+      properties.roasterLng,
+      properties.roasterCity,
+      cityMap,
+    );
+    const consumedPoint = getPointFromCoordsOrCity(
+      properties.consumedLat,
+      properties.consumedLng,
+      properties.consumedCity,
+      cityMap,
+    );
 
-    if (roasterCity) {
-      const rLng5 = +roasterCity.lng.toFixed(5);
-      const rLat5 = +roasterCity.lat.toFixed(5);
+    if (roasterPoint) {
+      const rLng5 = +roasterPoint.lng.toFixed(5);
+      const rLat5 = +roasterPoint.lat.toFixed(5);
 
-      addLine('farm_to_roaster', [[farmLng, farmLat], [roasterCity.lng, roasterCity.lat]], {
+      addLine('farm_to_roaster', [[farmLng, farmLat], [roasterPoint.lng, roasterPoint.lat]], {
         farmLng5,
         farmLat5,
         roasterLng5: rLng5,
         roasterLat5: rLat5,
       });
 
-      if (consumedCity) {
-        const uLng5 = +consumedCity.lng.toFixed(5);
-        const uLat5 = +consumedCity.lat.toFixed(5);
+      if (consumedPoint) {
+        const uLng5 = +consumedPoint.lng.toFixed(5);
+        const uLat5 = +consumedPoint.lat.toFixed(5);
 
-        addLine('roaster_to_consumed', [[roasterCity.lng, roasterCity.lat], [consumedCity.lng, consumedCity.lat]], {
+        addLine('roaster_to_consumed', [[roasterPoint.lng, roasterPoint.lat], [consumedPoint.lng, consumedPoint.lat]], {
           roasterLng5: rLng5,
           roasterLat5: rLat5,
           consumedLng5: uLng5,
@@ -333,7 +364,12 @@ export function buildCityPoints(pointFeatures, cityMap) {
 
     if (properties.roasterCity) {
       const city = normalizeName(properties.roasterCity);
-      const pt = cityMap[city] || cityMap[city.toLowerCase()];
+      const pt = getPointFromCoordsOrCity(
+        properties.roasterLat,
+        properties.roasterLng,
+        properties.roasterCity,
+        cityMap,
+      );
       if (pt) {
         const key = city.toLowerCase();
         const current = aggregated.get(key) || {
@@ -352,7 +388,12 @@ export function buildCityPoints(pointFeatures, cityMap) {
 
     if (properties.consumedCity) {
       const city = normalizeName(properties.consumedCity);
-      const pt = cityMap[city] || cityMap[city.toLowerCase()];
+      const pt = getPointFromCoordsOrCity(
+        properties.consumedLat,
+        properties.consumedLng,
+        properties.consumedCity,
+        cityMap,
+      );
       if (pt) {
         const key = city.toLowerCase();
         const current = aggregated.get(key) || {
@@ -498,7 +539,12 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
       experimentalMethods.add(processRaw || 'carbonic');
     }
 
-    const roasterPt = properties.roasterCity ? getCityPt(properties.roasterCity, cityMap) : null;
+    const roasterPt = getPointFromCoordsOrCity(
+      properties.roasterLat,
+      properties.roasterLng,
+      properties.roasterCity,
+      cityMap,
+    );
     if (processNorm === 'washed' && roasterPt) geotagWashed = true;
     if (processNorm === 'honey' && roasterPt) geotagHoney = true;
     if (roasterPt?.countryCode) {
@@ -521,7 +567,12 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
     }
 
     const consumedCity = normalizeName(properties.consumedCity).toLowerCase();
-    const consumedPt = properties.consumedCity ? getCityPt(properties.consumedCity, cityMap) : null;
+    const consumedPt = getPointFromCoordsOrCity(
+      properties.consumedLat,
+      properties.consumedLng,
+      properties.consumedCity,
+      cityMap,
+    );
     if (consumedPt?.countryCode) {
       const code = String(consumedPt.countryCode).toUpperCase();
       consumedCountrySet.add(code);
@@ -793,8 +844,12 @@ export async function loadSupplementalDataset({ pointFeatures, mapboxToken, sign
   const wantedCities = new Set();
   for (const feature of pointFeatures) {
     const properties = feature.properties || {};
-    if (properties.roasterCity) wantedCities.add(String(properties.roasterCity).trim());
-    if (properties.consumedCity) wantedCities.add(String(properties.consumedCity).trim());
+    if (!getExplicitPoint(properties.roasterLat, properties.roasterLng) && properties.roasterCity) {
+      wantedCities.add(String(properties.roasterCity).trim());
+    }
+    if (!getExplicitPoint(properties.consumedLat, properties.consumedLng) && properties.consumedCity) {
+      wantedCities.add(String(properties.consumedCity).trim());
+    }
   }
   const uniqueCities = [...wantedCities].filter(Boolean);
   const cityCoordsMap = await geocodeCities(uniqueCities, mapboxToken, { signal });

@@ -1,6 +1,6 @@
 import { driveImgHtml, escapeAttr, escapeHtml, normalizeName } from './utils.js';
 import { processColors } from './ui-controls.js';
-import { buildVisitedFilter, getCityPt } from './data-loader.js';
+import { buildVisitedFilter, getPointFromCoordsOrCity } from './data-loader.js';
 
 const EPS = 1e-6;
 const TERRAIN_WIDTH_BREAKPOINT = 768;
@@ -357,12 +357,22 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
       farmLat5 = +coord[1].toFixed(5);
     }
 
-    const roasterCity = getCityPt(properties.roasterCity, state.cityCoords);
-    const consumedCity = getCityPt(properties.consumedCity, state.cityCoords);
+    const roasterPoint = getPointFromCoordsOrCity(
+      properties.roasterLat,
+      properties.roasterLng,
+      properties.roasterCity,
+      state.cityCoords,
+    );
+    const consumedPoint = getPointFromCoordsOrCity(
+      properties.consumedLat,
+      properties.consumedLng,
+      properties.consumedCity,
+      state.cityCoords,
+    );
 
-    if (roasterCity && farmLng5 !== null && farmLat5 !== null) {
-      const rLng5 = +roasterCity.lng.toFixed(5);
-      const rLat5 = +roasterCity.lat.toFixed(5);
+    if (roasterPoint && farmLng5 !== null && farmLat5 !== null) {
+      const rLng5 = +roasterPoint.lng.toFixed(5);
+      const rLat5 = +roasterPoint.lat.toFixed(5);
       filters.push(['all',
         ['==', ['get', 'kind'], 'farm_to_roaster'],
         ['==', ['get', 'farmLng5'], farmLng5],
@@ -372,11 +382,11 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
       ]);
     }
 
-    if (roasterCity && consumedCity) {
-      const rLng5 = +roasterCity.lng.toFixed(5);
-      const rLat5 = +roasterCity.lat.toFixed(5);
-      const uLng5 = +consumedCity.lng.toFixed(5);
-      const uLat5 = +consumedCity.lat.toFixed(5);
+    if (roasterPoint && consumedPoint) {
+      const rLng5 = +roasterPoint.lng.toFixed(5);
+      const rLat5 = +roasterPoint.lat.toFixed(5);
+      const uLng5 = +consumedPoint.lng.toFixed(5);
+      const uLat5 = +consumedPoint.lat.toFixed(5);
       filters.push(['all',
         ['==', ['get', 'kind'], 'roaster_to_consumed'],
         ['==', ['get', 'roasterLng5'], rLng5],

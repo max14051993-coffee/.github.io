@@ -301,6 +301,38 @@ function getExplicitPoint(lat, lng) {
   return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
 }
 
+function hasExplicitCountryData(properties, isoKey, nameKey) {
+  const code = String(properties?.[isoKey] || '').trim().toUpperCase();
+  const name = String(properties?.[nameKey] || '').trim();
+  return Boolean(code && name);
+}
+
+function hasExplicitRoasterData(properties) {
+  return Boolean(
+    getExplicitPoint(properties?.roasterLat, properties?.roasterLng)
+    && hasExplicitCountryData(properties, 'roasterCountryIso2', 'roasterCountryName')
+  );
+}
+
+function hasExplicitConsumedData(properties) {
+  return Boolean(
+    getExplicitPoint(properties?.consumedLat, properties?.consumedLng)
+    && hasExplicitCountryData(properties, 'consumedCountryIso2', 'consumedCountryName')
+  );
+}
+
+function needsRoasterGeocoding(properties) {
+  const city = String(properties?.roasterCity || '').trim();
+  if (!city) return false;
+  return !hasExplicitRoasterData(properties);
+}
+
+function needsConsumedGeocoding(properties) {
+  const city = String(properties?.consumedCity || '').trim();
+  if (!city) return false;
+  return !hasExplicitConsumedData(properties);
+}
+
 function getPreferredCountryDetails(properties, isoKey, nameKey, fallbackPoint) {
   const code = String(properties?.[isoKey] || '').trim().toUpperCase();
   const name = String(properties?.[nameKey] || '').trim();
@@ -884,15 +916,17 @@ export async function loadSupplementalDataset({ pointFeatures, mapboxToken, sign
   const wantedCities = new Set();
   for (const feature of pointFeatures) {
     const properties = feature.properties || {};
-    if (!getExplicitPoint(properties.roasterLat, properties.roasterLng) && properties.roasterCity) {
+    if (needsRoasterGeocoding(properties)) {
       wantedCities.add(String(properties.roasterCity).trim());
     }
-    if (!getExplicitPoint(properties.consumedLat, properties.consumedLng) && properties.consumedCity) {
+    if (needsConsumedGeocoding(properties)) {
       wantedCities.add(String(properties.consumedCity).trim());
     }
   }
   const uniqueCities = [...wantedCities].filter(Boolean);
-  const cityCoordsMap = await geocodeCities(uniqueCities, mapboxToken, { signal });
+  const cityCoordsMap = uniqueCities.length
+    ? await geocodeCities(uniqueCities, mapboxToken, { signal })
+    : {};
 
   const lineFeatures = buildRouteFeatures(pointFeatures, cityCoordsMap);
   const cityPoints = buildCityPoints(pointFeatures, cityCoordsMap);

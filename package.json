@@ -4,10 +4,13 @@
   "description": "Coffeemap mapbox project",
   "scripts": {
     "test": "playwright test",
-    "pretest": "bash -c 'if command -v apt-get >/dev/null 2>&1; then npx playwright install-deps || true; fi; playwright install'"
+    "pretest": "bash -c 'if command -v apt-get >/dev/null 2>&1; then npx playwright install-deps || true; fi; playwright install'",
+    "build:dataset": "node scripts/build-dataset.mjs",
+    "test:prebuilt": "playwright test tests/data-loader.prebuilt.spec.ts"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",
     "http-server": "^14.1.1"
-  }
+  },
+  "type": "module"
 }

@@ -38,6 +38,17 @@ function assertMapboxToken() {
 const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
 const DEFAULT_GOOGLE_SHEET_GID = '0';
 
+const DEFAULT_PREBUILT_DATASET_URL = '/data/dataset.json';
+
+function getConfiguredPrebuiltUrl() {
+  const fromUrl = urlParams.get('dataset') || urlParams.get('prebuilt');
+  if (fromUrl === '0' || fromUrl === 'false' || fromUrl === 'off') return null;
+
+  const fromMeta = document.querySelector('meta[name="prebuilt-dataset-json"]')?.content;
+  const resolved = (fromUrl || fromMeta || DEFAULT_PREBUILT_DATASET_URL || '').trim();
+  return resolved || null;
+}
+
 function getConfiguredSheetConfig() {
   const explicitUrl = urlParams.get('csv')
     || document.querySelector('meta[name="google-sheet-csv"]')?.content;
@@ -148,11 +159,12 @@ function setupResetViewButton() {
 async function loadDataset() {
   const sheetConfig = getConfiguredSheetConfig();
   const { csvUrl, sheetId, gid, sheetName } = sheetConfig;
-  if (!csvUrl) throw new Error('Не задан URL опубликованной таблицы Google Sheets.');
+  const prebuiltUrl = getConfiguredPrebuiltUrl();
+  if (!csvUrl && !prebuiltUrl) throw new Error('Не задан URL опубликованной таблицы Google Sheets и prebuilt dataset.json.');
 
   try {
-    const dataset = await loadData({ csvUrl, mapboxToken: MAPBOX_TOKEN });
-    return { dataset, source: 'csv', csvUrl };
+    const dataset = await loadData({ csvUrl, mapboxToken: MAPBOX_TOKEN, prebuiltUrl });
+    return { dataset, source: prebuiltUrl ? 'prebuilt-or-csv' : 'csv', csvUrl, prebuiltUrl };
   } catch (primaryError) {
     const fallbackQuery = new URLSearchParams({ tqx: 'out:csv', tq: 'select *' });
     if (gid) fallbackQuery.set('gid', gid);
@@ -162,8 +174,8 @@ async function loadDataset() {
       const fallbackUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${fallbackQuery.toString()}`;
       if (fallbackUrl !== csvUrl) {
         console.warn('Primary CSV load failed, trying gviz CSV endpoint', primaryError);
-        const dataset = await loadData({ csvUrl: fallbackUrl, mapboxToken: MAPBOX_TOKEN });
-        return { dataset, source: 'csv', csvUrl: fallbackUrl };
+        const dataset = await loadData({ csvUrl: fallbackUrl, mapboxToken: MAPBOX_TOKEN, prebuiltUrl: null });
+        return { dataset, source: 'csv', csvUrl: fallbackUrl, prebuiltUrl: null };
       }
     }
 

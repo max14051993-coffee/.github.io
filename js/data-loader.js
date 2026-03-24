@@ -888,6 +888,58 @@ async function downloadCsv(csvUrl, { signal } = {}) {
   return response.text();
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function validatePrebuiltDataset(payload) {
+  if (!isPlainObject(payload)) return { ok: false, reason: 'Dataset must be an object.' };
+  if (!Array.isArray(payload.pointFeatures)) return { ok: false, reason: 'pointFeatures must be an array.' };
+  if (!Array.isArray(payload.lineFeatures)) return { ok: false, reason: 'lineFeatures must be an array.' };
+  if (!isPlainObject(payload.cityPoints) || !Array.isArray(payload.cityPoints.features)) {
+    return { ok: false, reason: 'cityPoints must be a FeatureCollection-like object.' };
+  }
+  if (!isPlainObject(payload.metrics)) return { ok: false, reason: 'metrics must be an object.' };
+  if (payload.geojsonPoints && (!isPlainObject(payload.geojsonPoints) || !Array.isArray(payload.geojsonPoints.features))) {
+    return { ok: false, reason: 'geojsonPoints must be a FeatureCollection-like object when present.' };
+  }
+  if (payload.cityCoordsMap && !isPlainObject(payload.cityCoordsMap)) {
+    return { ok: false, reason: 'cityCoordsMap must be an object when present.' };
+  }
+  return { ok: true };
+}
+
+export async function loadPrebuiltDataset({ prebuiltUrl, signal } = {}) {
+  if (!prebuiltUrl) return null;
+  const response = await fetch(prebuiltUrl, { signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch prebuilt dataset: ${response.status} ${response.statusText}`);
+  }
+  const payload = await response.json();
+  const validation = validatePrebuiltDataset(payload);
+  if (!validation.ok) {
+    throw new Error(`Invalid prebuilt dataset: ${validation.reason}`);
+  }
+
+  const pointFeatures = payload.pointFeatures;
+  const geojsonPoints = payload.geojsonPoints || { type: 'FeatureCollection', features: pointFeatures };
+  const visitedCountries = [...getVisitedCountriesIso2(pointFeatures)];
+
+  return {
+    generatedAt: payload.generatedAt || null,
+    source: payload.source || { type: 'prebuilt', url: prebuiltUrl },
+    geojsonPoints,
+    pointFeatures,
+    cityCoordsMap: payload.cityCoordsMap || {},
+    lineFeatures: payload.lineFeatures,
+    cityPoints: payload.cityPoints,
+    metrics: payload.metrics,
+    ownerName: payload.ownerName || '',
+    ownerLabel: payload.ownerLabel || '',
+    visitedCountries,
+  };
+}
+
 export async function loadBaseDataset({ csvUrl, signal } = {}) {
   const csvText = await downloadCsv(csvUrl, { signal });
   const rows = parseCsvText(csvText);
@@ -940,11 +992,21 @@ export async function loadSupplementalDataset({ pointFeatures, mapboxToken, sign
   };
 }
 
-export async function loadData({ csvUrl, mapboxToken }) {
-  const base = await loadBaseDataset({ csvUrl });
+export async function loadData({ csvUrl, mapboxToken, prebuiltUrl, signal } = {}) {
+  if (prebuiltUrl) {
+    try {
+      const prebuiltDataset = await loadPrebuiltDataset({ prebuiltUrl, signal });
+      if (prebuiltDataset) return prebuiltDataset;
+    } catch (prebuiltError) {
+      console.warn('Prebuilt dataset unavailable, using CSV fallback.', prebuiltError);
+    }
+  }
+
+  const base = await loadBaseDataset({ csvUrl, signal });
   const supplemental = await loadSupplementalDataset({
     pointFeatures: base.pointFeatures,
     mapboxToken,
+    signal,
   });
 
   return { ...base, ...supplemental };

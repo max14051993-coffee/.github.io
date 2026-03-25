@@ -502,6 +502,8 @@ export function getVisitedCountriesIso2(pointFeatures) {
 }
 
 const WORLDVIEW = 'US';
+const DATASET_CACHE_KEY = 'coffee_dataset_cache_v1';
+const DATASET_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export function buildVisitedFilter(iso2List) {
   return [
@@ -510,6 +512,51 @@ export function buildVisitedFilter(iso2List) {
     ['any', ['==', 'all', ['get', 'worldview']], ['in', WORLDVIEW, ['get', 'worldview']]],
     ['in', ['get', 'iso_3166_1'], ['literal', iso2List]],
   ];
+}
+
+function isStorageAvailable() {
+  return typeof window !== 'undefined' && window.localStorage;
+}
+
+function isRuntimeDatasetShape(dataset) {
+  return Boolean(
+    dataset
+    && dataset.geojsonPoints
+    && Array.isArray(dataset.pointFeatures)
+    && Array.isArray(dataset.visitedCountries),
+  );
+}
+
+function readDatasetCache({ cacheKey = DATASET_CACHE_KEY, ttlMs = DATASET_CACHE_TTL_MS, requestKey = '' } = {}) {
+  if (!isStorageAvailable()) return null;
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (parsed.requestKey !== requestKey) return null;
+    const savedAt = Number(parsed.savedAt || 0);
+    if (!Number.isFinite(savedAt) || savedAt <= 0) return null;
+    if ((Date.now() - savedAt) > ttlMs) return null;
+    if (!isRuntimeDatasetShape(parsed.payload)) return null;
+    return parsed.payload;
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeDatasetCache(payload, { cacheKey = DATASET_CACHE_KEY, requestKey = '' } = {}) {
+  if (!isStorageAvailable() || !isRuntimeDatasetShape(payload)) return;
+  try {
+    const entry = {
+      payload,
+      requestKey,
+      savedAt: Date.now(),
+    };
+    window.localStorage.setItem(cacheKey, JSON.stringify(entry));
+  } catch (error) {
+    // Ignore quota or private-mode failures and keep network data flow.
+  }
 }
 
 export function computeMetrics(pointFeatures, cityMap = {}) {
@@ -993,21 +1040,30 @@ export async function loadSupplementalDataset({ pointFeatures, mapboxToken, sign
 }
 
 export async function loadData({ csvUrl, mapboxToken, prebuiltUrl, signal } = {}) {
+  const requestKey = `prebuilt:${prebuiltUrl || ''}|csv:${csvUrl || ''}`;
+  const cachedDataset = readDatasetCache({ requestKey });
+  if (cachedDataset) return cachedDataset;
+
+  let networkDataset;
   if (prebuiltUrl) {
     try {
       const prebuiltDataset = await loadPrebuiltDataset({ prebuiltUrl, signal });
-      if (prebuiltDataset) return prebuiltDataset;
+      if (prebuiltDataset) networkDataset = prebuiltDataset;
     } catch (prebuiltError) {
       console.warn('Prebuilt dataset unavailable, using CSV fallback.', prebuiltError);
     }
   }
 
-  const base = await loadBaseDataset({ csvUrl, signal });
-  const supplemental = await loadSupplementalDataset({
-    pointFeatures: base.pointFeatures,
-    mapboxToken,
-    signal,
-  });
+  if (!networkDataset) {
+    const base = await loadBaseDataset({ csvUrl, signal });
+    const supplemental = await loadSupplementalDataset({
+      pointFeatures: base.pointFeatures,
+      mapboxToken,
+      signal,
+    });
+    networkDataset = { ...base, ...supplemental };
+  }
 
-  return { ...base, ...supplemental };
+  writeDatasetCache(networkDataset, { requestKey });
+  return networkDataset;
 }

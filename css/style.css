@@ -130,6 +130,10 @@ body[data-theme="dark"] .map-loading{
   background:rgba(11,18,32,0.66);
 }
 
+.map-loading[hidden]{
+  display:none !important;
+}
+
 .map-loading-spinner{
   width:18px;
   height:18px;

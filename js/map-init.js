@@ -179,12 +179,12 @@ function ensureTerrain(map, { enable3dLayers = true, forceDisable3D = false } = 
 
 function flagFromRow(flagEmojiCell, iso2Cell, flagMode) {
   const emoji = String(flagEmojiCell || '').trim();
-  if (flagMode === 'emoji' && emoji) return emoji;
+  if (flagMode === 'emoji') return emoji || '🏳️';
   const code = String(iso2Cell || '').trim().toLowerCase();
   if (code.length === 2) {
     return `<img src="https://flagcdn.com/24x18/${code}.png" alt="${code.toUpperCase()}" width="24" height="18" style="vertical-align:-2px;border-radius:2px">`;
   }
-  return flagMode === 'emoji' ? emoji : '';
+  return emoji || '🏳️';
 }
 
 function popupHTML(p, flagMode) {

@@ -19,9 +19,20 @@ function resolveMapboxToken(params) {
 }
 const theme = (new URLSearchParams(location.search).get('style') || 'light').toLowerCase();
 document.body.dataset.theme = theme;
-const flagMode = (new URLSearchParams(location.search).get('flag') || 'img').toLowerCase();
+
+function resolveDefaultFlagMode(params) {
+  const explicitMode = params.get('flag');
+  if (explicitMode) return explicitMode.toLowerCase();
+  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
+    const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
+    if (isMobileViewport) return 'emoji';
+  }
+  return 'img';
+}
 
 const urlParams = new URLSearchParams(location.search);
+const flagMode = resolveDefaultFlagMode(urlParams);
+document.body.dataset.flagMode = flagMode;
 
 const MAPBOX_TOKEN = resolveMapboxToken(urlParams);
 
@@ -137,6 +148,14 @@ function showAchievementsStatus(message, variant = 'info') {
     : message;
   revealAchievementsRoot();
   list.innerHTML = `<div class="${classes.join(' ')}" role="status">${content}</div>`;
+}
+
+function setMapLoadingState(loading, message = 'Загружаем карту и данные…') {
+  const loader = document.querySelector('[data-map-loading]');
+  if (!loader) return;
+  const text = loader.querySelector('[data-map-loading-text]');
+  if (text) text.textContent = message;
+  loader.hidden = !loading;
 }
 
 setupInfoDisclosure({
@@ -281,6 +300,8 @@ function scheduleNonCriticalTask(task) {
 
 async function init() {
   assertMapboxToken();
+  setMapLoadingState(true);
+  showAchievementsStatus('Загружаем достижения…', 'loading');
   try {
     const { mapboxgl } = await ensureVendorBundles();
     mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode, viewMode: 'points' });
@@ -288,6 +309,7 @@ async function init() {
     setupResetViewButton();
   } catch (dependencyError) {
     console.error('Map dependency error:', dependencyError);
+    setMapLoadingState(false);
     const mapEl = document.getElementById('map');
     if (mapEl) {
       mapEl.innerHTML = '<div class="map-error">Не удалось загрузить карту. Попробуйте обновить страницу.</div>';
@@ -306,20 +328,30 @@ async function init() {
     if (titleEl) titleEl.textContent = COLLECTION_TITLE;
 
     applyFilters({ fit: true });
+    setMapLoadingState(false);
 
     if (dataset.metrics) {
       scheduleNonCriticalTask(() => {
         renderAchievements(dataset.metrics);
         renderStats(dataset.metrics);
       });
+    } else {
+      showAchievementsStatus('Достижения пока недоступны.');
     }
 
-    window.addEventListener('resize', debounce(() => {
+    const resizeDebounceMs = (typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches)
+      ? 250
+      : 150;
+    const handleViewportChange = debounce(() => {
       mapController?.refresh3DLayers();
       mapController?.resize();
-    }, 150));
+    }, resizeDebounceMs);
+
+    window.addEventListener('resize', handleViewportChange);
+    window.addEventListener('orientationchange', handleViewportChange);
   } catch (err) {
     console.error('CSV error:', err);
+    setMapLoadingState(false);
     const mapEl = document.getElementById('map');
     if (mapEl) {
       mapEl.innerHTML = '<div class="map-error">Не удалось загрузить таблицу Google Sheets. Проверьте доступ по ссылке.</div>';

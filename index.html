@@ -15,7 +15,6 @@
   <link rel="dns-prefetch" href="https://api.mapbox.com">
   <link rel="dns-prefetch" href="https://events.mapbox.com">
   <link rel="dns-prefetch" href="https://docs.google.com">
-  <link rel="dns-prefetch" href="https://flagcdn.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -25,6 +24,10 @@
 <body>
   <div class="map-stage">
     <div id="map"></div>
+    <div class="map-loading" data-map-loading role="status" aria-live="polite">
+      <span class="map-loading-spinner" aria-hidden="true"></span>
+      <span data-map-loading-text>Загружаем карту и данные…</span>
+    </div>
 
     <div class="map-ui">
       <header class="map-banner">

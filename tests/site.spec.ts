@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, devices } from '@playwright/test';
 
 test.describe('Coffeemap homepage', () => {
   test('displays map interface and controls', async ({ page }) => {
@@ -33,5 +33,33 @@ test.describe('Coffeemap homepage', () => {
 
     expect(metrics.domContentLoaded).toBeLessThan(5_000);
     expect(metrics.loadEventEnd).toBeLessThan(8_000);
+  });
+});
+
+test.describe('Coffeemap homepage mobile baseline', () => {
+  const { defaultBrowserType, ...iphone13 } = devices['iPhone 13'];
+  void defaultBrowserType;
+  test.use({
+    ...iphone13,
+  });
+
+  test('renders quickly on mobile viewport', async ({ page }) => {
+    await page.goto('/', { waitUntil: 'load' });
+    await page.waitForLoadState('networkidle');
+
+    const metrics = await page.evaluate(() => {
+      const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+      const paints = performance.getEntriesByType('paint');
+      const fcp = paints.find((entry) => entry.name === 'first-contentful-paint')?.startTime ?? null;
+      return {
+        fcp,
+        domContentLoaded: nav?.domContentLoadedEventEnd ?? null,
+        loadEventEnd: nav?.loadEventEnd ?? nav?.responseEnd ?? null,
+      };
+    });
+
+    expect(metrics.fcp ?? Number.POSITIVE_INFINITY).toBeLessThan(2_000);
+    expect(metrics.domContentLoaded ?? Number.POSITIVE_INFINITY).toBeLessThan(4_000);
+    expect(metrics.loadEventEnd ?? Number.POSITIVE_INFINITY).toBeLessThan(6_000);
   });
 });

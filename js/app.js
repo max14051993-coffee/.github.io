@@ -264,6 +264,21 @@ function applyFilters({ fit = false } = {}) {
   return features;
 }
 
+function scheduleNonCriticalTask(task) {
+  if (typeof task !== 'function') return;
+  if (typeof window === 'undefined') {
+    task();
+    return;
+  }
+
+  if (typeof window.requestIdleCallback === 'function') {
+    window.requestIdleCallback(() => task(), { timeout: 400 });
+    return;
+  }
+
+  window.setTimeout(task, 0);
+}
+
 async function init() {
   assertMapboxToken();
   try {
@@ -293,8 +308,10 @@ async function init() {
     applyFilters({ fit: true });
 
     if (dataset.metrics) {
-      renderAchievements(dataset.metrics);
-      renderStats(dataset.metrics);
+      scheduleNonCriticalTask(() => {
+        renderAchievements(dataset.metrics);
+        renderStats(dataset.metrics);
+      });
     }
 
     window.addEventListener('resize', debounce(() => {

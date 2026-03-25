@@ -147,6 +147,8 @@ setupInfoDisclosure({
 let mapController = null;
 let allPointFeatures = [];
 let cityCoords = {};
+let precomputedDerived = null;
+let derivedCache = { key: '', value: null };
 const resetViewButton = document.querySelector('[data-reset-view]');
 
 function setupResetViewButton() {
@@ -154,6 +156,63 @@ function setupResetViewButton() {
   resetViewButton.addEventListener('click', () => {
     mapController?.resetView();
   });
+}
+
+
+
+function buildFeatureKey(features) {
+  const length = Array.isArray(features) ? features.length : 0;
+  if (!length) return '0';
+  const first = features[0];
+  const last = features[length - 1];
+  const firstTs = String(first?.properties?.timestamp || '');
+  const lastTs = String(last?.properties?.timestamp || '');
+  return `${length}|${firstTs}|${lastTs}`;
+}
+
+function isPrebuiltDataset(dataset) {
+  return Boolean(dataset && dataset.generatedAt && Array.isArray(dataset.lineFeatures) && dataset.cityPoints);
+}
+
+function setPrecomputedDerived(dataset, features) {
+  if (!isPrebuiltDataset(dataset)) {
+    precomputedDerived = null;
+    return;
+  }
+
+  precomputedDerived = {
+    featuresRef: features,
+    lineFeatures: Array.isArray(dataset.lineFeatures) ? dataset.lineFeatures : [],
+    cityPoints: dataset.cityPoints && typeof dataset.cityPoints === 'object'
+      ? dataset.cityPoints
+      : { type: 'FeatureCollection', features: [] },
+    visitedCountries: Array.isArray(dataset.visitedCountries)
+      ? dataset.visitedCountries
+      : [...getVisitedCountriesIso2(features)],
+  };
+}
+
+function deriveMapData(features) {
+  if (precomputedDerived && precomputedDerived.featuresRef === features) {
+    return {
+      lineFeatures: precomputedDerived.lineFeatures,
+      cityPoints: precomputedDerived.cityPoints,
+      visited: precomputedDerived.visitedCountries,
+    };
+  }
+
+  const key = buildFeatureKey(features);
+  if (derivedCache.key === key && derivedCache.value) {
+    return derivedCache.value;
+  }
+
+  const value = {
+    lineFeatures: buildRouteFeatures(features, cityCoords),
+    cityPoints: buildCityPoints(features, cityCoords),
+    visited: [...getVisitedCountriesIso2(features)],
+  };
+  derivedCache = { key, value };
+  return value;
 }
 
 async function loadDataset() {
@@ -190,9 +249,7 @@ function getFilteredFeatures() {
 function applyFilters({ fit = false } = {}) {
   const features = getFilteredFeatures();
   const geojson = { type: 'FeatureCollection', features };
-  const lineFeatures = buildRouteFeatures(features, cityCoords);
-  const cityPoints = buildCityPoints(features, cityCoords);
-  const visited = [...getVisitedCountriesIso2(features)];
+  const { lineFeatures, cityPoints, visited } = deriveMapData(features);
 
   if (!mapController) return features;
 
@@ -228,6 +285,7 @@ async function init() {
     const geojsonPoints = dataset.geojsonPoints;
     allPointFeatures = dataset.pointFeatures || geojsonPoints?.features || [];
     cityCoords = dataset.cityCoordsMap || dataset.cityCoords || {};
+    setPrecomputedDerived(dataset, allPointFeatures);
 
     const titleEl = document.getElementById('collectionTitle');
     if (titleEl) titleEl.textContent = COLLECTION_TITLE;

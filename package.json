@@ -6,7 +6,8 @@
     "test": "playwright test",
     "pretest": "bash -c 'if command -v apt-get >/dev/null 2>&1; then npx playwright install-deps || true; fi; playwright install'",
     "build:dataset": "node scripts/build-dataset.mjs",
-    "test:prebuilt": "playwright test tests/data-loader.prebuilt.spec.ts"
+    "test:prebuilt": "playwright test tests/data-loader.prebuilt.spec.ts",
+    "check:dataset": "node scripts/verify-dataset.mjs"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.0",

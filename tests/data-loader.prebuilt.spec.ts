@@ -50,11 +50,15 @@ test.describe('data-loader prebuilt dataset mode', () => {
 
       return {
         total: dataset.metrics.total,
+        lineFeaturesLength: Array.isArray(dataset.lineFeatures) ? dataset.lineFeatures.length : -1,
+        cityPointsType: dataset.cityPoints?.type || '',
         calls,
       };
     });
 
     expect(result.total).toBe(1);
+    expect(result.lineFeaturesLength).toBe(0);
+    expect(result.cityPointsType).toBe('FeatureCollection');
     expect(result.calls.some((url) => url.includes('/sheet.csv'))).toBeFalsy();
     expect(result.calls.some((url) => url.includes('api.mapbox.com/geocoding'))).toBeFalsy();
   });
@@ -93,6 +97,8 @@ test.describe('data-loader prebuilt dataset mode', () => {
 
       return {
         total: dataset.metrics.total,
+        lineFeaturesLength: Array.isArray(dataset.lineFeatures) ? dataset.lineFeatures.length : -1,
+        cityPointsType: dataset.cityPoints?.type || '',
         calls,
       };
     });

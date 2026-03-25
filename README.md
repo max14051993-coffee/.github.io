@@ -39,7 +39,11 @@ MAPBOX_TOKEN="<token>" node scripts/build-dataset.mjs --sheetId "<ID>" --gid 0 -
    ```bash
    node scripts/build-dataset.mjs --sheetId "<ID>" --gid 0
    ```
-3. Закоммитьте обновлённый `data/dataset.json`.
+3. Проверьте целостность prebuilt:
+   ```bash
+   node scripts/verify-dataset.mjs
+   ```
+4. Закоммитьте обновлённый `data/dataset.json`.
 
 ## CSV fallback (backward compatible)
 
@@ -78,6 +82,7 @@ MAPBOX_TOKEN="<token>" node scripts/build-dataset.mjs --sheetId "<ID>" --gid 0 -
 Базовые smoke/e2e проверки:
 
 ```bash
+node scripts/verify-dataset.mjs
 npx playwright test tests/data-loader.prebuilt.spec.ts
 ```
 

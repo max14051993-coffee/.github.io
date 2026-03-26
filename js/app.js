@@ -6,8 +6,9 @@ import {
   loadData,
 } from './data-loader.js';
 import { renderAchievements, renderStats } from './ui-controls.js';
-import { createMapController } from './map-init.js';
+import { createMapController, resolvePowerMode } from './map-init.js';
 import { ensureVendorBundles } from './vendor-loader.js';
+import { buildRumAggregationQuery, initializeRum, isRumEnabled } from './rum.js';
 
 
 const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
@@ -33,6 +34,7 @@ function resolveDefaultFlagMode(params) {
 const urlParams = new URLSearchParams(location.search);
 const flagMode = resolveDefaultFlagMode(urlParams);
 document.body.dataset.flagMode = flagMode;
+const powerMode = resolvePowerMode(urlParams);
 
 const MAPBOX_TOKEN = resolveMapboxToken(urlParams);
 
@@ -241,7 +243,19 @@ async function loadDataset() {
   if (!csvUrl && !prebuiltUrl) throw new Error('Не задан URL опубликованной таблицы Google Sheets и prebuilt dataset.json.');
 
   try {
-    const dataset = await loadData({ csvUrl, mapboxToken: MAPBOX_TOKEN, prebuiltUrl });
+    const dataset = await loadData({
+      csvUrl,
+      mapboxToken: MAPBOX_TOKEN,
+      prebuiltUrl,
+      onUpdate: ({ dataset: updatedDataset }) => {
+        allPointFeatures = updatedDataset.pointFeatures || [];
+        cityCoords = updatedDataset.cityCoordsMap || {};
+        setPrecomputedDerived(updatedDataset, allPointFeatures);
+        derivedCache = { key: '', value: null };
+        applyFilters({ fit: false });
+        renderStats(updatedDataset.metrics);
+      },
+    });
     return { dataset, source: prebuiltUrl ? 'prebuilt-or-csv' : 'csv', csvUrl, prebuiltUrl };
   } catch (primaryError) {
     const fallbackQuery = new URLSearchParams({ tqx: 'out:csv', tq: 'select *' });
@@ -299,12 +313,31 @@ function scheduleNonCriticalTask(task) {
 }
 
 async function init() {
+  const appVersion = document.querySelector('meta[name="app-version"]')?.content || 'dev';
+  const appCommit = document.querySelector('meta[name="app-commit"]')?.content || 'local';
+  const rum = initializeRum({
+    enabled: isRumEnabled(urlParams),
+    endpoint: document.querySelector('meta[name="rum-endpoint"]')?.content || '/rum/vitals',
+    appVersion,
+    appCommit,
+  });
+  if (rum.enabled) {
+    console.info('RUM enabled', buildRumAggregationQuery());
+  }
+
   assertMapboxToken();
   setMapLoadingState(true);
   showAchievementsStatus('Загружаем достижения…', 'loading');
   try {
     const { mapboxgl } = await ensureVendorBundles();
-    mapController = createMapController({ mapboxgl, accessToken: MAPBOX_TOKEN, theme, flagMode, viewMode: 'points' });
+    mapController = createMapController({
+      mapboxgl,
+      accessToken: MAPBOX_TOKEN,
+      theme,
+      flagMode,
+      viewMode: 'points',
+      powerMode,
+    });
     mapController.setRoutesVisibility(true);
     setupResetViewButton();
   } catch (dependencyError) {

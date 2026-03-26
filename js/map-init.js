@@ -5,6 +5,7 @@ import { buildVisitedFilter, getPointFromCoordsOrCity } from './data-loader.js';
 const EPS = 1e-6;
 const TERRAIN_WIDTH_BREAKPOINT = 768;
 const LOW_POWER_CONNECTION_TYPES = new Set(['slow-2g', '2g', '3g']);
+const DEFAULT_POWER_MODE = 'auto';
 
 const sameCoord = (a, b) => Math.abs(a[0] - b[0]) < EPS && Math.abs(a[1] - b[1]) < EPS;
 
@@ -19,12 +20,19 @@ const isCompactViewport = () => {
   return window.innerWidth > 0 && window.innerWidth < TERRAIN_WIDTH_BREAKPOINT;
 };
 
-function getRuntimePerformanceProfile() {
+export function resolvePowerMode(params = new URLSearchParams(typeof location !== 'undefined' ? location.search : '')) {
+  const forced = String(params.get('power') || '').toLowerCase();
+  if (forced === 'low' || forced === 'high' || forced === 'auto') return forced;
+  return DEFAULT_POWER_MODE;
+}
+
+export function getRuntimePerformanceProfile({ powerMode = DEFAULT_POWER_MODE } = {}) {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return {
       isLowPower: false,
       shouldReduceInteractions: false,
       animationDuration: 700,
+      powerMode: powerMode || DEFAULT_POWER_MODE,
     };
   }
 
@@ -38,12 +46,18 @@ function getRuntimePerformanceProfile() {
   const effectiveType = String(connection?.effectiveType || '').toLowerCase();
   const saveData = connection?.saveData === true;
   const slowNetwork = LOW_POWER_CONNECTION_TYPES.has(effectiveType);
+  const mobileContext = isCompactViewport();
+  const reduceMotion = prefersReducedMotion();
 
-  const isLowPower = lowCpu || lowMemory || slowNetwork || saveData;
+  const autoLowPower = lowCpu || lowMemory || slowNetwork || saveData || reduceMotion || mobileContext;
+  const resolvedMode = powerMode === 'low' || powerMode === 'high' ? powerMode : DEFAULT_POWER_MODE;
+  const isLowPower = resolvedMode === 'low' ? true : (resolvedMode === 'high' ? false : autoLowPower);
   return {
     isLowPower,
-    shouldReduceInteractions: isLowPower,
-    animationDuration: isLowPower ? 420 : 700,
+    shouldReduceInteractions: isLowPower || reduceMotion,
+    animationDuration: isLowPower ? 320 : (reduceMotion ? 420 : 700),
+    powerMode: resolvedMode,
+    effectiveType: effectiveType || 'unknown',
   };
 }
 
@@ -236,14 +250,14 @@ function popupHTML(p, flagMode) {
   }
 }
 
-export function createMapController({ mapboxgl, accessToken, theme, flagMode, enable3dLayers = true, viewMode = 'cities' }) {
+export function createMapController({ mapboxgl, accessToken, theme, flagMode, enable3dLayers = true, viewMode = 'cities', powerMode = DEFAULT_POWER_MODE }) {
   if (!mapboxgl || typeof mapboxgl.Map !== 'function') {
     throw new Error('Mapbox GL JS is not available');
   }
   mapboxgl.accessToken = accessToken;
   const initialView = { center: [12, 20], zoom: 1.6 };
 
-  const perfProfile = getRuntimePerformanceProfile();
+  const perfProfile = getRuntimePerformanceProfile({ powerMode });
 
   const map = new mapboxgl.Map({
     container: 'map',

@@ -86,5 +86,63 @@ node scripts/verify-dataset.mjs
 npx playwright test tests/data-loader.prebuilt.spec.ts
 ```
 
+## Prod RUM (FCP/LCP/INP/CLS)
+
+RUM выключен по умолчанию и управляется feature-flag:
+
+- URL: `?rum=1` / `?rum=0`
+- Meta: `<meta name="rum-enabled" content="true" />`
+- Endpoint: `<meta name="rum-endpoint" content="/rum/vitals" />`
+- Версия: `<meta name="app-version" ...>` и `<meta name="app-commit" ...>`
+
+Что отправляется (без PII): метрика (`FCP`, `LCP`, `INP`, `CLS`), значение, `deviceType` (mobile/desktop), `effectiveType`, `country` из `navigator.language`, `timezone`, версия/коммит.
+
+Отправка идёт батчами через `sendBeacon`, при недоступности — `fetch(..., { keepalive: true })`. Дедупликация выполняется на сессию.
+
+Минимальный формат агрегации для дашборда:
+- группировка: `metric + deviceType + effectiveType`
+- агрегаты: `count, p50, p75, p95`
+
+Сравнение до/после:
+1. зафиксируйте базовый период (например, 7 дней);
+2. выкатывайте фичу под флагом;
+3. сравнивайте p75 по mobile/desktop отдельно для `FCP/LCP/INP/CLS`.
+
+## Dataset cache: light revalidation
+
+Кэш хранит:
+- `payload`
+- `cachedAt`
+- `requestKey`
+- `generatedAt`
+- `etag` / `lastModified` (если доступны)
+
+Поведение:
+1. при старте всегда отдается кэш (быстрый рендер);
+2. в фоне запускается light revalidation (`If-None-Match` / `If-Modified-Since`);
+3. при `304` — тихое подтверждение актуальности;
+4. при новом payload — тихое обновление данных/UI без принудительного `fit`.
+
+Обработаны кейсы: смена `requestKey`, битый кэш, отсутствие revalidation-заголовков.
+
+## Adaptive low-power mode
+
+Режим определяется по:
+- `navigator.hardwareConcurrency`
+- `navigator.deviceMemory`
+- `navigator.connection.effectiveType` / `saveData`
+- `prefers-reduced-motion`
+- mobile/compact viewport
+
+Форсирование через URL:
+- `?power=auto` (по умолчанию)
+- `?power=low`
+- `?power=high`
+
+В low-power режиме:
+- отключаются тяжёлые 3D-эффекты (terrain/fog/sky),
+- снижается длительность `easeTo/fitBounds`,
+- ограничиваются не-критичные взаимодействия (rotation).
+
 ## Аудит UX/производительности
 - Подробные рекомендации по мобильной UX и производительности: `MOBILE_UX_PERF_RECOMMENDATIONS.md`.

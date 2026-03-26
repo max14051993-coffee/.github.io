@@ -53,21 +53,25 @@ function withDriveImageWidth(url, width) {
 
 export function driveImgHtml(url) {
   if (!url) return '';
+  const chain = getPopupPhotoCandidates(url);
+  const [first, ...rest] = chain;
+  const fallbackAttr = ` data-fallback="${escapeAttr(JSON.stringify(rest))}"`;
+  return `<img class="popup-cover" loading="eager" fetchpriority="high" decoding="async" src="${escapeAttr(first)}" alt="photo"${fallbackAttr}>`;
+}
+
+export function getPopupPhotoCandidates(url) {
+  if (!url) return [];
   const width = popupImageWidth();
   if (/thumbnail\?id=/.test(url)) {
-    const sizedUrl = withDriveImageWidth(url, width);
-    return `<img class="popup-cover" loading="lazy" src="${escapeAttr(sizedUrl)}" alt="photo">`;
+    return [withDriveImageWidth(url, width)];
   }
   const id = extractDriveId(url);
-  const chain = id ? [
+  return id ? [
     `https://drive.google.com/thumbnail?id=${id}&sz=w${width}`,
     `https://lh3.googleusercontent.com/d/${id}=w${width}`,
     `https://drive.google.com/uc?export=view&id=${id}`,
     `https://drive.google.com/uc?export=download&id=${id}`,
   ] : [withDriveImageWidth(url, width)];
-  const [first, ...rest] = chain;
-  const fallbackAttr = ` data-fallback="${escapeAttr(JSON.stringify(rest))}"`;
-  return `<img class="popup-cover" loading="lazy" src="${escapeAttr(first)}" alt="photo"${fallbackAttr}>`;
 }
 
 function readFallbackList(img, list) {

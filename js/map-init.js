@@ -1,4 +1,4 @@
-import { driveImgHtml, escapeAttr, escapeHtml, normalizeName } from './utils.js';
+import { driveImgHtml, escapeAttr, escapeHtml, getPopupPhotoCandidates, normalizeName } from './utils.js';
 import { processColors } from './ui-controls.js';
 import { buildVisitedFilter, getPointFromCoordsOrCity } from './data-loader.js';
 
@@ -6,6 +6,8 @@ const EPS = 1e-6;
 const TERRAIN_WIDTH_BREAKPOINT = 768;
 const LOW_POWER_CONNECTION_TYPES = new Set(['slow-2g', '2g', '3g']);
 const DEFAULT_POWER_MODE = 'auto';
+const PREWARMED_PHOTO_URLS_MAX = 160;
+const prewarmedPhotoUrls = new Set();
 
 const sameCoord = (a, b) => Math.abs(a[0] - b[0]) < EPS && Math.abs(a[1] - b[1]) < EPS;
 
@@ -247,6 +249,24 @@ function popupHTML(p, flagMode) {
 
   function emojiRow(emoji, title, val) {
     return `<div class="row"><span class="row-emoji" title="${escapeAttr(title)}">${emoji}</span><span>${val || ''}</span></div>`;
+  }
+}
+
+function prewarmPopupPhoto(feature) {
+  if (typeof Image === 'undefined') return;
+  const photoUrl = feature?.properties?.photoUrl;
+  if (!photoUrl) return;
+  const candidates = getPopupPhotoCandidates(photoUrl);
+  for (const src of candidates) {
+    if (!src || prewarmedPhotoUrls.has(src)) continue;
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+    prewarmedPhotoUrls.add(src);
+    if (prewarmedPhotoUrls.size > PREWARMED_PHOTO_URLS_MAX) {
+      const [first] = prewarmedPhotoUrls;
+      if (first) prewarmedPhotoUrls.delete(first);
+    }
   }
 }
 
@@ -740,6 +760,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
 
   const showMultiPopup = (features, coord) => {
     let index = 0;
+    for (const feature of features) prewarmPopupPhoto(feature);
     const popup = new mapboxgl.Popup({ offset: 12, maxWidth: '360px' }).setLngLat(coord);
 
     const render = () => {

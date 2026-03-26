@@ -107,4 +107,51 @@ test.describe('data-loader prebuilt dataset mode', () => {
     expect(result.calls.some((url) => url.includes('/data/dataset.json'))).toBeTruthy();
     expect(result.calls.some((url) => url.includes('/sheet.csv'))).toBeTruthy();
   });
+
+  test('does not persist CSV fallback in localStorage cache', async ({ page }) => {
+    await page.goto('/');
+
+    const result = await page.evaluate(async () => {
+      const calls: string[] = [];
+      const originalFetch = window.fetch.bind(window);
+      window.localStorage.removeItem('coffee_dataset_cache_v1');
+      const csv = [
+        'Latitude (lat),Longitude (lng),Origin country,Country ISO2,Flag emoji',
+        '55.7558,37.6173,Ethiopia,ET,🇪🇹',
+      ].join('\n');
+
+      window.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === 'string' ? input : input.toString();
+        calls.push(url);
+        if (url.endsWith('/data/dataset.json')) {
+          return new Response(JSON.stringify({ pointFeatures: [] }), { status: 200, headers: { 'content-type': 'application/json' } });
+        }
+        if (url.endsWith('/sheet.csv')) {
+          return new Response(csv, { status: 200, headers: { 'content-type': 'text/csv' } });
+        }
+        return originalFetch(input, init);
+      };
+
+      const loader = await import('/js/data-loader.js');
+      await loader.loadData({
+        prebuiltUrl: '/data/dataset.json',
+        csvUrl: '/sheet.csv',
+        mapboxToken: 'fake-token',
+      });
+      await loader.loadData({
+        prebuiltUrl: '/data/dataset.json',
+        csvUrl: '/sheet.csv',
+        mapboxToken: 'fake-token',
+      });
+
+      window.fetch = originalFetch;
+      return {
+        csvCalls: calls.filter((url) => url.includes('/sheet.csv')).length,
+        cacheRaw: window.localStorage.getItem('coffee_dataset_cache_v1'),
+      };
+    });
+
+    expect(result.csvCalls).toBe(2);
+    expect(result.cacheRaw).toBeNull();
+  });
 });

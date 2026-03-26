@@ -543,6 +543,7 @@ function readDatasetCacheEntry({ cacheKey = DATASET_CACHE_KEY, requestKey = '' }
       payload: parsed.payload,
       cachedAt,
       requestKey,
+      sourceType: String(parsed.sourceType || ''),
       generatedAt: String(parsed.generatedAt || ''),
       etag: String(parsed.etag || ''),
       lastModified: String(parsed.lastModified || ''),
@@ -556,6 +557,7 @@ function readDatasetCacheEntry({ cacheKey = DATASET_CACHE_KEY, requestKey = '' }
 function writeDatasetCache(payload, {
   cacheKey = DATASET_CACHE_KEY,
   requestKey = '',
+  sourceType = '',
   generatedAt = '',
   etag = '',
   lastModified = '',
@@ -566,6 +568,7 @@ function writeDatasetCache(payload, {
     const entry = {
       payload,
       requestKey,
+      sourceType,
       cachedAt: Date.now(),
       generatedAt,
       etag,
@@ -1127,6 +1130,7 @@ async function revalidateDatasetCache({
     if (next.status === 304) {
       writeDatasetCache(cacheEntry.payload, {
         requestKey,
+        sourceType: 'prebuilt',
         generatedAt: cacheEntry.generatedAt,
         etag: cacheEntry.etag,
         lastModified: cacheEntry.lastModified,
@@ -1138,6 +1142,7 @@ async function revalidateDatasetCache({
     const isChanged = !previousGeneratedAt || !nextGeneratedAt || previousGeneratedAt !== nextGeneratedAt;
     writeDatasetCache(next.dataset, {
       requestKey,
+      sourceType: 'prebuilt',
       generatedAt: nextGeneratedAt,
       etag: next.etag,
       lastModified: next.lastModified,
@@ -1153,7 +1158,7 @@ async function revalidateDatasetCache({
 export async function loadData({ csvUrl, mapboxToken, prebuiltUrl, signal, onUpdate } = {}) {
   const requestKey = `prebuilt:${prebuiltUrl || ''}|csv:${csvUrl || ''}`;
   const cacheEntry = readDatasetCacheEntry({ requestKey });
-  if (cacheEntry?.payload) {
+  if (cacheEntry?.payload && cacheEntry.sourceType === 'prebuilt') {
     revalidateDatasetCache({ cacheEntry, requestKey, prebuiltUrl, signal, onUpdate });
     return cacheEntry.payload;
   }
@@ -1166,6 +1171,7 @@ export async function loadData({ csvUrl, mapboxToken, prebuiltUrl, signal, onUpd
         networkDataset = prebuilt.dataset;
         writeDatasetCache(networkDataset, {
           requestKey,
+          sourceType: 'prebuilt',
           generatedAt: prebuilt.generatedAt,
           etag: prebuilt.etag,
           lastModified: prebuilt.lastModified,
@@ -1186,6 +1192,8 @@ export async function loadData({ csvUrl, mapboxToken, prebuiltUrl, signal, onUpd
     networkDataset = { ...base, ...supplemental };
   }
 
-  writeDatasetCache(networkDataset, { requestKey });
+  if (prebuiltUrl && networkDataset?.source?.type === 'prebuilt') {
+    writeDatasetCache(networkDataset, { requestKey, sourceType: 'prebuilt' });
+  }
   return networkDataset;
 }

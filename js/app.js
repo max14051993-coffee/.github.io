@@ -24,10 +24,6 @@ document.body.dataset.theme = theme;
 function resolveDefaultFlagMode(params) {
   const explicitMode = params.get('flag');
   if (explicitMode) return explicitMode.toLowerCase();
-  if (typeof window !== 'undefined' && typeof window.matchMedia === 'function') {
-    const isMobileViewport = window.matchMedia('(max-width: 768px)').matches;
-    if (isMobileViewport) return 'emoji';
-  }
   return 'img';
 }
 
@@ -51,7 +47,7 @@ function assertMapboxToken() {
 const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
 const DEFAULT_GOOGLE_SHEET_GID = '0';
 
-const DEFAULT_PREBUILT_DATASET_URL = '/data/dataset.json';
+const DEFAULT_PREBUILT_DATASET_URL = '';
 
 function getConfiguredPrebuiltUrl() {
   const fromUrl = urlParams.get('dataset') || urlParams.get('prebuilt');
@@ -79,19 +75,11 @@ function getConfiguredSheetConfig() {
 
   if (!sheetId) return { csvUrl: null, sheetId: null, gid: null, sheetName: null };
 
-  if (sheetName) {
-    const query = new URLSearchParams({ tqx: 'out:csv', sheet: sheetName, tq: 'select *' });
-    return {
-      csvUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query.toString()}`,
-      sheetId,
-      gid,
-      sheetName,
-    };
-  }
-
-  const query = new URLSearchParams({ format: 'csv', gid });
+  const query = new URLSearchParams({ tqx: 'out:csv', tq: 'select *' });
+  if (gid) query.set('gid', gid);
+  if (sheetName) query.set('sheet', sheetName);
   return {
-    csvUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/export?${query.toString()}`,
+    csvUrl: `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${query.toString()}`,
     sheetId,
     gid,
     sheetName,
@@ -258,14 +246,12 @@ async function loadDataset() {
     });
     return { dataset, source: prebuiltUrl ? 'prebuilt-or-csv' : 'csv', csvUrl, prebuiltUrl };
   } catch (primaryError) {
-    const fallbackQuery = new URLSearchParams({ tqx: 'out:csv', tq: 'select *' });
-    if (gid) fallbackQuery.set('gid', gid);
-    if (sheetName) fallbackQuery.set('sheet', sheetName);
-
     if (sheetId) {
-      const fallbackUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?${fallbackQuery.toString()}`;
+      const fallbackQuery = new URLSearchParams({ format: 'csv' });
+      if (gid) fallbackQuery.set('gid', gid);
+      const fallbackUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?${fallbackQuery.toString()}`;
       if (fallbackUrl !== csvUrl) {
-        console.warn('Primary CSV load failed, trying gviz CSV endpoint', primaryError);
+        console.warn('Primary CSV load failed, trying export CSV endpoint', primaryError);
         const dataset = await loadData({ csvUrl: fallbackUrl, mapboxToken: MAPBOX_TOKEN, prebuiltUrl: null });
         return { dataset, source: 'csv', csvUrl: fallbackUrl, prebuiltUrl: null };
       }

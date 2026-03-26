@@ -311,11 +311,27 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
   };
 
   const withMapReady = (fn) => {
+    if (typeof fn !== 'function') return;
+
     if (map.isStyleLoaded && map.isStyleLoaded()) {
       fn();
-    } else {
-      map.once('load', fn);
+      return;
     }
+
+    const runWhenStyleReady = () => {
+      if (map.isStyleLoaded && map.isStyleLoaded()) {
+        fn();
+        return;
+      }
+      map.once('idle', runWhenStyleReady);
+    };
+
+    // `load` fires only once for the initial style. When data arrives during
+    // transient style updates (e.g. right after terrain/fog toggles), waiting
+    // on `load` can miss forever and map layers stay empty. `idle` is emitted
+    // after render cycles both before and after load, so we retry there until
+    // style is ready.
+    map.once('idle', runWhenStyleReady);
   };
 
   const resetView = () => {

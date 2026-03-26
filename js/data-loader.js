@@ -504,6 +504,7 @@ export function getVisitedCountriesIso2(pointFeatures) {
 const WORLDVIEW = 'US';
 const DATASET_CACHE_KEY = 'coffee_dataset_cache_v1';
 const DATASET_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const REVALIDATION_DEBOUNCE_MS = 30 * 1000;
 
 export function buildVisitedFilter(iso2List) {
   return [
@@ -527,7 +528,7 @@ function isRuntimeDatasetShape(dataset) {
   );
 }
 
-function readDatasetCache({ cacheKey = DATASET_CACHE_KEY, ttlMs = DATASET_CACHE_TTL_MS, requestKey = '' } = {}) {
+function readDatasetCacheEntry({ cacheKey = DATASET_CACHE_KEY, requestKey = '' } = {}) {
   if (!isStorageAvailable()) return null;
   try {
     const raw = window.localStorage.getItem(cacheKey);
@@ -535,23 +536,41 @@ function readDatasetCache({ cacheKey = DATASET_CACHE_KEY, ttlMs = DATASET_CACHE_
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') return null;
     if (parsed.requestKey !== requestKey) return null;
-    const savedAt = Number(parsed.savedAt || 0);
-    if (!Number.isFinite(savedAt) || savedAt <= 0) return null;
-    if ((Date.now() - savedAt) > ttlMs) return null;
+    const cachedAt = Number(parsed.cachedAt || 0);
+    if (!Number.isFinite(cachedAt) || cachedAt <= 0) return null;
     if (!isRuntimeDatasetShape(parsed.payload)) return null;
-    return parsed.payload;
+    return {
+      payload: parsed.payload,
+      cachedAt,
+      requestKey,
+      generatedAt: String(parsed.generatedAt || ''),
+      etag: String(parsed.etag || ''),
+      lastModified: String(parsed.lastModified || ''),
+      revalidatedAt: Number(parsed.revalidatedAt || 0),
+    };
   } catch (error) {
     return null;
   }
 }
 
-function writeDatasetCache(payload, { cacheKey = DATASET_CACHE_KEY, requestKey = '' } = {}) {
+function writeDatasetCache(payload, {
+  cacheKey = DATASET_CACHE_KEY,
+  requestKey = '',
+  generatedAt = '',
+  etag = '',
+  lastModified = '',
+  revalidatedAt = Date.now(),
+} = {}) {
   if (!isStorageAvailable() || !isRuntimeDatasetShape(payload)) return;
   try {
     const entry = {
       payload,
       requestKey,
-      savedAt: Date.now(),
+      cachedAt: Date.now(),
+      generatedAt,
+      etag,
+      lastModified,
+      revalidatedAt,
     };
     window.localStorage.setItem(cacheKey, JSON.stringify(entry));
   } catch (error) {
@@ -987,6 +1006,27 @@ export async function loadPrebuiltDataset({ prebuiltUrl, signal } = {}) {
   };
 }
 
+function normalizePrebuiltDataset(payload) {
+  const validation = validatePrebuiltDataset(payload);
+  if (!validation.ok) return null;
+  const pointFeatures = payload.pointFeatures;
+  const geojsonPoints = payload.geojsonPoints || { type: 'FeatureCollection', features: pointFeatures };
+  const visitedCountries = [...getVisitedCountriesIso2(pointFeatures)];
+  return {
+    generatedAt: payload.generatedAt || null,
+    source: payload.source || { type: 'prebuilt' },
+    geojsonPoints,
+    pointFeatures,
+    cityCoordsMap: payload.cityCoordsMap || {},
+    lineFeatures: payload.lineFeatures,
+    cityPoints: payload.cityPoints,
+    metrics: payload.metrics,
+    ownerName: payload.ownerName || '',
+    ownerLabel: payload.ownerLabel || '',
+    visitedCountries,
+  };
+}
+
 export async function loadBaseDataset({ csvUrl, signal } = {}) {
   const csvText = await downloadCsv(csvUrl, { signal });
   const rows = parseCsvText(csvText);
@@ -1039,16 +1079,98 @@ export async function loadSupplementalDataset({ pointFeatures, mapboxToken, sign
   };
 }
 
-export async function loadData({ csvUrl, mapboxToken, prebuiltUrl, signal } = {}) {
+async function fetchPrebuiltWithMeta({ prebuiltUrl, signal, etag = '', lastModified = '' } = {}) {
+  const headers = {};
+  if (etag) headers['If-None-Match'] = etag;
+  if (lastModified) headers['If-Modified-Since'] = lastModified;
+  const response = await fetch(prebuiltUrl, { signal, cache: 'no-cache', headers });
+  if (response.status === 304) {
+    return { status: 304, dataset: null, etag, lastModified };
+  }
+  if (!response.ok) throw new Error(`Prebuilt dataset HTTP ${response.status}`);
+  const payload = await response.json();
+  const dataset = normalizePrebuiltDataset(payload);
+  if (!dataset) throw new Error('Invalid prebuilt dataset payload');
+  return {
+    status: 200,
+    dataset,
+    etag: response.headers.get('etag') || etag || '',
+    lastModified: response.headers.get('last-modified') || lastModified || '',
+    generatedAt: payload.generatedAt || '',
+  };
+}
+
+function shouldRevalidateCache(cacheEntry, ttlMs = DATASET_CACHE_TTL_MS) {
+  if (!cacheEntry) return false;
+  const ageMs = Date.now() - cacheEntry.cachedAt;
+  if (ageMs >= ttlMs) return true;
+  if (Date.now() - Number(cacheEntry.revalidatedAt || 0) > REVALIDATION_DEBOUNCE_MS) return true;
+  return false;
+}
+
+async function revalidateDatasetCache({
+  cacheEntry,
+  requestKey,
+  prebuiltUrl,
+  signal,
+  onUpdate,
+} = {}) {
+  if (!cacheEntry || !prebuiltUrl) return;
+  if (!shouldRevalidateCache(cacheEntry)) return;
+  try {
+    const next = await fetchPrebuiltWithMeta({
+      prebuiltUrl,
+      signal,
+      etag: cacheEntry.etag,
+      lastModified: cacheEntry.lastModified,
+    });
+    if (next.status === 304) {
+      writeDatasetCache(cacheEntry.payload, {
+        requestKey,
+        generatedAt: cacheEntry.generatedAt,
+        etag: cacheEntry.etag,
+        lastModified: cacheEntry.lastModified,
+      });
+      return;
+    }
+    const previousGeneratedAt = String(cacheEntry.generatedAt || cacheEntry.payload?.generatedAt || '');
+    const nextGeneratedAt = String(next.generatedAt || next.dataset?.generatedAt || '');
+    const isChanged = !previousGeneratedAt || !nextGeneratedAt || previousGeneratedAt !== nextGeneratedAt;
+    writeDatasetCache(next.dataset, {
+      requestKey,
+      generatedAt: nextGeneratedAt,
+      etag: next.etag,
+      lastModified: next.lastModified,
+    });
+    if (isChanged && typeof onUpdate === 'function') {
+      onUpdate({ dataset: next.dataset, source: 'revalidated' });
+    }
+  } catch (error) {
+    // Silent failure: keep showing cached content and allow normal network path later.
+  }
+}
+
+export async function loadData({ csvUrl, mapboxToken, prebuiltUrl, signal, onUpdate } = {}) {
   const requestKey = `prebuilt:${prebuiltUrl || ''}|csv:${csvUrl || ''}`;
-  const cachedDataset = readDatasetCache({ requestKey });
-  if (cachedDataset) return cachedDataset;
+  const cacheEntry = readDatasetCacheEntry({ requestKey });
+  if (cacheEntry?.payload) {
+    revalidateDatasetCache({ cacheEntry, requestKey, prebuiltUrl, signal, onUpdate });
+    return cacheEntry.payload;
+  }
 
   let networkDataset;
   if (prebuiltUrl) {
     try {
-      const prebuiltDataset = await loadPrebuiltDataset({ prebuiltUrl, signal });
-      if (prebuiltDataset) networkDataset = prebuiltDataset;
+      const prebuilt = await fetchPrebuiltWithMeta({ prebuiltUrl, signal });
+      if (prebuilt?.dataset) {
+        networkDataset = prebuilt.dataset;
+        writeDatasetCache(networkDataset, {
+          requestKey,
+          generatedAt: prebuilt.generatedAt,
+          etag: prebuilt.etag,
+          lastModified: prebuilt.lastModified,
+        });
+      }
     } catch (prebuiltError) {
       console.warn('Prebuilt dataset unavailable, using CSV fallback.', prebuiltError);
     }

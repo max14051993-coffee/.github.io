@@ -357,7 +357,11 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     withMapReady(() => {
       const showCities = state.viewMode === 'cities';
       const pointsVisibility = showCities ? 'none' : 'visible';
-      const citiesVisibility = showCities ? 'visible' : 'none';
+      // Точки обжарки/кофеен должны оставаться доступными и в режиме "points":
+      // иначе при зуме пользователь теряет контекст городов, где была
+      // обжарка/дегустация. В режиме "cities" скрываем farm-кластеры, но сами
+      // city-points оставляем видимыми в обоих режимах.
+      const citiesVisibility = 'visible';
       ['clusters', 'cluster-count', 'unclustered'].forEach((id) => {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', pointsVisibility);
       });

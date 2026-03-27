@@ -70,6 +70,16 @@ const isoToFlagEmoji = (isoCode) => {
   return String.fromCodePoint(...code.split('').map((char) => char.codePointAt(0) + base));
 };
 
+const shouldRenderEmojiFlags = () => {
+  if (!globalScope?.document?.body) return false;
+  const mode = String(globalScope.document.body.dataset?.flagMode || '').toLowerCase();
+  if (mode === 'emoji') return true;
+  if (mode === 'img') return false;
+  return typeof globalScope.matchMedia === 'function'
+    ? globalScope.matchMedia('(max-width: 768px)').matches
+    : false;
+};
+
 const parseSize = (value) => Number.parseFloat(value) || 0;
 
 const measureContext = (() => {
@@ -149,8 +159,9 @@ const renderCountryFlag = (code, rawFlag) => {
   const normalizedCode = (code || (looksLikeIso ? rawFlagValue : '') || '').toString().toUpperCase();
   const emojiFallback = (!looksLikeIso && rawFlagValue) ? rawFlagValue : isoToFlagEmoji(normalizedCode);
   const fallback = emojiFallback || '🏳️';
+  const useEmoji = shouldRenderEmojiFlags();
 
-  if (normalizedCode) {
+  if (!useEmoji && normalizedCode) {
     const lower = escapeAttr(normalizedCode.toLowerCase());
     const onError = `this.onerror=null;this.replaceWith(document.createTextNode('${escapeAttr(fallback)}'));`;
     return `
@@ -877,4 +888,3 @@ function setupAchievementTooltips(root) {
     badge.addEventListener('touchcancel', hideTooltip, { passive: true });
   });
 }
-

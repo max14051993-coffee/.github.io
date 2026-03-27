@@ -1,10 +1,13 @@
-import { driveImgHtml, escapeAttr, escapeHtml, normalizeName } from './utils.js';
+import { driveImgHtml, escapeAttr, escapeHtml, getPopupPhotoCandidates, normalizeName } from './utils.js';
 import { processColors } from './ui-controls.js';
-import { buildVisitedFilter, getCityPt } from './data-loader.js';
+import { buildVisitedFilter, getPointFromCoordsOrCity } from './data-loader.js';
 
 const EPS = 1e-6;
 const TERRAIN_WIDTH_BREAKPOINT = 768;
 const LOW_POWER_CONNECTION_TYPES = new Set(['slow-2g', '2g', '3g']);
+const DEFAULT_POWER_MODE = 'auto';
+const PREWARMED_PHOTO_URLS_MAX = 160;
+const prewarmedPhotoUrls = new Set();
 
 const sameCoord = (a, b) => Math.abs(a[0] - b[0]) < EPS && Math.abs(a[1] - b[1]) < EPS;
 
@@ -19,12 +22,19 @@ const isCompactViewport = () => {
   return window.innerWidth > 0 && window.innerWidth < TERRAIN_WIDTH_BREAKPOINT;
 };
 
-function getRuntimePerformanceProfile() {
+export function resolvePowerMode(params = new URLSearchParams(typeof location !== 'undefined' ? location.search : '')) {
+  const forced = String(params.get('power') || '').toLowerCase();
+  if (forced === 'low' || forced === 'high' || forced === 'auto') return forced;
+  return DEFAULT_POWER_MODE;
+}
+
+export function getRuntimePerformanceProfile({ powerMode = DEFAULT_POWER_MODE } = {}) {
   if (typeof window === 'undefined' || typeof navigator === 'undefined') {
     return {
       isLowPower: false,
       shouldReduceInteractions: false,
       animationDuration: 700,
+      powerMode: powerMode || DEFAULT_POWER_MODE,
     };
   }
 
@@ -38,12 +48,18 @@ function getRuntimePerformanceProfile() {
   const effectiveType = String(connection?.effectiveType || '').toLowerCase();
   const saveData = connection?.saveData === true;
   const slowNetwork = LOW_POWER_CONNECTION_TYPES.has(effectiveType);
+  const mobileContext = isCompactViewport();
+  const reduceMotion = prefersReducedMotion();
 
-  const isLowPower = lowCpu || lowMemory || slowNetwork || saveData;
+  const autoLowPower = lowCpu || lowMemory || slowNetwork || saveData || reduceMotion || mobileContext;
+  const resolvedMode = powerMode === 'low' || powerMode === 'high' ? powerMode : DEFAULT_POWER_MODE;
+  const isLowPower = resolvedMode === 'low' ? true : (resolvedMode === 'high' ? false : autoLowPower);
   return {
     isLowPower,
-    shouldReduceInteractions: isLowPower,
-    animationDuration: isLowPower ? 420 : 700,
+    shouldReduceInteractions: isLowPower || reduceMotion,
+    animationDuration: isLowPower ? 320 : (reduceMotion ? 420 : 700),
+    powerMode: resolvedMode,
+    effectiveType: effectiveType || 'unknown',
   };
 }
 
@@ -179,12 +195,12 @@ function ensureTerrain(map, { enable3dLayers = true, forceDisable3D = false } = 
 
 function flagFromRow(flagEmojiCell, iso2Cell, flagMode) {
   const emoji = String(flagEmojiCell || '').trim();
-  if (flagMode === 'emoji' && emoji) return emoji;
+  if (flagMode === 'emoji') return emoji || '🏳️';
   const code = String(iso2Cell || '').trim().toLowerCase();
   if (code.length === 2) {
     return `<img src="https://flagcdn.com/24x18/${code}.png" alt="${code.toUpperCase()}" width="24" height="18" style="vertical-align:-2px;border-radius:2px">`;
   }
-  return flagMode === 'emoji' ? emoji : '';
+  return emoji || '🏳️';
 }
 
 function popupHTML(p, flagMode) {
@@ -236,14 +252,32 @@ function popupHTML(p, flagMode) {
   }
 }
 
-export function createMapController({ mapboxgl, accessToken, theme, flagMode, enable3dLayers = true, viewMode = 'cities' }) {
+function prewarmPopupPhoto(feature) {
+  if (typeof Image === 'undefined') return;
+  const photoUrl = feature?.properties?.photoUrl;
+  if (!photoUrl) return;
+  const candidates = getPopupPhotoCandidates(photoUrl);
+  for (const src of candidates) {
+    if (!src || prewarmedPhotoUrls.has(src)) continue;
+    const img = new Image();
+    img.decoding = 'async';
+    img.src = src;
+    prewarmedPhotoUrls.add(src);
+    if (prewarmedPhotoUrls.size > PREWARMED_PHOTO_URLS_MAX) {
+      const [first] = prewarmedPhotoUrls;
+      if (first) prewarmedPhotoUrls.delete(first);
+    }
+  }
+}
+
+export function createMapController({ mapboxgl, accessToken, theme, flagMode, enable3dLayers = true, viewMode = 'cities', powerMode = DEFAULT_POWER_MODE }) {
   if (!mapboxgl || typeof mapboxgl.Map !== 'function') {
     throw new Error('Mapbox GL JS is not available');
   }
   mapboxgl.accessToken = accessToken;
   const initialView = { center: [12, 20], zoom: 1.6 };
 
-  const perfProfile = getRuntimePerformanceProfile();
+  const perfProfile = getRuntimePerformanceProfile({ powerMode });
 
   const map = new mapboxgl.Map({
     container: 'map',
@@ -277,11 +311,27 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
   };
 
   const withMapReady = (fn) => {
+    if (typeof fn !== 'function') return;
+
     if (map.isStyleLoaded && map.isStyleLoaded()) {
       fn();
-    } else {
-      map.once('load', fn);
+      return;
     }
+
+    const runWhenStyleReady = () => {
+      if (map.isStyleLoaded && map.isStyleLoaded()) {
+        fn();
+        return;
+      }
+      map.once('idle', runWhenStyleReady);
+    };
+
+    // `load` fires only once for the initial style. When data arrives during
+    // transient style updates (e.g. right after terrain/fog toggles), waiting
+    // on `load` can miss forever and map layers stay empty. `idle` is emitted
+    // after render cycles both before and after load, so we retry there until
+    // style is ready.
+    map.once('idle', runWhenStyleReady);
   };
 
   const resetView = () => {
@@ -307,7 +357,11 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     withMapReady(() => {
       const showCities = state.viewMode === 'cities';
       const pointsVisibility = showCities ? 'none' : 'visible';
-      const citiesVisibility = showCities ? 'visible' : 'none';
+      // Точки обжарки/кофеен должны оставаться доступными и в режиме "points":
+      // иначе при зуме пользователь теряет контекст городов, где была
+      // обжарка/дегустация. В режиме "cities" скрываем farm-кластеры, но сами
+      // city-points оставляем видимыми в обоих режимах.
+      const citiesVisibility = 'visible';
       ['clusters', 'cluster-count', 'unclustered'].forEach((id) => {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', pointsVisibility);
       });
@@ -357,12 +411,22 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
       farmLat5 = +coord[1].toFixed(5);
     }
 
-    const roasterCity = getCityPt(properties.roasterCity, state.cityCoords);
-    const consumedCity = getCityPt(properties.consumedCity, state.cityCoords);
+    const roasterPoint = getPointFromCoordsOrCity(
+      properties.roasterLat,
+      properties.roasterLng,
+      properties.roasterCity,
+      state.cityCoords,
+    );
+    const consumedPoint = getPointFromCoordsOrCity(
+      properties.consumedLat,
+      properties.consumedLng,
+      properties.consumedCity,
+      state.cityCoords,
+    );
 
-    if (roasterCity && farmLng5 !== null && farmLat5 !== null) {
-      const rLng5 = +roasterCity.lng.toFixed(5);
-      const rLat5 = +roasterCity.lat.toFixed(5);
+    if (roasterPoint && farmLng5 !== null && farmLat5 !== null) {
+      const rLng5 = +roasterPoint.lng.toFixed(5);
+      const rLat5 = +roasterPoint.lat.toFixed(5);
       filters.push(['all',
         ['==', ['get', 'kind'], 'farm_to_roaster'],
         ['==', ['get', 'farmLng5'], farmLng5],
@@ -372,11 +436,11 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
       ]);
     }
 
-    if (roasterCity && consumedCity) {
-      const rLng5 = +roasterCity.lng.toFixed(5);
-      const rLat5 = +roasterCity.lat.toFixed(5);
-      const uLng5 = +consumedCity.lng.toFixed(5);
-      const uLat5 = +consumedCity.lat.toFixed(5);
+    if (roasterPoint && consumedPoint) {
+      const rLng5 = +roasterPoint.lng.toFixed(5);
+      const rLat5 = +roasterPoint.lat.toFixed(5);
+      const uLng5 = +consumedPoint.lng.toFixed(5);
+      const uLat5 = +consumedPoint.lat.toFixed(5);
       filters.push(['all',
         ['==', ['get', 'kind'], 'roaster_to_consumed'],
         ['==', ['get', 'roasterLng5'], rLng5],
@@ -495,7 +559,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         paint: {
           'line-color': '#2e7d32',
           'line-opacity': 0.75,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 1.4, 4, 2.8, 6, 4.2, 10, 7],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 0.9, 4, 1.8, 6, 2.8, 10, 4.8],
         },
       });
     }
@@ -507,7 +571,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         filter: ['==', ['get', 'kind'], 'roaster_to_consumed'],
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': '#0b7285',
+          'line-color': '#c8a27a',
           'line-opacity': 0.75,
           'line-dasharray': [2.5, 2.5],
           'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 1.2, 4, 2.4, 6, 3.6, 10, 6],
@@ -524,7 +588,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         paint: {
           'line-color': ['match', ['get', 'kind'],
             'farm_to_roaster', '#2e7d32',
-            'roaster_to_consumed', '#1d4ed8',
+            'roaster_to_consumed', '#c8a27a',
             /* other */ '#ff7f00',
           ],
           'line-opacity': 0.95,
@@ -581,6 +645,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         type: 'circle',
         source: 'city-points',
         paint: {
+
           'circle-color': [
             'match', ['get', 'kind'],
             'both', '#8e44ad',
@@ -716,6 +781,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
 
   const showMultiPopup = (features, coord) => {
     let index = 0;
+    for (const feature of features) prewarmPopupPhoto(feature);
     const popup = new mapboxgl.Popup({ offset: 12, maxWidth: '360px' }).setLngLat(coord);
 
     const render = () => {

@@ -18,9 +18,17 @@ const HEADERS = {
   recipe:          ['Recipe'],
   roasterName:     ['Roaster name'],
   roasterCity:     ['Roaster city'],
+  roasterLat:      ['Roaster latitude'],
+  roasterLng:      ['Roaster longitude'],
+  roasterCountryIso2: ['roasterCountryIso2'],
+  roasterCountryName: ['roasterCountryName'],
   fileUpload:      ['File upload', 'File upload '],
   lat:             ['Latitude (lat)', 'Latitude'],
   lng:             ['Longitude (lng)', 'Longitude'],
+  consumedLat:     ['Consumed latitude'],
+  consumedLng:     ['Consumed longitude'],
+  consumedCountryIso2: ['consumedCountryIso2'],
+  consumedCountryName: ['consumedCountryName'],
   photoUrl:        ['Photo (URL)'],
   geocodeSource:   ['Geocode source'],
   geocodeAccuracy: ['Geocode accuracy'],
@@ -123,6 +131,11 @@ export function rowsToGeoJSON(rows) {
     const lng = toNumber(pick(HEADERS.lng));
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
 
+    const roasterLat = toNumber(pick(HEADERS.roasterLat));
+    const roasterLng = toNumber(pick(HEADERS.roasterLng));
+    const consumedLat = toNumber(pick(HEADERS.consumedLat));
+    const consumedLng = toNumber(pick(HEADERS.consumedLng));
+
     const farmLng5 = +lng.toFixed(5);
     const farmLat5 = +lat.toFixed(5);
 
@@ -150,6 +163,14 @@ export function rowsToGeoJSON(rows) {
       recipe:          pick(HEADERS.recipe),
       roasterName:     pick(HEADERS.roasterName),
       roasterCity:     pick(HEADERS.roasterCity),
+      roasterLat,
+      roasterLng,
+      roasterCountryIso2: pick(HEADERS.roasterCountryIso2),
+      roasterCountryName: pick(HEADERS.roasterCountryName),
+      consumedLat,
+      consumedLng,
+      consumedCountryIso2: pick(HEADERS.consumedCountryIso2),
+      consumedCountryName: pick(HEADERS.consumedCountryName),
       photoUrl:        photo,
       matchedName:     pick(HEADERS.matchedName),
       countryIso2:     pick(HEADERS.countryIso2),
@@ -276,6 +297,68 @@ export function getCityPt(name, cityMap) {
   return cityMap[norm] || cityMap[raw] || cityMap[raw.toLowerCase()] || null;
 }
 
+function getExplicitPoint(lat, lng) {
+  return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+}
+
+function hasExplicitCountryData(properties, isoKey, nameKey) {
+  const code = String(properties?.[isoKey] || '').trim().toUpperCase();
+  const name = String(properties?.[nameKey] || '').trim();
+  return Boolean(code && name);
+}
+
+function hasExplicitRoasterData(properties) {
+  return Boolean(
+    getExplicitPoint(properties?.roasterLat, properties?.roasterLng)
+    && hasExplicitCountryData(properties, 'roasterCountryIso2', 'roasterCountryName')
+  );
+}
+
+function hasExplicitConsumedData(properties) {
+  return Boolean(
+    getExplicitPoint(properties?.consumedLat, properties?.consumedLng)
+    && hasExplicitCountryData(properties, 'consumedCountryIso2', 'consumedCountryName')
+  );
+}
+
+function needsRoasterGeocoding(properties) {
+  const city = String(properties?.roasterCity || '').trim();
+  if (!city) return false;
+  return !hasExplicitRoasterData(properties);
+}
+
+function needsConsumedGeocoding(properties) {
+  const city = String(properties?.consumedCity || '').trim();
+  if (!city) return false;
+  return !hasExplicitConsumedData(properties);
+}
+
+function getPreferredCountryDetails(properties, isoKey, nameKey, fallbackPoint) {
+  const code = String(properties?.[isoKey] || '').trim().toUpperCase();
+  const name = String(properties?.[nameKey] || '').trim();
+  if (code) {
+    return { code, name: name || fallbackPoint?.countryName || code };
+  }
+  const fallbackCode = String(fallbackPoint?.countryCode || '').trim().toUpperCase();
+  if (fallbackCode) {
+    return {
+      code: fallbackCode,
+      name: name || fallbackPoint?.countryName || fallbackCode,
+    };
+  }
+  return null;
+}
+
+export function getPointFromCoordsOrCity(lat, lng, cityName, cityMap) {
+  const explicit = getExplicitPoint(lat, lng);
+  const cityPoint = getCityPt(cityName, cityMap);
+
+  if (explicit) {
+    return cityPoint ? { ...cityPoint, ...explicit } : explicit;
+  }
+  return cityPoint;
+}
+
 export function buildRouteFeatures(pointFeatures, cityMap) {
   const lines = [];
 
@@ -293,25 +376,35 @@ export function buildRouteFeatures(pointFeatures, cityMap) {
     const farmLng5 = +properties.farmLng5;
     const farmLat5 = +properties.farmLat5;
 
-    const roasterCity = getCityPt(properties.roasterCity, cityMap);
-    const consumedCity = getCityPt(properties.consumedCity, cityMap);
+    const roasterPoint = getPointFromCoordsOrCity(
+      properties.roasterLat,
+      properties.roasterLng,
+      properties.roasterCity,
+      cityMap,
+    );
+    const consumedPoint = getPointFromCoordsOrCity(
+      properties.consumedLat,
+      properties.consumedLng,
+      properties.consumedCity,
+      cityMap,
+    );
 
-    if (roasterCity) {
-      const rLng5 = +roasterCity.lng.toFixed(5);
-      const rLat5 = +roasterCity.lat.toFixed(5);
+    if (roasterPoint) {
+      const rLng5 = +roasterPoint.lng.toFixed(5);
+      const rLat5 = +roasterPoint.lat.toFixed(5);
 
-      addLine('farm_to_roaster', [[farmLng, farmLat], [roasterCity.lng, roasterCity.lat]], {
+      addLine('farm_to_roaster', [[farmLng, farmLat], [roasterPoint.lng, roasterPoint.lat]], {
         farmLng5,
         farmLat5,
         roasterLng5: rLng5,
         roasterLat5: rLat5,
       });
 
-      if (consumedCity) {
-        const uLng5 = +consumedCity.lng.toFixed(5);
-        const uLat5 = +consumedCity.lat.toFixed(5);
+      if (consumedPoint) {
+        const uLng5 = +consumedPoint.lng.toFixed(5);
+        const uLat5 = +consumedPoint.lat.toFixed(5);
 
-        addLine('roaster_to_consumed', [[roasterCity.lng, roasterCity.lat], [consumedCity.lng, consumedCity.lat]], {
+        addLine('roaster_to_consumed', [[roasterPoint.lng, roasterPoint.lat], [consumedPoint.lng, consumedPoint.lat]], {
           roasterLng5: rLng5,
           roasterLat5: rLat5,
           consumedLng5: uLng5,
@@ -333,7 +426,12 @@ export function buildCityPoints(pointFeatures, cityMap) {
 
     if (properties.roasterCity) {
       const city = normalizeName(properties.roasterCity);
-      const pt = cityMap[city] || cityMap[city.toLowerCase()];
+      const pt = getPointFromCoordsOrCity(
+        properties.roasterLat,
+        properties.roasterLng,
+        properties.roasterCity,
+        cityMap,
+      );
       if (pt) {
         const key = city.toLowerCase();
         const current = aggregated.get(key) || {
@@ -352,7 +450,12 @@ export function buildCityPoints(pointFeatures, cityMap) {
 
     if (properties.consumedCity) {
       const city = normalizeName(properties.consumedCity);
-      const pt = cityMap[city] || cityMap[city.toLowerCase()];
+      const pt = getPointFromCoordsOrCity(
+        properties.consumedLat,
+        properties.consumedLng,
+        properties.consumedCity,
+        cityMap,
+      );
       if (pt) {
         const key = city.toLowerCase();
         const current = aggregated.get(key) || {
@@ -399,6 +502,9 @@ export function getVisitedCountriesIso2(pointFeatures) {
 }
 
 const WORLDVIEW = 'US';
+const DATASET_CACHE_KEY = 'coffee_dataset_cache_v1';
+const DATASET_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+const REVALIDATION_DEBOUNCE_MS = 30 * 1000;
 
 export function buildVisitedFilter(iso2List) {
   return [
@@ -407,6 +513,72 @@ export function buildVisitedFilter(iso2List) {
     ['any', ['==', 'all', ['get', 'worldview']], ['in', WORLDVIEW, ['get', 'worldview']]],
     ['in', ['get', 'iso_3166_1'], ['literal', iso2List]],
   ];
+}
+
+function isStorageAvailable() {
+  return typeof window !== 'undefined' && window.localStorage;
+}
+
+function isRuntimeDatasetShape(dataset) {
+  return Boolean(
+    dataset
+    && dataset.geojsonPoints
+    && Array.isArray(dataset.pointFeatures)
+    && Array.isArray(dataset.visitedCountries),
+  );
+}
+
+function readDatasetCacheEntry({ cacheKey = DATASET_CACHE_KEY, requestKey = '' } = {}) {
+  if (!isStorageAvailable()) return null;
+  try {
+    const raw = window.localStorage.getItem(cacheKey);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    if (parsed.requestKey !== requestKey) return null;
+    const cachedAt = Number(parsed.cachedAt || 0);
+    if (!Number.isFinite(cachedAt) || cachedAt <= 0) return null;
+    if (!isRuntimeDatasetShape(parsed.payload)) return null;
+    return {
+      payload: parsed.payload,
+      cachedAt,
+      requestKey,
+      sourceType: String(parsed.sourceType || ''),
+      generatedAt: String(parsed.generatedAt || ''),
+      etag: String(parsed.etag || ''),
+      lastModified: String(parsed.lastModified || ''),
+      revalidatedAt: Number(parsed.revalidatedAt || 0),
+    };
+  } catch (error) {
+    return null;
+  }
+}
+
+function writeDatasetCache(payload, {
+  cacheKey = DATASET_CACHE_KEY,
+  requestKey = '',
+  sourceType = '',
+  generatedAt = '',
+  etag = '',
+  lastModified = '',
+  revalidatedAt = Date.now(),
+} = {}) {
+  if (!isStorageAvailable() || !isRuntimeDatasetShape(payload)) return;
+  try {
+    const entry = {
+      payload,
+      requestKey,
+      sourceType,
+      cachedAt: Date.now(),
+      generatedAt,
+      etag,
+      lastModified,
+      revalidatedAt,
+    };
+    window.localStorage.setItem(cacheKey, JSON.stringify(entry));
+  } catch (error) {
+    // Ignore quota or private-mode failures and keep network data flow.
+  }
 }
 
 export function computeMetrics(pointFeatures, cityMap = {}) {
@@ -498,16 +670,26 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
       experimentalMethods.add(processRaw || 'carbonic');
     }
 
-    const roasterPt = properties.roasterCity ? getCityPt(properties.roasterCity, cityMap) : null;
+    const roasterPt = getPointFromCoordsOrCity(
+      properties.roasterLat,
+      properties.roasterLng,
+      properties.roasterCity,
+      cityMap,
+    );
     if (processNorm === 'washed' && roasterPt) geotagWashed = true;
     if (processNorm === 'honey' && roasterPt) geotagHoney = true;
-    if (roasterPt?.countryCode) {
-      const code = String(roasterPt.countryCode).toUpperCase();
-      roasterCountrySet.add(code);
-      if (!cityCountryDetails.has(code)) {
-        cityCountryDetails.set(code, {
-          code,
-          name: roasterPt.countryName || code,
+    const roasterCountry = getPreferredCountryDetails(
+      properties,
+      'roasterCountryIso2',
+      'roasterCountryName',
+      roasterPt,
+    );
+    if (roasterCountry) {
+      roasterCountrySet.add(roasterCountry.code);
+      if (!cityCountryDetails.has(roasterCountry.code)) {
+        cityCountryDetails.set(roasterCountry.code, {
+          code: roasterCountry.code,
+          name: roasterCountry.name,
           flag: '',
         });
       }
@@ -521,14 +703,24 @@ export function computeMetrics(pointFeatures, cityMap = {}) {
     }
 
     const consumedCity = normalizeName(properties.consumedCity).toLowerCase();
-    const consumedPt = properties.consumedCity ? getCityPt(properties.consumedCity, cityMap) : null;
-    if (consumedPt?.countryCode) {
-      const code = String(consumedPt.countryCode).toUpperCase();
-      consumedCountrySet.add(code);
-      if (!cityCountryDetails.has(code)) {
-        cityCountryDetails.set(code, {
-          code,
-          name: consumedPt.countryName || code,
+    const consumedPt = getPointFromCoordsOrCity(
+      properties.consumedLat,
+      properties.consumedLng,
+      properties.consumedCity,
+      cityMap,
+    );
+    const consumedCountry = getPreferredCountryDetails(
+      properties,
+      'consumedCountryIso2',
+      'consumedCountryName',
+      consumedPt,
+    );
+    if (consumedCountry) {
+      consumedCountrySet.add(consumedCountry.code);
+      if (!cityCountryDetails.has(consumedCountry.code)) {
+        cityCountryDetails.set(consumedCountry.code, {
+          code: consumedCountry.code,
+          name: consumedCountry.name,
           flag: '',
         });
       }
@@ -765,6 +957,79 @@ async function downloadCsv(csvUrl, { signal } = {}) {
   return response.text();
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+export function validatePrebuiltDataset(payload) {
+  if (!isPlainObject(payload)) return { ok: false, reason: 'Dataset must be an object.' };
+  if (!Array.isArray(payload.pointFeatures)) return { ok: false, reason: 'pointFeatures must be an array.' };
+  if (!Array.isArray(payload.lineFeatures)) return { ok: false, reason: 'lineFeatures must be an array.' };
+  if (!isPlainObject(payload.cityPoints) || !Array.isArray(payload.cityPoints.features)) {
+    return { ok: false, reason: 'cityPoints must be a FeatureCollection-like object.' };
+  }
+  if (!isPlainObject(payload.metrics)) return { ok: false, reason: 'metrics must be an object.' };
+  if (payload.geojsonPoints && (!isPlainObject(payload.geojsonPoints) || !Array.isArray(payload.geojsonPoints.features))) {
+    return { ok: false, reason: 'geojsonPoints must be a FeatureCollection-like object when present.' };
+  }
+  if (payload.cityCoordsMap && !isPlainObject(payload.cityCoordsMap)) {
+    return { ok: false, reason: 'cityCoordsMap must be an object when present.' };
+  }
+  return { ok: true };
+}
+
+export async function loadPrebuiltDataset({ prebuiltUrl, signal } = {}) {
+  if (!prebuiltUrl) return null;
+  const response = await fetch(prebuiltUrl, { signal });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch prebuilt dataset: ${response.status} ${response.statusText}`);
+  }
+  const payload = await response.json();
+  const validation = validatePrebuiltDataset(payload);
+  if (!validation.ok) {
+    throw new Error(`Invalid prebuilt dataset: ${validation.reason}`);
+  }
+
+  const pointFeatures = payload.pointFeatures;
+  const geojsonPoints = payload.geojsonPoints || { type: 'FeatureCollection', features: pointFeatures };
+  const visitedCountries = [...getVisitedCountriesIso2(pointFeatures)];
+
+  return {
+    generatedAt: payload.generatedAt || null,
+    source: payload.source || { type: 'prebuilt', url: prebuiltUrl },
+    geojsonPoints,
+    pointFeatures,
+    cityCoordsMap: payload.cityCoordsMap || {},
+    lineFeatures: payload.lineFeatures,
+    cityPoints: payload.cityPoints,
+    metrics: payload.metrics,
+    ownerName: payload.ownerName || '',
+    ownerLabel: payload.ownerLabel || '',
+    visitedCountries,
+  };
+}
+
+function normalizePrebuiltDataset(payload) {
+  const validation = validatePrebuiltDataset(payload);
+  if (!validation.ok) return null;
+  const pointFeatures = payload.pointFeatures;
+  const geojsonPoints = payload.geojsonPoints || { type: 'FeatureCollection', features: pointFeatures };
+  const visitedCountries = [...getVisitedCountriesIso2(pointFeatures)];
+  return {
+    generatedAt: payload.generatedAt || null,
+    source: payload.source || { type: 'prebuilt' },
+    geojsonPoints,
+    pointFeatures,
+    cityCoordsMap: payload.cityCoordsMap || {},
+    lineFeatures: payload.lineFeatures,
+    cityPoints: payload.cityPoints,
+    metrics: payload.metrics,
+    ownerName: payload.ownerName || '',
+    ownerLabel: payload.ownerLabel || '',
+    visitedCountries,
+  };
+}
+
 export async function loadBaseDataset({ csvUrl, signal } = {}) {
   const csvText = await downloadCsv(csvUrl, { signal });
   const rows = parseCsvText(csvText);
@@ -793,11 +1058,17 @@ export async function loadSupplementalDataset({ pointFeatures, mapboxToken, sign
   const wantedCities = new Set();
   for (const feature of pointFeatures) {
     const properties = feature.properties || {};
-    if (properties.roasterCity) wantedCities.add(String(properties.roasterCity).trim());
-    if (properties.consumedCity) wantedCities.add(String(properties.consumedCity).trim());
+    if (needsRoasterGeocoding(properties)) {
+      wantedCities.add(String(properties.roasterCity).trim());
+    }
+    if (needsConsumedGeocoding(properties)) {
+      wantedCities.add(String(properties.consumedCity).trim());
+    }
   }
   const uniqueCities = [...wantedCities].filter(Boolean);
-  const cityCoordsMap = await geocodeCities(uniqueCities, mapboxToken, { signal });
+  const cityCoordsMap = uniqueCities.length
+    ? await geocodeCities(uniqueCities, mapboxToken, { signal })
+    : {};
 
   const lineFeatures = buildRouteFeatures(pointFeatures, cityCoordsMap);
   const cityPoints = buildCityPoints(pointFeatures, cityCoordsMap);
@@ -811,12 +1082,118 @@ export async function loadSupplementalDataset({ pointFeatures, mapboxToken, sign
   };
 }
 
-export async function loadData({ csvUrl, mapboxToken }) {
-  const base = await loadBaseDataset({ csvUrl });
-  const supplemental = await loadSupplementalDataset({
-    pointFeatures: base.pointFeatures,
-    mapboxToken,
-  });
+async function fetchPrebuiltWithMeta({ prebuiltUrl, signal, etag = '', lastModified = '' } = {}) {
+  const headers = {};
+  if (etag) headers['If-None-Match'] = etag;
+  if (lastModified) headers['If-Modified-Since'] = lastModified;
+  const response = await fetch(prebuiltUrl, { signal, cache: 'no-cache', headers });
+  if (response.status === 304) {
+    return { status: 304, dataset: null, etag, lastModified };
+  }
+  if (!response.ok) throw new Error(`Prebuilt dataset HTTP ${response.status}`);
+  const payload = await response.json();
+  const dataset = normalizePrebuiltDataset(payload);
+  if (!dataset) throw new Error('Invalid prebuilt dataset payload');
+  return {
+    status: 200,
+    dataset,
+    etag: response.headers.get('etag') || etag || '',
+    lastModified: response.headers.get('last-modified') || lastModified || '',
+    generatedAt: payload.generatedAt || '',
+  };
+}
 
-  return { ...base, ...supplemental };
+function shouldRevalidateCache(cacheEntry, ttlMs = DATASET_CACHE_TTL_MS) {
+  if (!cacheEntry) return false;
+  const ageMs = Date.now() - cacheEntry.cachedAt;
+  if (ageMs >= ttlMs) return true;
+  if (Date.now() - Number(cacheEntry.revalidatedAt || 0) > REVALIDATION_DEBOUNCE_MS) return true;
+  return false;
+}
+
+async function revalidateDatasetCache({
+  cacheEntry,
+  requestKey,
+  prebuiltUrl,
+  signal,
+  onUpdate,
+} = {}) {
+  if (!cacheEntry || !prebuiltUrl) return;
+  if (!shouldRevalidateCache(cacheEntry)) return;
+  try {
+    const next = await fetchPrebuiltWithMeta({
+      prebuiltUrl,
+      signal,
+      etag: cacheEntry.etag,
+      lastModified: cacheEntry.lastModified,
+    });
+    if (next.status === 304) {
+      writeDatasetCache(cacheEntry.payload, {
+        requestKey,
+        sourceType: 'prebuilt',
+        generatedAt: cacheEntry.generatedAt,
+        etag: cacheEntry.etag,
+        lastModified: cacheEntry.lastModified,
+      });
+      return;
+    }
+    const previousGeneratedAt = String(cacheEntry.generatedAt || cacheEntry.payload?.generatedAt || '');
+    const nextGeneratedAt = String(next.generatedAt || next.dataset?.generatedAt || '');
+    const isChanged = !previousGeneratedAt || !nextGeneratedAt || previousGeneratedAt !== nextGeneratedAt;
+    writeDatasetCache(next.dataset, {
+      requestKey,
+      sourceType: 'prebuilt',
+      generatedAt: nextGeneratedAt,
+      etag: next.etag,
+      lastModified: next.lastModified,
+    });
+    if (isChanged && typeof onUpdate === 'function') {
+      onUpdate({ dataset: next.dataset, source: 'revalidated' });
+    }
+  } catch (error) {
+    // Silent failure: keep showing cached content and allow normal network path later.
+  }
+}
+
+export async function loadData({ csvUrl, mapboxToken, prebuiltUrl, signal, onUpdate } = {}) {
+  const requestKey = `prebuilt:${prebuiltUrl || ''}|csv:${csvUrl || ''}`;
+  const cacheEntry = readDatasetCacheEntry({ requestKey });
+  if (cacheEntry?.payload && cacheEntry.sourceType === 'prebuilt') {
+    revalidateDatasetCache({ cacheEntry, requestKey, prebuiltUrl, signal, onUpdate });
+    return cacheEntry.payload;
+  }
+
+  let networkDataset;
+  if (prebuiltUrl) {
+    try {
+      const prebuilt = await fetchPrebuiltWithMeta({ prebuiltUrl, signal });
+      if (prebuilt?.dataset) {
+        networkDataset = prebuilt.dataset;
+        writeDatasetCache(networkDataset, {
+          requestKey,
+          sourceType: 'prebuilt',
+          generatedAt: prebuilt.generatedAt,
+          etag: prebuilt.etag,
+          lastModified: prebuilt.lastModified,
+        });
+      }
+    } catch (prebuiltError) {
+      console.warn('Prebuilt dataset unavailable, using CSV fallback.', prebuiltError);
+    }
+  }
+
+  if (!networkDataset) {
+    const base = await loadBaseDataset({ csvUrl, signal });
+    const supplemental = await loadSupplementalDataset({
+      pointFeatures: base.pointFeatures,
+      mapboxToken,
+      signal,
+    });
+    networkDataset = { ...base, ...supplemental };
+  }
+
+  if (prebuiltUrl && networkDataset?.source?.type === 'prebuilt') {
+    writeDatasetCache(networkDataset, { requestKey, sourceType: 'prebuilt' });
+  }
+  return networkDataset;
 }

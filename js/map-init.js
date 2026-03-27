@@ -623,6 +623,8 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
           'circle-pitch-scale': 'viewport',
         },
         paint: {
+          'circle-pitch-alignment': 'viewport',
+          'circle-pitch-scale': 'viewport',
           'circle-color': [
             'match', ['get', 'process_norm'],
             'washed', '#2e7d32',
@@ -649,6 +651,8 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
           'circle-pitch-scale': 'viewport',
         },
         paint: {
+          'circle-pitch-alignment': 'viewport',
+          'circle-pitch-scale': 'viewport',
           'circle-color': [
             'match', ['get', 'kind'],
             'both', '#8e44ad',

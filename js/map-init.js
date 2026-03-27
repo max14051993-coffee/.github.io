@@ -618,6 +618,10 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         type: 'circle',
         source: 'brews',
         filter: ['!', ['has', 'point_count']],
+        layout: {
+          'circle-pitch-alignment': 'viewport',
+          'circle-pitch-scale': 'viewport',
+        },
         paint: {
           'circle-color': [
             'match', ['get', 'process_norm'],
@@ -628,7 +632,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
             'experimental', '#2c5aa0',
             /* other */ '#777777',
           ],
-          'circle-radius': 6,
+          'circle-radius': ['interpolate', ['linear'], ['zoom'], 1.5, 5, 6, 6, 12, 8, 16, 10],
           'circle-stroke-width': 1,
           'circle-stroke-color': '#fff',
         },
@@ -640,6 +644,10 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         id: 'city-points',
         type: 'circle',
         source: 'city-points',
+        layout: {
+          'circle-pitch-alignment': 'viewport',
+          'circle-pitch-scale': 'viewport',
+        },
         paint: {
           'circle-color': [
             'match', ['get', 'kind'],
@@ -651,7 +659,17 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
           'circle-opacity': 0.75,
           'circle-stroke-color': '#ffffff',
           'circle-stroke-width': 1.2,
-          'circle-radius': ['interpolate', ['linear'], ['get', 'size'], 1, 6, 3, 8, 6, 11, 10, 14],
+          'circle-radius': [
+            'interpolate',
+            ['linear'],
+            ['zoom'],
+            1.5,
+            ['interpolate', ['linear'], ['get', 'size'], 1, 5, 3, 7, 6, 9, 10, 12],
+            6,
+            ['interpolate', ['linear'], ['get', 'size'], 1, 6, 3, 8, 6, 11, 10, 14],
+            12,
+            ['interpolate', ['linear'], ['get', 'size'], 1, 7, 3, 9, 6, 12, 10, 16],
+          ],
         },
       });
     }

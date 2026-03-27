@@ -82,9 +82,14 @@ MAPBOX_TOKEN="<token>" node scripts/build-dataset.mjs --sheetId "<ID>" --gid 0 -
 Базовые smoke/e2e проверки:
 
 ```bash
+npm run pw:install
 node scripts/verify-dataset.mjs
 npx playwright test tests/data-loader.prebuilt.spec.ts
+npm run test:runtime
 ```
+
+> Почему `npx playwright test ...` может падать: этот вызов обходит npm lifecycle-хуки (`pretest`), поэтому браузеры Playwright могут быть не скачаны.  
+> Используйте `npm run test` / `npm run test:runtime` или выполните `npm run pw:install` вручную перед `npx playwright test`.
 
 ## Prod RUM (FCP/LCP/INP/CLS)
 

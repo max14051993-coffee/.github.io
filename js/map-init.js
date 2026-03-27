@@ -645,6 +645,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         type: 'circle',
         source: 'city-points',
         paint: {
+
           'circle-color': [
             'match', ['get', 'kind'],
             'both', '#8e44ad',

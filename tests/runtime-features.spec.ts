@@ -63,6 +63,7 @@ test.describe('runtime feature flags and adaptive behaviour', () => {
       window.localStorage.setItem(cacheKey, JSON.stringify({
         payload: cachedPayload,
         requestKey,
+        sourceType: 'prebuilt',
         cachedAt: Date.now(),
         revalidatedAt: Date.now(),
         generatedAt: cachedPayload.generatedAt,
@@ -75,6 +76,7 @@ test.describe('runtime feature flags and adaptive behaviour', () => {
       window.localStorage.setItem(cacheKey, JSON.stringify({
         payload: cachedPayload,
         requestKey,
+        sourceType: 'prebuilt',
         cachedAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
         revalidatedAt: Date.now() - 2 * 60 * 1000,
         generatedAt: cachedPayload.generatedAt,
@@ -88,6 +90,7 @@ test.describe('runtime feature flags and adaptive behaviour', () => {
       window.localStorage.setItem(cacheKey, JSON.stringify({
         payload: cachedPayload,
         requestKey,
+        sourceType: 'prebuilt',
         cachedAt: Date.now() - 2 * 24 * 60 * 60 * 1000,
         revalidatedAt: Date.now() - 2 * 60 * 1000,
         generatedAt: cachedPayload.generatedAt,

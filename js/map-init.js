@@ -618,10 +618,6 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         type: 'circle',
         source: 'brews',
         filter: ['!', ['has', 'point_count']],
-        layout: {
-          'circle-pitch-alignment': 'viewport',
-          'circle-pitch-scale': 'viewport',
-        },
         paint: {
           'circle-pitch-alignment': 'viewport',
           'circle-pitch-scale': 'viewport',
@@ -646,10 +642,6 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         id: 'city-points',
         type: 'circle',
         source: 'city-points',
-        layout: {
-          'circle-pitch-alignment': 'viewport',
-          'circle-pitch-scale': 'viewport',
-        },
         paint: {
           'circle-pitch-alignment': 'viewport',
           'circle-pitch-scale': 'viewport',

@@ -643,8 +643,12 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         type: 'circle',
         source: 'city-points',
         paint: {
-          'circle-pitch-alignment': 'viewport',
-          'circle-pitch-scale': 'viewport',
+          // В режиме viewport на некоторых комбинациях pitch/zoom круги городов
+          // (точки обжарки и кофеен) могут "пропадать" из-за агрессивного
+          // экранного масштабирования. Привязываем к карте, чтобы маркеры
+          // оставались стабильными при зуме.
+          'circle-pitch-alignment': 'map',
+          'circle-pitch-scale': 'map',
           'circle-color': [
             'match', ['get', 'kind'],
             'both', '#8e44ad',

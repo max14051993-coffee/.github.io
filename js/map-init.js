@@ -357,7 +357,11 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
     withMapReady(() => {
       const showCities = state.viewMode === 'cities';
       const pointsVisibility = showCities ? 'none' : 'visible';
-      const citiesVisibility = showCities ? 'visible' : 'none';
+      // Точки обжарки/кофеен должны оставаться доступными и в режиме "points":
+      // иначе при зуме пользователь теряет контекст городов, где была
+      // обжарка/дегустация. В режиме "cities" скрываем farm-кластеры, но сами
+      // city-points оставляем видимыми в обоих режимах.
+      const citiesVisibility = 'visible';
       ['clusters', 'cluster-count', 'unclustered'].forEach((id) => {
         if (map.getLayer(id)) map.setLayoutProperty(id, 'visibility', pointsVisibility);
       });
@@ -619,8 +623,6 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         source: 'brews',
         filter: ['!', ['has', 'point_count']],
         paint: {
-          'circle-pitch-alignment': 'viewport',
-          'circle-pitch-scale': 'viewport',
           'circle-color': [
             'match', ['get', 'process_norm'],
             'washed', '#2e7d32',
@@ -630,7 +632,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
             'experimental', '#2c5aa0',
             /* other */ '#777777',
           ],
-          'circle-radius': ['interpolate', ['linear'], ['zoom'], 1.5, 5, 6, 6, 12, 8, 16, 10],
+          'circle-radius': 6,
           'circle-stroke-width': 1,
           'circle-stroke-color': '#fff',
         },
@@ -643,8 +645,6 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         type: 'circle',
         source: 'city-points',
         paint: {
-          'circle-pitch-alignment': 'viewport',
-          'circle-pitch-scale': 'viewport',
           'circle-color': [
             'match', ['get', 'kind'],
             'both', '#8e44ad',
@@ -655,17 +655,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
           'circle-opacity': 0.75,
           'circle-stroke-color': '#ffffff',
           'circle-stroke-width': 1.2,
-          'circle-radius': [
-            'interpolate',
-            ['linear'],
-            ['zoom'],
-            1.5,
-            ['interpolate', ['linear'], ['get', 'size'], 1, 5, 3, 7, 6, 9, 10, 12],
-            6,
-            ['interpolate', ['linear'], ['get', 'size'], 1, 6, 3, 8, 6, 11, 10, 14],
-            12,
-            ['interpolate', ['linear'], ['get', 'size'], 1, 7, 3, 9, 6, 12, 10, 16],
-          ],
+          'circle-radius': ['interpolate', ['linear'], ['get', 'size'], 1, 6, 3, 8, 6, 11, 10, 14],
         },
       });
     }

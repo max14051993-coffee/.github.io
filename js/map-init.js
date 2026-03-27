@@ -555,7 +555,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         paint: {
           'line-color': '#2e7d32',
           'line-opacity': 0.75,
-          'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 1.4, 4, 2.8, 6, 4.2, 10, 7],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 0.9, 4, 1.8, 6, 2.8, 10, 4.8],
         },
       });
     }
@@ -567,7 +567,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         filter: ['==', ['get', 'kind'], 'roaster_to_consumed'],
         layout: { 'line-cap': 'round', 'line-join': 'round' },
         paint: {
-          'line-color': '#0b7285',
+          'line-color': '#c8a27a',
           'line-opacity': 0.75,
           'line-dasharray': [2.5, 2.5],
           'line-width': ['interpolate', ['linear'], ['zoom'], 1.5, 1.2, 4, 2.4, 6, 3.6, 10, 6],
@@ -584,7 +584,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
         paint: {
           'line-color': ['match', ['get', 'kind'],
             'farm_to_roaster', '#2e7d32',
-            'roaster_to_consumed', '#1d4ed8',
+            'roaster_to_consumed', '#c8a27a',
             /* other */ '#ff7f00',
           ],
           'line-opacity': 0.95,

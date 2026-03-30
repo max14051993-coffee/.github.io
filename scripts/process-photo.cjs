@@ -4,48 +4,73 @@ const crypto = require('crypto');
 const sharp = require('sharp');
 
 async function main() {
-  const rowNumber = process.env.ROW_NUMBER;
-  const photoUrl = process.env.PHOTO_URL;
+  const itemsJson = process.env.ITEMS_JSON;
   const gasWebAppUrl = process.env.GAS_WEBAPP_URL;
   const callbackSecret = process.env.CALLBACK_SHARED_SECRET;
   const publicPhotoBaseUrl = process.env.PUBLIC_PHOTO_BASE_URL;
 
-  if (!rowNumber) throw new Error('Missing ROW_NUMBER');
-  if (!photoUrl) throw new Error('Missing PHOTO_URL');
+  if (!itemsJson) throw new Error('Missing ITEMS_JSON');
   if (!gasWebAppUrl) throw new Error('Missing GAS_WEBAPP_URL');
   if (!callbackSecret) throw new Error('Missing CALLBACK_SHARED_SECRET');
   if (!publicPhotoBaseUrl) throw new Error('Missing PUBLIC_PHOTO_BASE_URL');
 
-  const sourceBuffer = await downloadImage(photoUrl);
+  const items = JSON.parse(itemsJson);
+  if (!Array.isArray(items) || !items.length) {
+    throw new Error('ITEMS_JSON must be a non-empty array');
+  }
 
-  const hash = crypto
-    .createHash('sha1')
-    .update(`${rowNumber}|${photoUrl}`)
-    .digest('hex')
-    .slice(0, 16);
-
-  const fileName = `row-${rowNumber}-${hash}.webp`;
   const absDir = path.join(process.cwd(), 'photos');
-  const absFile = path.join(absDir, fileName);
-
   fs.mkdirSync(absDir, { recursive: true });
 
-  await sharp(sourceBuffer)
-    .rotate()
-    .webp({ quality: 82 })
-    .toFile(absFile);
+  for (const item of items) {
+    const rowNumber = String(item.row_number || '').trim();
+    const photoUrl = String(item.photo_url || '').trim();
 
-  const publicUrl = `${publicPhotoBaseUrl.replace(/\/+$/, '')}/${fileName}`;
+    if (!rowNumber || !photoUrl) {
+      continue;
+    }
 
-  console.log('Saved file:', absFile);
-  console.log('Public URL:', publicUrl);
+    try {
+      const sourceBuffer = await downloadImage(photoUrl);
 
-  await sendCallback(gasWebAppUrl, {
-    secret: callbackSecret,
-    row_number: String(rowNumber),
-    new_url: publicUrl,
-    status: 'DONE'
-  });
+      const hash = crypto
+        .createHash('sha1')
+        .update(`${rowNumber}|${photoUrl}`)
+        .digest('hex')
+        .slice(0, 16);
+
+      const fileName = `row-${rowNumber}-${hash}.webp`;
+      const absFile = path.join(absDir, fileName);
+      const publicUrl = `${publicPhotoBaseUrl.replace(/\/+$/, '')}/${fileName}`;
+
+      await sharp(sourceBuffer)
+        .rotate()
+        .webp({ quality: 82 })
+        .toFile(absFile);
+
+      console.log(`Row ${rowNumber}: saved ${absFile}`);
+      console.log(`Row ${rowNumber}: public URL ${publicUrl}`);
+
+      await sendCallback(gasWebAppUrl, {
+        secret: callbackSecret,
+        row_number: rowNumber,
+        new_url: publicUrl,
+        status: 'DONE'
+      });
+    } catch (err) {
+      console.error(`Row ${rowNumber} failed: ${err.message}`);
+
+      try {
+        await sendCallback(gasWebAppUrl, {
+          secret: callbackSecret,
+          row_number: rowNumber,
+          status: 'ERROR'
+        });
+      } catch (callbackErr) {
+        console.error(`Row ${rowNumber} callback failed: ${callbackErr.message}`);
+      }
+    }
+  }
 }
 
 async function downloadImage(url) {
@@ -78,24 +103,7 @@ async function sendCallback(url, payload) {
   }
 }
 
-main().catch(async (err) => {
+main().catch(err => {
   console.error(err);
-
-  try {
-    const gasWebAppUrl = process.env.GAS_WEBAPP_URL;
-    const callbackSecret = process.env.CALLBACK_SHARED_SECRET;
-    const rowNumber = process.env.ROW_NUMBER;
-
-    if (gasWebAppUrl && callbackSecret && rowNumber) {
-      await sendCallback(gasWebAppUrl, {
-        secret: callbackSecret,
-        row_number: String(rowNumber),
-        status: 'ERROR'
-      });
-    }
-  } catch (callbackErr) {
-    console.error('Failed to send error callback:', callbackErr);
-  }
-
   process.exit(1);
 });

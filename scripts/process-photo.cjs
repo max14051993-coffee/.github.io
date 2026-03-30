@@ -25,7 +25,7 @@ async function main() {
     .slice(0, 16);
 
   const fileName = `row-${rowNumber}-${hash}.webp`;
-  const absDir = path.join(process.cwd(), 'public', 'photos');
+  const absDir = path.join(process.cwd(), 'photos');
   const absFile = path.join(absDir, fileName);
 
   fs.mkdirSync(absDir, { recursive: true });

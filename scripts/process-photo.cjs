@@ -8,15 +8,13 @@ async function main() {
   const photoUrl = process.env.PHOTO_URL;
   const gasWebAppUrl = process.env.GAS_WEBAPP_URL;
   const callbackSecret = process.env.CALLBACK_SHARED_SECRET;
-  const repoName = process.env.GITHUB_REPOSITORY_NAME;
-  const ownerName = process.env.GITHUB_OWNER_NAME;
+  const publicPhotoBaseUrl = process.env.PUBLIC_PHOTO_BASE_URL;
 
   if (!rowNumber) throw new Error('Missing ROW_NUMBER');
   if (!photoUrl) throw new Error('Missing PHOTO_URL');
   if (!gasWebAppUrl) throw new Error('Missing GAS_WEBAPP_URL');
   if (!callbackSecret) throw new Error('Missing CALLBACK_SHARED_SECRET');
-  if (!repoName) throw new Error('Missing GITHUB_REPOSITORY_NAME');
-  if (!ownerName) throw new Error('Missing GITHUB_OWNER_NAME');
+  if (!publicPhotoBaseUrl) throw new Error('Missing PUBLIC_PHOTO_BASE_URL');
 
   const sourceBuffer = await downloadImage(photoUrl);
 
@@ -27,8 +25,7 @@ async function main() {
     .slice(0, 16);
 
   const fileName = `row-${rowNumber}-${hash}.webp`;
-  const relDir = path.join('public', 'photos');
-  const absDir = path.join(process.cwd(), relDir);
+  const absDir = path.join(process.cwd(), 'public', 'photos');
   const absFile = path.join(absDir, fileName);
 
   fs.mkdirSync(absDir, { recursive: true });
@@ -38,7 +35,10 @@ async function main() {
     .webp({ quality: 82 })
     .toFile(absFile);
 
-  const publicUrl = `https://${ownerName}.github.io/${repoName}/photos/${fileName}`;
+  const publicUrl = `${publicPhotoBaseUrl.replace(/\/+$/, '')}/${fileName}`;
+
+  console.log('Saved file:', absFile);
+  console.log('Public URL:', publicUrl);
 
   await sendCallback(gasWebAppUrl, {
     secret: callbackSecret,
@@ -46,9 +46,6 @@ async function main() {
     new_url: publicUrl,
     status: 'DONE'
   });
-
-  console.log('Saved file:', absFile);
-  console.log('Public URL:', publicUrl);
 }
 
 async function downloadImage(url) {
@@ -69,9 +66,7 @@ async function downloadImage(url) {
 async function sendCallback(url, payload) {
   const response = await fetch(url, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload)
   });
 

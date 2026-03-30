@@ -1,0 +1,50 @@
+name: Process Photo
+
+on:
+  workflow_dispatch:
+    inputs:
+      row_number:
+        description: "Row number in Google Sheet"
+        required: true
+        type: string
+      photo_url:
+        description: "Source photo URL"
+        required: true
+        type: string
+
+jobs:
+  process-photo:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install sharp
+
+      - name: Process image
+        env:
+          ROW_NUMBER: ${{ inputs.row_number }}
+          PHOTO_URL: ${{ inputs.photo_url }}
+          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          CALLBACK_SHARED_SECRET: ${{ secrets.CALLBACK_SHARED_SECRET }}
+          GITHUB_REPOSITORY_NAME: ${{ github.event.repository.name }}
+          GITHUB_OWNER_NAME: ${{ github.repository_owner }}
+        run: node .github/scripts/process-photo.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/photos
+          git diff --cached --quiet || git commit -m "Add processed photo for row ${{ inputs.row_number }}"
+          git push

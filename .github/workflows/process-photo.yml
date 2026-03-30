@@ -31,7 +31,7 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install sharp
+        run: npm install --no-save sharp
 
       - name: Process image
         env:
@@ -46,8 +46,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/photos
+
+          git add photos
           git diff --cached --quiet && exit 0
           git commit -m "Add processed photo for row ${{ inputs.row_number }}"
-          git pull --rebase origin main
+
+          git pull --rebase --autostash origin main
           git push origin main

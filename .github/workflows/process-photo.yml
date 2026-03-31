@@ -37,6 +37,7 @@ jobs:
           PUBLIC_PHOTO_BASE_URL: ${{ secrets.PUBLIC_PHOTO_BASE_URL }}
         run: node scripts/process-photo-batch.cjs
 
+
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"

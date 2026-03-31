@@ -3,12 +3,8 @@ name: Process Photo
 on:
   workflow_dispatch:
     inputs:
-      row_number:
-        description: "Row number in Google Sheet"
-        required: true
-        type: string
-      photo_url:
-        description: "Source photo URL"
+      items_json:
+        description: "JSON array of rows and photo URLs"
         required: true
         type: string
 
@@ -22,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -29,22 +27,25 @@ jobs:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install sharp
+        run: npm install --no-save sharp
 
-      - name: Process image
+      - name: Process images
         env:
-          ROW_NUMBER: ${{ inputs.row_number }}
-          PHOTO_URL: ${{ inputs.photo_url }}
+          ITEMS_JSON: ${{ inputs.items_json }}
           GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
           CALLBACK_SHARED_SECRET: ${{ secrets.CALLBACK_SHARED_SECRET }}
-          GITHUB_REPOSITORY_NAME: ${{ github.event.repository.name }}
-          GITHUB_OWNER_NAME: ${{ github.repository_owner }}
-        run: node scripts/process-photo.js
+          PUBLIC_PHOTO_BASE_URL: ${{ secrets.PUBLIC_PHOTO_BASE_URL }}
+        run: node scripts/process-photo-batch.cjs
+
 
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/photos
-          git diff --cached --quiet || git commit -m "Add processed photo for row ${{ inputs.row_number }}"
-          git push
+
+          git add photos
+          git diff --cached --quiet && exit 0
+          git commit -m "Add processed photos batch"
+
+          git pull --rebase --autostash origin main
+          git push origin main

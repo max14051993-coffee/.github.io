@@ -43,10 +43,19 @@ async function main() {
       const absFile = path.join(absDir, fileName);
       const publicUrl = `${publicPhotoBaseUrl.replace(/\/+$/, '')}/${fileName}`;
 
-      await sharp(sourceBuffer)
-        .rotate()
-        .webp({ quality: 82 })
-        .toFile(absFile);
+    await sharp(sourceBuffer)
+      .rotate()
+      .resize({
+        width: 1600,
+        height: 1600,
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .webp({
+        quality: 80,
+        effort: 4
+      })
+      .toFile(absFile);
 
       console.log(`Row ${rowNumber}: saved ${absFile}`);
       console.log(`Row ${rowNumber}: public URL ${publicUrl}`);

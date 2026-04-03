@@ -37,16 +37,33 @@ function looksLikeImageBuffer(buffer) {
 }
 
 function buildPublicUrl(relativePath) {
-  const cleaned = String(relativePath || '').replace(/\\/g, '/').replace(/^\.?\//, '');
+  const cleaned = String(relativePath || '')
+    .replace(/\\/g, '/')
+    .replace(/^\.?\//, '');
+
+  console.log('DEBUG cleaned =', cleaned);
+  console.log('DEBUG PUBLIC_BASE_URL =', JSON.stringify(PUBLIC_BASE_URL || ''));
+  console.log('DEBUG GITHUB_REPOSITORY =', JSON.stringify(process.env.GITHUB_REPOSITORY || ''));
+
   if (PUBLIC_BASE_URL) {
-    return `${PUBLIC_BASE_URL}/${cleaned}`;
+    const finalUrl = `${PUBLIC_BASE_URL}/${cleaned}`;
+    console.log('DEBUG finalUrl from PUBLIC_BASE_URL =', finalUrl);
+    return finalUrl;
   }
 
-  const repo = process.env.GITHUB_REPOSITORY ? process.env.GITHUB_REPOSITORY.split('/')[1] : '';
+  const repo = process.env.GITHUB_REPOSITORY
+    ? process.env.GITHUB_REPOSITORY.split('/')[1]
+    : '';
+
+  console.log('DEBUG repo =', JSON.stringify(repo));
+
   if (repo && repo.endsWith('.github.io')) {
-    return `https://${repo}/${cleaned}`;
+    const finalUrl = `https://${repo}/${cleaned}`;
+    console.log('DEBUG finalUrl from repo =', finalUrl);
+    return finalUrl;
   }
 
+  console.log('DEBUG fallback cleaned only =', cleaned);
   return cleaned;
 }
 

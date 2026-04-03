@@ -42,15 +42,12 @@ function buildPublicUrl(relativePath) {
     .replace(/\\/g, '/')
     .replace(/^\.?\//, '');
 
-  console.log('DEBUG cleaned =', cleaned);
-  console.log('DEBUG PUBLIC_BASE_URL =', JSON.stringify(PUBLIC_BASE_URL || ''));
-  console.log('DEBUG GITHUB_REPOSITORY =', JSON.stringify(process.env.GITHUB_REPOSITORY || ''));
-
-  if (PUBLIC_BASE_URL) {
-    const finalUrl = `${PUBLIC_BASE_URL}/${cleaned}`;
-    console.log('DEBUG finalUrl from PUBLIC_BASE_URL =', finalUrl);
-    return finalUrl;
+  if (!PUBLIC_BASE_URL) {
+    throw new Error('PUBLIC_BASE_URL is empty');
   }
+
+  return `${PUBLIC_BASE_URL}/${cleaned}`;
+}
 
   const repo = process.env.GITHUB_REPOSITORY
     ? process.env.GITHUB_REPOSITORY.split('/')[1]

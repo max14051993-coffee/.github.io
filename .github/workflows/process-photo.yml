@@ -31,10 +31,10 @@ jobs:
 
       - name: Process images
         env:
-          ITEMS_JSON: ${{ inputs.items_json }}
-          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          ITEMS_JSON: ${{ github.event.inputs.items_json }}
+          CALLBACK_URL: ${{ secrets.CALLBACK_URL }}
           CALLBACK_SHARED_SECRET: ${{ secrets.CALLBACK_SHARED_SECRET }}
-          PUBLIC_PHOTO_BASE_URL: ${{ secrets.PUBLIC_PHOTO_BASE_URL }}
+          REPO_OUTPUT_DIR: photos
         run: node scripts/process-photo-batch.cjs
 
 

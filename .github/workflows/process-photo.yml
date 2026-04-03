@@ -1,51 +1,45 @@
-name: Process Photo
+name: Process photo batch
 
 on:
   workflow_dispatch:
     inputs:
       items_json:
-        description: "JSON array of rows and photo URLs"
+        description: JSON array with rows and source URLs
         required: true
         type: string
 
+permissions:
+  contents: write
+
 jobs:
-  process-photo:
+  process:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Install dependencies
-        run: npm install --no-save sharp
+        run: npm install sharp
 
       - name: Process images
         env:
-          ITEMS_JSON: ${{ inputs.items_json }}
-          GAS_WEBAPP_URL: ${{ secrets.GAS_WEBAPP_URL }}
+          ITEMS_JSON: ${{ github.event.inputs.items_json }}
+          CALLBACK_URL: ${{ secrets.CALLBACK_URL }}
           CALLBACK_SHARED_SECRET: ${{ secrets.CALLBACK_SHARED_SECRET }}
-          PUBLIC_PHOTO_BASE_URL: ${{ secrets.PUBLIC_PHOTO_BASE_URL }}
+          REPO_OUTPUT_DIR: photos
+          PUBLIC_BASE_URL: ${{ vars.PUBLIC_BASE_URL }}
         run: node scripts/process-photo-batch.cjs
 
-
-      - name: Commit and push if changed
+      - name: Commit processed images
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
           git add photos
-          git diff --cached --quiet && exit 0
-          git commit -m "Add processed photos batch"
-
-          git pull --rebase --autostash origin main
-          git push origin main
+          git diff --cached --quiet && echo "No changes to commit" || git commit -m "Add processed coffee photos"
+          git push

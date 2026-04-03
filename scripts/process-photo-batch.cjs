@@ -7,7 +7,8 @@ const CALLBACK_SECRET = process.env.CALLBACK_SHARED_SECRET;
 const ITEMS_JSON = process.env.ITEMS_JSON;
 const REPO_OUTPUT_DIR = process.env.REPO_OUTPUT_DIR || 'photos';
 const PUBLIC_BASE_URL = (process.env.PUBLIC_BASE_URL || '').replace(/\/+$/, '');
-
+console.log('DEBUG SCRIPT VERSION = 2026-04-03-url-check');
+console.log('DEBUG ENV PUBLIC_BASE_URL RAW =', JSON.stringify(process.env.PUBLIC_BASE_URL || ''));
 if (!CALLBACK_URL) throw new Error('Missing env: CALLBACK_URL');
 if (!CALLBACK_SECRET) throw new Error('Missing env: CALLBACK_SHARED_SECRET');
 if (!ITEMS_JSON) throw new Error('Missing env: ITEMS_JSON');

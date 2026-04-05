@@ -5,7 +5,6 @@ const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTV
 const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
 const DEFAULT_GOOGLE_SHEET_GID = '0';
 const DEFAULT_PREBUILT_DATASET_URL = '';
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 const urlParams = new URLSearchParams(window.location.search);
 
@@ -52,63 +51,6 @@ function getConfiguredSheetConfig() {
   };
 }
 
-function parseDate(value) {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return null;
-  return parsed;
-}
-
-function calcRecentCups(features, days = 30) {
-  if (!Array.isArray(features) || !features.length) return 0;
-  const now = Date.now();
-  const threshold = now - (days * DAY_MS);
-  return features.reduce((count, feature) => {
-    const raw = feature?.properties?.timestamp;
-    const date = parseDate(raw);
-    if (date && date.getTime() >= threshold) return count + 1;
-    return count;
-  }, 0);
-}
-
-function calcNewCountries(features, days = 90) {
-  if (!Array.isArray(features) || !features.length) return 0;
-
-  const firstSeen = new Map();
-  features.forEach((feature) => {
-    const code = String(feature?.properties?.countryIso2 || '').trim().toUpperCase();
-    const date = parseDate(feature?.properties?.timestamp);
-    if (!code || !date) return;
-    const ts = date.getTime();
-    const prev = firstSeen.get(code);
-    if (!Number.isFinite(prev) || ts < prev) {
-      firstSeen.set(code, ts);
-    }
-  });
-
-  if (!firstSeen.size) return 0;
-
-  const threshold = Date.now() - (days * DAY_MS);
-  let count = 0;
-  for (const ts of firstSeen.values()) {
-    if (ts >= threshold) count += 1;
-  }
-  return count;
-}
-
-function formatDateTime(value) {
-  if (!value) return '—';
-  const date = parseDate(value);
-  if (!date) return '—';
-  return date.toLocaleString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
 function setText(selector, value) {
   const el = document.querySelector(selector);
   if (el) el.textContent = value;
@@ -116,10 +58,7 @@ function setText(selector, value) {
 
 function renderKpis(dataset) {
   const metrics = dataset?.metrics || {};
-  const features = dataset?.pointFeatures || [];
   const total = Number(metrics.total || 0);
-  const recent30 = calcRecentCups(features, 30);
-  const newCountries90 = calcNewCountries(features, 90);
   const countriesTotal = Number.isFinite(metrics?.countries)
     ? Number(metrics.countries)
     : (Array.isArray(metrics?.countryCodes) ? metrics.countryCodes.length : 0);
@@ -128,10 +67,8 @@ function renderKpis(dataset) {
     : Number(metrics?.roasterCountries || 0);
 
   setText('[data-kpi-total]', total.toLocaleString('ru-RU'));
-  setText('[data-kpi-total-meta]', `${recent30 >= 0 ? '+' : ''}${recent30} за 30 дней`);
   setText('[data-kpi-countries-total]', String(countriesTotal));
   setText('[data-kpi-roaster-countries]', String(roasterCountriesTotal));
-  setText('[data-kpi-updated]', formatDateTime(dataset?.generatedAt));
 
   renderAchievements(metrics);
 
@@ -141,7 +78,6 @@ function renderKpis(dataset) {
     : 0;
 
   setText('[data-kpi-achievements]', `${earnedAchievements}/${TOTAL_ACHIEVEMENTS}`);
-  setText('[data-kpi-achievements-meta]', `${progress}% прогресса · +${newCountries90} новых стран за 90 дней`);
   setText('[data-achievements-opened]', `${earnedAchievements} открыто`);
 }
 

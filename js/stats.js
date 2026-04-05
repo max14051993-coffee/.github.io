@@ -59,10 +59,6 @@ function parseDate(value) {
   return parsed;
 }
 
-function normalizeUtcDay(date) {
-  return Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
-}
-
 function calcRecentCups(features, days = 30) {
   if (!Array.isArray(features) || !features.length) return 0;
   const now = Date.now();
@@ -73,31 +69,6 @@ function calcRecentCups(features, days = 30) {
     if (date && date.getTime() >= threshold) return count + 1;
     return count;
   }, 0);
-}
-
-function calcActiveStreak(features) {
-  if (!Array.isArray(features) || !features.length) return 0;
-  const uniqueDays = new Set();
-
-  features.forEach((feature) => {
-    const date = parseDate(feature?.properties?.timestamp);
-    if (!date) return;
-    uniqueDays.add(normalizeUtcDay(date));
-  });
-
-  if (!uniqueDays.size) return 0;
-
-  const sortedDays = [...uniqueDays].sort((a, b) => b - a);
-  let streak = 1;
-  for (let i = 1; i < sortedDays.length; i += 1) {
-    if (sortedDays[i - 1] - sortedDays[i] === DAY_MS) {
-      streak += 1;
-    } else {
-      break;
-    }
-  }
-
-  return streak;
 }
 
 function calcNewCountries(features, days = 90) {
@@ -148,13 +119,18 @@ function renderKpis(dataset) {
   const features = dataset?.pointFeatures || [];
   const total = Number(metrics.total || 0);
   const recent30 = calcRecentCups(features, 30);
-  const streak = calcActiveStreak(features);
   const newCountries90 = calcNewCountries(features, 90);
+  const countriesTotal = Number.isFinite(metrics?.countries)
+    ? Number(metrics.countries)
+    : (Array.isArray(metrics?.countryCodes) ? metrics.countryCodes.length : 0);
+  const roasterCountriesTotal = Array.isArray(metrics?.roasterCountries)
+    ? metrics.roasterCountries.length
+    : Number(metrics?.roasterCountries || 0);
 
   setText('[data-kpi-total]', total.toLocaleString('ru-RU'));
   setText('[data-kpi-total-meta]', `${recent30 >= 0 ? '+' : ''}${recent30} за 30 дней`);
-  setText('[data-kpi-streak]', String(streak));
-  setText('[data-kpi-countries]', String(newCountries90));
+  setText('[data-kpi-countries-total]', String(countriesTotal));
+  setText('[data-kpi-roaster-countries]', String(roasterCountriesTotal));
   setText('[data-kpi-updated]', formatDateTime(dataset?.generatedAt));
 
   renderAchievements(metrics);
@@ -165,7 +141,7 @@ function renderKpis(dataset) {
     : 0;
 
   setText('[data-kpi-achievements]', `${earnedAchievements}/${TOTAL_ACHIEVEMENTS}`);
-  setText('[data-kpi-achievements-meta]', `${progress}% прогресса`);
+  setText('[data-kpi-achievements-meta]', `${progress}% прогресса · +${newCountries90} новых стран за 90 дней`);
   setText('[data-achievements-opened]', `${earnedAchievements} открыто`);
 }
 

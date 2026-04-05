@@ -644,56 +644,35 @@ export function renderAchievements(metrics) {
 
   const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
 
-  const visible = evaluated.filter((achievement) => {
-    const requirementMet = !achievement.requires || lookup.get(achievement.requires)?.earned;
-    if (!requirementMet && !achievement.earned) return false;
-    if (achievement.earned) return true;
-    return achievement.progress > 0;
-  });
+  const closed = evaluated.filter((achievement) => achievement.earned);
+  const latestClosed = closed
+    .sort((a, b) => b.originalIndex - a.originalIndex)
+    .slice(0, 2);
+  const opened = evaluated.filter((achievement) => !achievement.earned);
+  const selected = [...latestClosed, ...opened];
 
-  const sorted = [...visible].sort((a, b) => {
-    if (a.earned && !b.earned) return -1;
-    if (!a.earned && b.earned) return 1;
-    if (b.progress !== a.progress) return b.progress - a.progress;
-    return a.originalIndex - b.originalIndex;
-  });
-
-  if (!visible.length) {
+  if (!selected.length) {
     el.innerHTML = '';
     if (root) root.hidden = true;
     return;
   }
   if (root) root.hidden = false;
 
-  el.innerHTML = sorted.map((achievement) => {
-    const isPartial = !achievement.earned && achievement.progress > 0;
+  el.innerHTML = selected.map((achievement) => {
     const progressPercent = Math.round(achievement.progress * 100);
-    const tooltipTextParts = [];
-    if (achievement.description) tooltipTextParts.push(achievement.description);
-    if (achievement.earned) {
-      tooltipTextParts.push('Достижение получено');
-    } else if (isPartial) {
-      tooltipTextParts.push(`Прогресс: ${progressPercent}%`);
-    }
-    const tooltipText = tooltipTextParts.join(' ');
-    const tooltipHtml = tooltipText
-      ? `<span class="ach-tooltip" role="tooltip" aria-hidden="true">${escapeHtml(tooltipText)}</span>`
+    const requirementText = achievement.earned
+      ? 'Закрыто'
+      : `Для закрытия: ${achievement.description || 'Выполните условия очивки.'}`;
+    const dependency = achievement.requires ? lookup.get(achievement.requires) : null;
+    const dependencyText = (dependency && !dependency.earned && !achievement.earned)
+      ? ` Сначала закройте «${dependency.title}».`
       : '';
-    const titleAttr = tooltipText ? ` title="${escapeAttr(tooltipText)}"` : '';
-    const ariaParts = [achievement.title];
-    if (achievement.description) ariaParts.push(achievement.description);
-    if (achievement.earned) {
-      ariaParts.push('Достижение получено.');
-    } else if (isPartial) {
-      ariaParts.push(`Прогресс ${progressPercent}%.`);
-    }
+    const ariaParts = [achievement.title, requirementText];
     const aria = ariaParts.join(' ');
-    const cover = Math.max(0, Math.min(1, 1 - achievement.progress));
-    const styleValue = `--ach-bg:${achievement.color.bg};--ach-border:${achievement.color.br};--ach-text:${achievement.color.txt};--ach-progress:${achievement.progress.toFixed(3)};--ach-cover:${cover.toFixed(3)}`;
+    const styleValue = `--ach-bg:${achievement.color.bg};--ach-border:${achievement.color.br};--ach-text:${achievement.color.txt};--ach-progress:${achievement.progress.toFixed(3)}`;
     const style = ` style="${escapeAttr(styleValue)}"`;
     const cls = ['ach-badge'];
     if (achievement.earned) cls.push('is-earned');
-    if (isPartial) cls.push('is-partial');
     const iconHtmlParts = [];
     if (achievement.icon) {
       const hasFallback = Boolean(achievement.emoji);
@@ -708,21 +687,29 @@ export function renderAchievements(metrics) {
       const hiddenAttr = achievement.icon ? ' hidden' : '';
       iconHtmlParts.push(`<span class="${fallbackCls.join(' ')}"${hiddenAttr}>${escapeHtml(achievement.emoji)}</span>`);
     }
-    const iconHtml = iconHtmlParts.length
-      ? iconHtmlParts.join('')
-      : '<span class="ach-icon-emoji">🏆</span>';
+    const iconHtml = iconHtmlParts.length ? iconHtmlParts.join('') : '<span class="ach-icon-emoji">🏆</span>';
+    const statusText = achievement.earned ? 'Закрыта' : 'Открыта';
     return `
-      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}"${titleAttr}>
+      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">
           ${iconHtml}
         </span>
-        ${tooltipHtml}
+        <div class="ach-content">
+          <div class="ach-header">
+            <span class="ach-title">${escapeHtml(achievement.title)}</span>
+            <span class="ach-status">${escapeHtml(statusText)}</span>
+          </div>
+          <div class="ach-bar" aria-hidden="true">
+            <span class="ach-bar-fill"></span>
+          </div>
+          <p class="ach-requirement">${escapeHtml(requirementText + dependencyText)}</p>
+          <span class="sr-only">Прогресс ${progressPercent}%</span>
+        </div>
       </div>
     `;
   }).join('');
 
   setupAchievementIcons(el);
-  setupAchievementTooltips(el);
 }
 
 function syncControlState(input) {

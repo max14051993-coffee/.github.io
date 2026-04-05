@@ -625,6 +625,8 @@ const ACHIEVEMENTS = [
   },
 ];
 
+export const TOTAL_ACHIEVEMENTS = ACHIEVEMENTS.length;
+
 export function renderAchievements(metrics) {
   const el = document.getElementById('achievements');
   const container = el?.closest('[data-achievements-panel]');

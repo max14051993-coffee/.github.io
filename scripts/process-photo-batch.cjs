@@ -49,22 +49,6 @@ function buildPublicUrl(relativePath) {
   return `${PUBLIC_BASE_URL}/${cleaned}`;
 }
 
-  const repo = process.env.GITHUB_REPOSITORY
-    ? process.env.GITHUB_REPOSITORY.split('/')[1]
-    : '';
-
-  console.log('DEBUG repo =', JSON.stringify(repo));
-
-  if (repo && repo.endsWith('.github.io')) {
-    const finalUrl = `https://${repo}/${cleaned}`;
-    console.log('DEBUG finalUrl from repo =', finalUrl);
-    return finalUrl;
-  }
-
-  console.log('DEBUG fallback cleaned only =', cleaned);
-  return cleaned;
-}
-
 async function postCallback(payload) {
   const res = await fetch(CALLBACK_URL, {
     method: 'POST',

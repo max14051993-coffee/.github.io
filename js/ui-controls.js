@@ -665,13 +665,10 @@ export function renderAchievements(metrics) {
 
   el.innerHTML = sorted.map((achievement) => {
     const isPartial = !achievement.earned && achievement.progress > 0;
-    const progressPercent = Math.round(achievement.progress * 100);
     const tooltipTextParts = [];
     if (achievement.description) tooltipTextParts.push(achievement.description);
     if (achievement.earned) {
       tooltipTextParts.push('Достижение получено');
-    } else if (isPartial) {
-      tooltipTextParts.push(`Прогресс: ${progressPercent}%`);
     }
     const tooltipText = tooltipTextParts.join(' ');
     const tooltipHtml = tooltipText
@@ -682,8 +679,6 @@ export function renderAchievements(metrics) {
     if (achievement.description) ariaParts.push(achievement.description);
     if (achievement.earned) {
       ariaParts.push('Достижение получено.');
-    } else if (isPartial) {
-      ariaParts.push(`Прогресс ${progressPercent}%.`);
     }
     const aria = ariaParts.join(' ');
     const cover = Math.max(0, Math.min(1, 1 - achievement.progress));

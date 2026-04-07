@@ -953,7 +953,6 @@ body[data-theme="dark"] .map-error{
   .achievements{
     grid-template-columns:repeat(2, minmax(0,var(--ach-grid-size))) !important;
   }
-
   .map-info-toggle{
     width:44px;
     height:44px;

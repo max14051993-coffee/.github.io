@@ -910,6 +910,33 @@ body[data-theme="dark"] .achievements-message--error{
   line-height:1.4;
 }
 
+.ach-tooltip{
+  position:absolute;
+  left:50%;
+  bottom:calc(100% + 8px);
+  transform:translateX(calc(-50% + var(--ach-tooltip-shift,0px)));
+  max-width:min(280px, calc(100vw - 32px));
+  width:max-content;
+  padding:8px 10px;
+  border-radius:10px;
+  background:rgba(17,24,39,0.92);
+  color:#f8fafc;
+  font-size:12px;
+  line-height:1.35;
+  box-shadow:0 16px 30px -20px rgba(15,23,42,0.8);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transition:opacity 0.15s ease, visibility 0.15s ease;
+  z-index:12;
+}
+
+.ach-badge.is-tooltip-active .ach-tooltip{
+  opacity:1;
+  visibility:visible;
+}
+
+
 #map{
   position:absolute;
   top:0;

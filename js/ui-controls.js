@@ -687,14 +687,17 @@ function getAchievementRemainingText(achievementId, metrics) {
   }
 }
 
-export function renderAchievements(metrics) {
+export function renderAchievements(metrics, options = {}) {
   const el = document.getElementById('achievements');
   const container = el?.closest('[data-achievements-panel]');
   const root = container?.closest('[data-achievements-root]');
   if (!el) return;
-  const viewMode = String(globalScope?.document?.body?.dataset?.achievementsView || '').toLowerCase() === 'detailed'
-    ? 'detailed'
-    : 'compact';
+  const requestedViewMode = String(options?.viewMode || '').toLowerCase();
+  const viewMode = requestedViewMode === 'detailed' || requestedViewMode === 'compact'
+    ? requestedViewMode
+    : (String(globalScope?.document?.body?.dataset?.achievementsView || '').toLowerCase() === 'detailed'
+      ? 'detailed'
+      : 'compact');
 
   const evaluated = ACHIEVEMENTS.map((achievement, index) => {
     const earned = Boolean(achievement.earned(metrics));
@@ -707,16 +710,22 @@ export function renderAchievements(metrics) {
 
   const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
 
-  const selected = viewMode === 'detailed'
-    ? evaluated
-    : (() => {
-      const closed = evaluated.filter((achievement) => achievement.earned);
-      const latestClosed = closed
-        .sort((a, b) => b.originalIndex - a.originalIndex)
-        .slice(0, 2);
-      const opened = evaluated.filter((achievement) => !achievement.earned);
-      return [...latestClosed, ...opened];
-    })();
+  const selectionMode = String(options?.selectionMode || globalScope?.document?.body?.dataset?.achievementsSelection || '').toLowerCase();
+  const requestedClosedLimit = Number(options?.maxClosedCount);
+
+  const selectRecentOpen = (closedLimit = 2) => {
+    const safeClosedLimit = Number.isFinite(closedLimit) ? Math.max(0, Math.trunc(closedLimit)) : 2;
+    const closed = evaluated.filter((achievement) => achievement.earned);
+    const latestClosed = closed
+      .sort((a, b) => b.originalIndex - a.originalIndex)
+      .slice(0, safeClosedLimit);
+    const opened = evaluated.filter((achievement) => !achievement.earned);
+    return [...latestClosed, ...opened];
+  };
+
+  const selected = selectionMode === 'recent-open'
+    ? selectRecentOpen(Number.isFinite(requestedClosedLimit) ? requestedClosedLimit : 2)
+    : (viewMode === 'detailed' ? evaluated : selectRecentOpen());
 
   if (!selected.length) {
     el.innerHTML = '';
@@ -761,16 +770,17 @@ export function renderAchievements(metrics) {
     const statusWithProgress = `${statusText} · ${progressPercent}%`;
     if (viewMode === 'compact') {
       return `
-        <div class="${cls.join(' ')} ach-badge--compact" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(`${achievement.title}. ${statusWithProgress}. ${requirementText}`)}">
+        <div class="${cls.join(' ')} ach-badge--compact" role="listitem"${style} tabindex="0" title="${escapeAttr(achievement.description)}" aria-label="${escapeAttr(`${achievement.title}. ${statusWithProgress}. ${requirementText}`)}">
           <span class="ach-icon" aria-hidden="true">
             ${iconHtml}
           </span>
           <span class="sr-only">${escapeHtml(statusWithProgress)}</span>
+          <span class="ach-tooltip" role="tooltip">${escapeHtml(achievement.description)}</span>
         </div>
       `;
     }
     return `
-      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
+      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" title="${escapeAttr(achievement.description)}" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">
           ${iconHtml}
         </span>
@@ -785,11 +795,13 @@ export function renderAchievements(metrics) {
           <p class="ach-requirement">${escapeHtml(requirementText + dependencyText)}</p>
           <span class="sr-only">Прогресс ${progressPercent}%</span>
         </div>
+        <span class="ach-tooltip" role="tooltip">${escapeHtml(achievement.description)}</span>
       </div>
     `;
   }).join('');
 
   setupAchievementIcons(el);
+  setupAchievementTooltips(el);
 }
 
 function syncControlState(input) {

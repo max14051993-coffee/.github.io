@@ -1,5 +1,5 @@
 import { loadData } from './data-loader.js';
-import { renderAchievements, TOTAL_ACHIEVEMENTS } from './ui-controls.js';
+import { renderAchievements } from './ui-controls.js';
 
 const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw';
 const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
@@ -7,7 +7,7 @@ const DEFAULT_GOOGLE_SHEET_GID = '0';
 const DEFAULT_PREBUILT_DATASET_URL = '';
 
 const urlParams = new URLSearchParams(window.location.search);
-document.body.dataset.achievementsView = 'detailed';
+document.body.dataset.achievementsView = 'compact';
 
 function resolveMapboxToken(params) {
   const explicitToken = params.get('mapboxToken')
@@ -73,13 +73,6 @@ function renderKpis(dataset) {
 
   renderAchievements(metrics);
 
-  const earnedAchievements = document.querySelectorAll('#achievements .ach-badge.is-earned').length;
-  const progress = TOTAL_ACHIEVEMENTS > 0
-    ? Math.round((earnedAchievements / TOTAL_ACHIEVEMENTS) * 100)
-    : 0;
-
-  setText('[data-kpi-achievements]', `${earnedAchievements}/${TOTAL_ACHIEVEMENTS}`);
-  setText('[data-achievements-opened]', `${earnedAchievements} открыто`);
 }
 
 async function initStatsPage() {

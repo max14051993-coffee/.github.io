@@ -761,7 +761,7 @@ export function renderAchievements(metrics) {
     const statusWithProgress = `${statusText} · ${progressPercent}%`;
     if (viewMode === 'compact') {
       return `
-        <div class="${cls.join(' ')} ach-badge--compact" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(`${achievement.title}. ${statusWithProgress}. ${requirementText}`)}">
+        <div class="${cls.join(' ')} ach-badge--compact" role="listitem"${style} tabindex="0" title="${escapeAttr(achievement.description)}" aria-label="${escapeAttr(`${achievement.title}. ${statusWithProgress}. ${requirementText}`)}">
           <span class="ach-icon" aria-hidden="true">
             ${iconHtml}
           </span>
@@ -770,7 +770,7 @@ export function renderAchievements(metrics) {
       `;
     }
     return `
-      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
+      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" title="${escapeAttr(achievement.description)}" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">
           ${iconHtml}
         </span>

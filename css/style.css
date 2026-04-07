@@ -729,9 +729,14 @@ body[data-theme="dark"] .map-loading{
 }
 
 .achievements{
-  display:flex;
-  flex-direction:column;
-  gap:8px;
+  --ach-grid-size:var(--ach-badge-size,48px);
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,var(--ach-grid-size)));
+  gap:4px;
+  justify-content:flex-start;
+  align-content:flex-start;
+  justify-items:start;
+  align-items:start;
   width:100%;
   pointer-events:auto;
 }
@@ -1100,10 +1105,6 @@ body[data-theme="dark"] .map-error{
     text-align:left;
     white-space:normal;
   }
-  .achievements{
-    grid-template-columns:repeat(1, minmax(0,var(--ach-grid-size)));
-  }
-
   .map-info-toggle{
     width:44px;
     height:44px;

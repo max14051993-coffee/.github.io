@@ -710,21 +710,18 @@ export function renderAchievements(metrics, options = {}) {
 
   const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
 
-  const selectionMode = String(options?.selectionMode || globalScope?.document?.body?.dataset?.achievementsSelection || '').toLowerCase();
-  const requestedClosedLimit = Number(options?.maxClosedCount);
-
-  const selectRecentOpen = (closedLimit = 2) => {
-    const safeClosedLimit = Number.isFinite(closedLimit) ? Math.max(0, Math.trunc(closedLimit)) : 2;
+  const selectionMode = String(globalScope?.document?.body?.dataset?.achievementsSelection || '').toLowerCase();
+  const selectRecentOpen = () => {
     const closed = evaluated.filter((achievement) => achievement.earned);
     const latestClosed = closed
       .sort((a, b) => b.originalIndex - a.originalIndex)
-      .slice(0, safeClosedLimit);
+      .slice(0, 2);
     const opened = evaluated.filter((achievement) => !achievement.earned);
     return [...latestClosed, ...opened];
   };
 
   const selected = selectionMode === 'recent-open'
-    ? selectRecentOpen(Number.isFinite(requestedClosedLimit) ? requestedClosedLimit : 2)
+    ? selectRecentOpen()
     : (viewMode === 'detailed' ? evaluated : selectRecentOpen());
 
   if (!selected.length) {

@@ -542,7 +542,7 @@ body[data-theme="dark"] .map-loading{
 .achievements{
   --ach-grid-size:var(--ach-badge-size,48px);
   display:grid;
-  grid-template-columns:repeat(3, minmax(0,var(--ach-grid-size)));
+  grid-template-columns:repeat(2, minmax(0,var(--ach-grid-size)));
   gap:4px;
   justify-content:flex-start;
   align-content:flex-start;
@@ -949,8 +949,9 @@ body[data-theme="dark"] .map-error{
     text-align:left;
     white-space:normal;
   }
+
   .achievements{
-    grid-template-columns:repeat(1, minmax(0,var(--ach-grid-size)));
+    grid-template-columns:repeat(2, minmax(0,var(--ach-grid-size))) !important;
   }
 
   .map-info-toggle{

@@ -625,11 +625,76 @@ const ACHIEVEMENTS = [
   },
 ];
 
+export const TOTAL_ACHIEVEMENTS = ACHIEVEMENTS.length;
+
+const safeRemaining = (current, target) => {
+  const safeCurrent = Number.isFinite(Number(current)) ? Number(current) : 0;
+  const safeTarget = Number.isFinite(Number(target)) ? Number(target) : 0;
+  return Math.max(0, safeTarget - safeCurrent);
+};
+
+const metricRemaining = (value, target) => safeRemaining(metricCount(value), target);
+
+function getAchievementRemainingText(achievementId, metrics) {
+  switch (achievementId) {
+    case 'world_wanderer': return `Осталось стран: ${metricRemaining(metrics?.countryCodes, 5)}`;
+    case 'bean_passport': return `Осталось стран: ${metricRemaining(metrics?.countryCodes, 10)}`;
+    case 'coffee_united': return `Осталось стран: ${metricRemaining(metrics?.countryCodes, 20)}`;
+    case 'global_champion': return `Осталось стран: ${metricRemaining(metrics?.countryCodes, 30)}`;
+    case 'continental': return `Осталось континентов: ${metricRemaining(metrics?.continents, 5)}`;
+    case 'africa_explorer': return `Осталось стран Африки: ${metricRemaining(metrics?.africanCountries, 5)}`;
+    case 'latin_gourmet': return `Осталось стран Латинской Америки: ${metricRemaining(metrics?.latinCountries, 5)}`;
+    case 'asia_collector': return `Осталось стран Азии: ${metricRemaining(metrics?.asianCountries, 3)}`;
+    case 'island_hunter': return `Осталось островных стран: ${metricRemaining(metrics?.islandCountries, 3)}`;
+    case 'ethiopia_tracker': return `Осталось регионов Эфиопии: ${metricRemaining(metrics?.ethiopiaRegions, 3)}`;
+    case 'colombia_tracker': return `Осталось зон Колумбии: ${metricRemaining(metrics?.colombiaRegions, 3)}`;
+    case 'deep_dive': return `Осталось регионов в одной стране: ${safeRemaining(metrics?.maxRegionsInCountry, 5)}`;
+    case 'regional_champion': return `Осталось уникальных регионов: ${safeRemaining(metrics?.uniqueRegions, 15)}`;
+    case 'washed_master': return `Осталось мытых лотов: ${safeRemaining(metrics?.washedCount, 5)}`;
+    case 'natural_gourmet': return `Осталось натуральных лотов: ${safeRemaining(metrics?.naturalCount, 5)}`;
+    case 'experimenter': {
+      const missing = [
+        !metrics?.hasHoney && 'honey',
+        !metrics?.hasAnaerobic && 'anaerobic',
+        !metrics?.hasCarbonic && 'carbonic',
+      ].filter(Boolean);
+      return missing.length ? `Осталось попробовать: ${missing.join(', ')}` : 'Осталось: 0';
+    }
+    case 'fermentation_maniac': return `Осталось методов: ${metricRemaining(metrics?.experimentalMethods, 5)}`;
+    case 'industrial_romantic': {
+      const missing = [
+        !metrics?.geotagWashed && 'rare washed с геопривязкой',
+        !metrics?.geotagHoney && 'honey с геопривязкой',
+      ].filter(Boolean);
+      return missing.length ? `Осталось: ${missing.join(', ')}` : 'Осталось: 0';
+    }
+    case 'filter_geek': {
+      const missing = [
+        !metrics?.filterHits?.v60 && 'v60',
+        !metrics?.filterHits?.kalita && 'Kalita',
+        !metrics?.filterHits?.aeropress && 'Aeropress',
+      ].filter(Boolean);
+      return missing.length ? `Осталось заварок: ${missing.join(', ')}` : 'Осталось: 0';
+    }
+    case 'multi_brew': return `Осталось способов заварки: ${metricRemaining(metrics?.brewMethods, 5)}`;
+    case 'espresso_master': return `Осталось городов для эспрессо: ${metricRemaining(metrics?.espressoCities, 5)}`;
+    case 'local_patriot': return `Осталось обжарщиков из вашего города: ${safeRemaining(metrics?.roastersInHomeCity, 3)}`;
+    case 'international_roasters': return `Осталось стран обжарщиков: ${metricRemaining(metrics?.roasterCountries, 5)}`;
+    case 'home_barista': return `Осталось чашек дома: ${safeRemaining(metrics?.homeCups, 10)}`;
+    case 'coffee_tourist': return `Осталось городов: ${metricRemaining(metrics?.consumedCities, 5)}`;
+    case 'cafe_explorer': return `Осталось уникальных кофеен: ${metricRemaining(metrics?.cafes, 10)}`;
+    default: return 'Осталось: —';
+  }
+}
+
 export function renderAchievements(metrics) {
   const el = document.getElementById('achievements');
   const container = el?.closest('[data-achievements-panel]');
   const root = container?.closest('[data-achievements-root]');
   if (!el) return;
+  const viewMode = String(globalScope?.document?.body?.dataset?.achievementsView || '').toLowerCase() === 'detailed'
+    ? 'detailed'
+    : 'compact';
 
   const evaluated = ACHIEVEMENTS.map((achievement, index) => {
     const earned = Boolean(achievement.earned(metrics));
@@ -642,51 +707,41 @@ export function renderAchievements(metrics) {
 
   const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
 
-  const visible = evaluated.filter((achievement) => {
-    const requirementMet = !achievement.requires || lookup.get(achievement.requires)?.earned;
-    if (!requirementMet && !achievement.earned) return false;
-    if (achievement.earned) return true;
-    return achievement.progress > 0;
-  });
+  const selected = viewMode === 'detailed'
+    ? evaluated
+    : (() => {
+      const closed = evaluated.filter((achievement) => achievement.earned);
+      const latestClosed = closed
+        .sort((a, b) => b.originalIndex - a.originalIndex)
+        .slice(0, 2);
+      const opened = evaluated.filter((achievement) => !achievement.earned);
+      return [...latestClosed, ...opened];
+    })();
 
-  const sorted = [...visible].sort((a, b) => {
-    if (a.earned && !b.earned) return -1;
-    if (!a.earned && b.earned) return 1;
-    if (b.progress !== a.progress) return b.progress - a.progress;
-    return a.originalIndex - b.originalIndex;
-  });
-
-  if (!visible.length) {
+  if (!selected.length) {
     el.innerHTML = '';
     if (root) root.hidden = true;
     return;
   }
+  el.classList.toggle('achievements--compact', viewMode === 'compact');
+  el.classList.toggle('achievements--detailed', viewMode === 'detailed');
   if (root) root.hidden = false;
 
-  el.innerHTML = sorted.map((achievement) => {
-    const isPartial = !achievement.earned && achievement.progress > 0;
-    const tooltipTextParts = [];
-    if (achievement.description) tooltipTextParts.push(achievement.description);
-    if (achievement.earned) {
-      tooltipTextParts.push('Достижение получено');
-    }
-    const tooltipText = tooltipTextParts.join(' ');
-    const tooltipHtml = tooltipText
-      ? `<span class="ach-tooltip" role="tooltip" aria-hidden="true">${escapeHtml(tooltipText)}</span>`
+  el.innerHTML = selected.map((achievement) => {
+    const progressPercent = Math.round(achievement.progress * 100);
+    const requirementText = achievement.earned
+      ? 'Закрыто'
+      : getAchievementRemainingText(achievement.id, metrics);
+    const dependency = achievement.requires ? lookup.get(achievement.requires) : null;
+    const dependencyText = (dependency && !dependency.earned && !achievement.earned)
+      ? ` Сначала закройте «${dependency.title}».`
       : '';
-    const titleAttr = tooltipText ? ` title="${escapeAttr(tooltipText)}"` : '';
-    const ariaParts = [achievement.title];
-    if (achievement.description) ariaParts.push(achievement.description);
-    if (achievement.earned) {
-      ariaParts.push('Достижение получено.');
-    }
+    const ariaParts = [achievement.title, requirementText];
     const aria = ariaParts.join(' ');
-    const cover = Math.max(0, Math.min(1, 1 - achievement.progress));
-    const styleValue = `--ach-bg:${achievement.color.bg};--ach-border:${achievement.color.br};--ach-text:${achievement.color.txt};--ach-progress:${achievement.progress.toFixed(3)};--ach-cover:${cover.toFixed(3)}`;
+    const styleValue = `--ach-bg:${achievement.color.bg};--ach-border:${achievement.color.br};--ach-text:${achievement.color.txt};--ach-progress:${achievement.progress.toFixed(3)}`;
     const style = ` style="${escapeAttr(styleValue)}"`;
     const cls = ['ach-badge'];
     if (achievement.earned) cls.push('is-earned');
-    if (isPartial) cls.push('is-partial');
     const iconHtmlParts = [];
     if (achievement.icon) {
       const hasFallback = Boolean(achievement.emoji);
@@ -701,21 +756,40 @@ export function renderAchievements(metrics) {
       const hiddenAttr = achievement.icon ? ' hidden' : '';
       iconHtmlParts.push(`<span class="${fallbackCls.join(' ')}"${hiddenAttr}>${escapeHtml(achievement.emoji)}</span>`);
     }
-    const iconHtml = iconHtmlParts.length
-      ? iconHtmlParts.join('')
-      : '<span class="ach-icon-emoji">🏆</span>';
+    const iconHtml = iconHtmlParts.length ? iconHtmlParts.join('') : '<span class="ach-icon-emoji">🏆</span>';
+    const statusText = achievement.earned ? 'Закрыта' : 'Открыта';
+    const statusWithProgress = `${statusText} · ${progressPercent}%`;
+    if (viewMode === 'compact') {
+      return `
+        <div class="${cls.join(' ')} ach-badge--compact" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(`${achievement.title}. ${statusWithProgress}. ${requirementText}`)}">
+          <span class="ach-icon" aria-hidden="true">
+            ${iconHtml}
+          </span>
+          <span class="sr-only">${escapeHtml(statusWithProgress)}</span>
+        </div>
+      `;
+    }
     return `
-      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}"${titleAttr}>
+      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">
           ${iconHtml}
         </span>
-        ${tooltipHtml}
+        <div class="ach-content">
+          <div class="ach-header">
+            <span class="ach-title">${escapeHtml(achievement.title)}</span>
+            <span class="ach-status">${escapeHtml(statusWithProgress)}</span>
+          </div>
+          <div class="ach-bar" aria-hidden="true">
+            <span class="ach-bar-fill"></span>
+          </div>
+          <p class="ach-requirement">${escapeHtml(requirementText + dependencyText)}</p>
+          <span class="sr-only">Прогресс ${progressPercent}%</span>
+        </div>
       </div>
     `;
   }).join('');
 
   setupAchievementIcons(el);
-  setupAchievementTooltips(el);
 }
 
 function syncControlState(input) {

@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="google-sheet-id" content="1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw" />
+  <meta name="google-sheet-gid" content="0" />
+  <meta name="mapbox-access-token" content="pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTVic3c3dTBxZDMya3F6MzV0ejY1YjcifQ._YoZjruPVrVHtusEf8OkZw" />
+  <title>Статистика — My coffee experience</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main class="stats-page">
+    <div class="stats-shell">
+      <header class="stats-header glass-card">
+        <div class="stats-header-top">
+          <h1 class="stats-title">Статистика</h1>
+          <a class="map-secondary-link map-secondary-link--inline" href="index.html">← К карте</a>
+        </div>
+        <p class="stats-subtitle">Актуальная сводка по чашкам и достижениям.</p>
+      </header>
+
+      <section class="stats-kpis">
+        <article class="stats-kpi glass-card">
+          <p class="stats-kpi-label">Всего чашек</p>
+          <p class="stats-kpi-value" data-kpi-total>—</p>
+        </article>
+        <article class="stats-kpi glass-card">
+          <p class="stats-kpi-label">Очивки</p>
+          <p class="stats-kpi-value" data-kpi-achievements>—</p>
+        </article>
+        <article class="stats-kpi glass-card">
+          <p class="stats-kpi-label">Страны зерна</p>
+          <p class="stats-kpi-value" data-kpi-countries-total>—</p>
+        </article>
+        <article class="stats-kpi glass-card">
+          <p class="stats-kpi-label">Страны обжарки</p>
+          <p class="stats-kpi-value" data-kpi-roaster-countries>—</p>
+        </article>
+      </section>
+
+      <section class="stats-layout stats-layout--single">
+        <article class="stats-panel glass-card">
+          <div class="stats-panel-head">
+            <h2>Прогресс по очивкам</h2>
+            <span class="stats-chip" data-achievements-opened>—</span>
+          </div>
+          <p class="stats-status" data-stats-status role="status" aria-live="polite"></p>
+          <div class="stats-achievements-grid achievements" id="achievements" role="list" aria-label="Список очивок"></div>
+        </article>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="js/stats.js"></script>
+</body>
+</html>

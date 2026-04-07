@@ -710,11 +710,47 @@ export function renderAchievements(metrics, options = {}) {
 
   const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
 
-  const selectionMode = String(globalScope?.document?.body?.dataset?.achievementsSelection || '').toLowerCase();
+  const requestedSelectionMode = String(options?.selectionMode || '').toLowerCase();
+  const selectionMode = requestedSelectionMode
+    || String(globalScope?.document?.body?.dataset?.achievementsSelection || '').toLowerCase();
+
+  const resolveAchievementClosedAt = (achievement) => {
+    const id = achievement?.id;
+    if (!id || !metrics || typeof metrics !== 'object') return null;
+
+    const candidates = [
+      metrics?.achievementClosedAt?.[id],
+      metrics?.achievementsClosedAt?.[id],
+      metrics?.achievementCompletedAt?.[id],
+      metrics?.achievementsCompletedAt?.[id],
+      metrics?.achievementTimeline?.[id]?.closedAt,
+      metrics?.achievementTimeline?.[id]?.completedAt,
+      metrics?.achievementsTimeline?.[id]?.closedAt,
+      metrics?.achievementsTimeline?.[id]?.completedAt,
+    ];
+
+    for (const candidate of candidates) {
+      if (candidate === undefined || candidate === null || candidate === '') continue;
+      const timestamp = Number(new Date(candidate));
+      if (Number.isFinite(timestamp) && timestamp > 0) return timestamp;
+    }
+
+    return null;
+  };
+
   const selectRecentOpen = () => {
     const closed = evaluated.filter((achievement) => achievement.earned);
     const latestClosed = closed
-      .sort((a, b) => b.originalIndex - a.originalIndex)
+      .sort((a, b) => {
+        const timeA = resolveAchievementClosedAt(a);
+        const timeB = resolveAchievementClosedAt(b);
+        if (timeA !== null || timeB !== null) {
+          if (timeA === null) return 1;
+          if (timeB === null) return -1;
+          if (timeA !== timeB) return timeB - timeA;
+        }
+        return b.originalIndex - a.originalIndex;
+      })
       .slice(0, 2);
     const opened = evaluated.filter((achievement) => !achievement.earned);
     return [...latestClosed, ...opened];

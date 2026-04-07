@@ -707,16 +707,19 @@ export function renderAchievements(metrics) {
 
   const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
 
-  const selected = viewMode === 'detailed'
-    ? evaluated
-    : (() => {
-      const closed = evaluated.filter((achievement) => achievement.earned);
-      const latestClosed = closed
-        .sort((a, b) => b.originalIndex - a.originalIndex)
-        .slice(0, 2);
-      const opened = evaluated.filter((achievement) => !achievement.earned);
-      return [...latestClosed, ...opened];
-    })();
+  const selectionMode = String(globalScope?.document?.body?.dataset?.achievementsSelection || '').toLowerCase();
+  const selectRecentOpen = () => {
+    const closed = evaluated.filter((achievement) => achievement.earned);
+    const latestClosed = closed
+      .sort((a, b) => b.originalIndex - a.originalIndex)
+      .slice(0, 2);
+    const opened = evaluated.filter((achievement) => !achievement.earned);
+    return [...latestClosed, ...opened];
+  };
+
+  const selected = selectionMode === 'recent-open'
+    ? selectRecentOpen()
+    : (viewMode === 'detailed' ? evaluated : selectRecentOpen());
 
   if (!selected.length) {
     el.innerHTML = '';
@@ -761,16 +764,17 @@ export function renderAchievements(metrics) {
     const statusWithProgress = `${statusText} · ${progressPercent}%`;
     if (viewMode === 'compact') {
       return `
-        <div class="${cls.join(' ')} ach-badge--compact" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(`${achievement.title}. ${statusWithProgress}. ${requirementText}`)}">
+        <div class="${cls.join(' ')} ach-badge--compact" role="listitem"${style} tabindex="0" title="${escapeAttr(achievement.description)}" aria-label="${escapeAttr(`${achievement.title}. ${statusWithProgress}. ${requirementText}`)}">
           <span class="ach-icon" aria-hidden="true">
             ${iconHtml}
           </span>
           <span class="sr-only">${escapeHtml(statusWithProgress)}</span>
+          <span class="ach-tooltip" role="tooltip">${escapeHtml(achievement.description)}</span>
         </div>
       `;
     }
     return `
-      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
+      <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" title="${escapeAttr(achievement.description)}" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">
           ${iconHtml}
         </span>
@@ -785,11 +789,13 @@ export function renderAchievements(metrics) {
           <p class="ach-requirement">${escapeHtml(requirementText + dependencyText)}</p>
           <span class="sr-only">Прогресс ${progressPercent}%</span>
         </div>
+        <span class="ach-tooltip" role="tooltip">${escapeHtml(achievement.description)}</span>
       </div>
     `;
   }).join('');
 
   setupAchievementIcons(el);
+  setupAchievementTooltips(el);
 }
 
 function syncControlState(input) {

@@ -687,14 +687,17 @@ function getAchievementRemainingText(achievementId, metrics) {
   }
 }
 
-export function renderAchievements(metrics) {
+export function renderAchievements(metrics, options = {}) {
   const el = document.getElementById('achievements');
   const container = el?.closest('[data-achievements-panel]');
   const root = container?.closest('[data-achievements-root]');
   if (!el) return;
-  const viewMode = String(globalScope?.document?.body?.dataset?.achievementsView || '').toLowerCase() === 'detailed'
-    ? 'detailed'
-    : 'compact';
+  const requestedViewMode = String(options?.viewMode || '').toLowerCase();
+  const viewMode = requestedViewMode === 'detailed' || requestedViewMode === 'compact'
+    ? requestedViewMode
+    : (String(globalScope?.document?.body?.dataset?.achievementsView || '').toLowerCase() === 'detailed'
+      ? 'detailed'
+      : 'compact');
 
   const evaluated = ACHIEVEMENTS.map((achievement, index) => {
     const earned = Boolean(achievement.earned(metrics));

@@ -71,7 +71,10 @@ function renderKpis(dataset) {
   setText('[data-kpi-countries-total]', String(countriesTotal));
   setText('[data-kpi-roaster-countries]', String(roasterCountriesTotal));
 
-  renderAchievements(metrics);
+  renderAchievements(metrics, {
+    viewMode: 'detailed',
+    selectionMode: 'recent-open',
+  });
 
 }
 

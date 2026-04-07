@@ -710,7 +710,7 @@ export function renderAchievements(metrics, options = {}) {
 
   const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
 
-  const selectionMode = String(options?.selectionMode || globalScope?.document?.body?.dataset?.achievementsSelection || '').toLowerCase();
+  const selectionMode = String(globalScope?.document?.body?.dataset?.achievementsSelection || '').toLowerCase();
   const selectRecentOpen = () => {
     const closed = evaluated.filter((achievement) => achievement.earned);
     const latestClosed = closed

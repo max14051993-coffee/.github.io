@@ -689,14 +689,14 @@ body[data-theme="dark"] .map-loading{
 }
 
 .stats-achievements-grid{
-  display:flex;
-  flex-wrap:wrap;
-  gap:10px;
-  align-items:flex-start;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
+  align-items:stretch;
 }
 
 .stats-achievements-grid .ach-badge{
-  --ach-badge-size:56px;
+  min-height:92px;
 }
 
 @media (max-width:900px){
@@ -719,7 +719,7 @@ body[data-theme="dark"] .map-loading{
   }
 
   .stats-achievements-grid{
-    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-template-columns:1fr;
   }
 
 }
@@ -739,6 +739,16 @@ body[data-theme="dark"] .map-loading{
   align-items:start;
   width:100%;
   pointer-events:auto;
+}
+
+.achievements--compact{
+  grid-template-columns:repeat(2, minmax(0,var(--ach-grid-size)));
+  gap:6px;
+}
+
+.achievements--detailed{
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:12px;
 }
 
 .achievements-message{
@@ -810,6 +820,20 @@ body[data-theme="dark"] .achievements-message--error{
   transform:translateY(-1px);
   border-color:var(--accent);
   outline:none;
+}
+
+.ach-badge--compact{
+  width:var(--ach-grid-size);
+  min-height:var(--ach-grid-size);
+  padding:0;
+  align-items:center;
+  justify-content:center;
+}
+
+.ach-badge--compact .ach-icon{
+  width:100%;
+  height:100%;
+  border-radius:12px;
 }
 
 .ach-icon{

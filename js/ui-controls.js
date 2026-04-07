@@ -692,6 +692,9 @@ export function renderAchievements(metrics) {
   const container = el?.closest('[data-achievements-panel]');
   const root = container?.closest('[data-achievements-root]');
   if (!el) return;
+  const viewMode = String(globalScope?.document?.body?.dataset?.achievementsView || '').toLowerCase() === 'detailed'
+    ? 'detailed'
+    : 'compact';
 
   const evaluated = ACHIEVEMENTS.map((achievement, index) => {
     const earned = Boolean(achievement.earned(metrics));
@@ -704,18 +707,24 @@ export function renderAchievements(metrics) {
 
   const lookup = new Map(evaluated.map((achievement) => [achievement.id, achievement]));
 
-  const closed = evaluated.filter((achievement) => achievement.earned);
-  const latestClosed = closed
-    .sort((a, b) => b.originalIndex - a.originalIndex)
-    .slice(0, 2);
-  const opened = evaluated.filter((achievement) => !achievement.earned);
-  const selected = [...latestClosed, ...opened];
+  const selected = viewMode === 'detailed'
+    ? evaluated
+    : (() => {
+      const closed = evaluated.filter((achievement) => achievement.earned);
+      const latestClosed = closed
+        .sort((a, b) => b.originalIndex - a.originalIndex)
+        .slice(0, 2);
+      const opened = evaluated.filter((achievement) => !achievement.earned);
+      return [...latestClosed, ...opened];
+    })();
 
   if (!selected.length) {
     el.innerHTML = '';
     if (root) root.hidden = true;
     return;
   }
+  el.classList.toggle('achievements--compact', viewMode === 'compact');
+  el.classList.toggle('achievements--detailed', viewMode === 'detailed');
   if (root) root.hidden = false;
 
   el.innerHTML = selected.map((achievement) => {
@@ -749,6 +758,17 @@ export function renderAchievements(metrics) {
     }
     const iconHtml = iconHtmlParts.length ? iconHtmlParts.join('') : '<span class="ach-icon-emoji">🏆</span>';
     const statusText = achievement.earned ? 'Закрыта' : 'Открыта';
+    const statusWithProgress = `${statusText} · ${progressPercent}%`;
+    if (viewMode === 'compact') {
+      return `
+        <div class="${cls.join(' ')} ach-badge--compact" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(`${achievement.title}. ${statusWithProgress}. ${requirementText}`)}">
+          <span class="ach-icon" aria-hidden="true">
+            ${iconHtml}
+          </span>
+          <span class="sr-only">${escapeHtml(statusWithProgress)}</span>
+        </div>
+      `;
+    }
     return `
       <div class="${cls.join(' ')}" role="listitem"${style} tabindex="0" aria-label="${escapeAttr(aria)}">
         <span class="ach-icon" aria-hidden="true">
@@ -757,7 +777,7 @@ export function renderAchievements(metrics) {
         <div class="ach-content">
           <div class="ach-header">
             <span class="ach-title">${escapeHtml(achievement.title)}</span>
-            <span class="ach-status">${escapeHtml(statusText)}</span>
+            <span class="ach-status">${escapeHtml(statusWithProgress)}</span>
           </div>
           <div class="ach-bar" aria-hidden="true">
             <span class="ach-bar-fill"></span>

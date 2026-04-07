@@ -124,6 +124,7 @@ function revealAchievementsRoot() {
 }
 
 document.title = COLLECTION_TITLE;
+document.body.dataset.achievementsView = 'compact';
 initAchievementsToggle();
 
 function showAchievementsStatus(message, variant = 'info') {

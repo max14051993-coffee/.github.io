@@ -7,6 +7,7 @@ const DEFAULT_GOOGLE_SHEET_GID = '0';
 const DEFAULT_PREBUILT_DATASET_URL = '';
 
 const urlParams = new URLSearchParams(window.location.search);
+document.body.dataset.achievementsView = 'detailed';
 
 function resolveMapboxToken(params) {
   const explicitToken = params.get('mapboxToken')

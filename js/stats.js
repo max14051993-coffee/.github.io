@@ -5,9 +5,23 @@ const DEFAULT_MAPBOX_TOKEN = 'pk.eyJ1IjoibWF4MTQwNTE5OTMtY29mZmVlIiwiYSI6ImNtZTV
 const DEFAULT_GOOGLE_SHEET_ID = '1D87usuWeFvUv9ejZ5igywlncq604b5hoRLFkZ9cjigw';
 const DEFAULT_GOOGLE_SHEET_GID = '0';
 const DEFAULT_PREBUILT_DATASET_URL = '';
+const showAllAchievementsButton = document.querySelector('[data-show-all-achievements]');
+let currentMetrics = null;
 
 const urlParams = new URLSearchParams(window.location.search);
 document.body.dataset.achievementsView = 'compact';
+document.body.dataset.achievementsSelection = 'recent-open';
+
+function renderStatsAchievements(showAll = false) {
+  if (!currentMetrics) return;
+  renderAchievements(currentMetrics, {
+    viewMode: 'detailed',
+    selectionMode: showAll ? 'all' : 'recent-open',
+  });
+  if (showAllAchievementsButton) {
+    showAllAchievementsButton.hidden = showAll;
+  }
+}
 
 function resolveMapboxToken(params) {
   const explicitToken = params.get('mapboxToken')
@@ -59,6 +73,7 @@ function setText(selector, value) {
 
 function renderKpis(dataset) {
   const metrics = dataset?.metrics || {};
+  currentMetrics = metrics;
   const total = Number(metrics.total || 0);
   const countriesTotal = Number.isFinite(metrics?.countries)
     ? Number(metrics.countries)
@@ -71,14 +86,16 @@ function renderKpis(dataset) {
   setText('[data-kpi-countries-total]', String(countriesTotal));
   setText('[data-kpi-roaster-countries]', String(roasterCountriesTotal));
 
-  renderAchievements(metrics, {
-    viewMode: 'detailed',
-    selectionMode: 'recent-open',
-  });
-
+  renderStatsAchievements(false);
 }
 
 async function initStatsPage() {
+  if (showAllAchievementsButton) {
+    showAllAchievementsButton.addEventListener('click', () => {
+      renderStatsAchievements(true);
+    });
+  }
+
   const statusEl = document.querySelector('[data-stats-status]');
   if (statusEl) statusEl.textContent = 'Загружаем актуальную статистику…';
 

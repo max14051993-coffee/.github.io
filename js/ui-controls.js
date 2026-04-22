@@ -130,21 +130,28 @@ const calculateDropdownWidth = (dropdown) => {
   return Math.ceil(longestName + gap + flagWidth + padding + border);
 };
 
-const setDropdownWidth = (dropdown) => {
+const setDropdownWidth = (dropdown, anchorContainer) => {
   const width = calculateDropdownWidth(dropdown);
   if (Number.isFinite(width) && width > 0) {
-    dropdown.style.width = `${width}px`;
+    const anchorWidth = anchorContainer?.offsetWidth || 0;
+    const targetWidth = Math.max(width, anchorWidth);
+    dropdown.style.width = `${targetWidth}px`;
+    if (anchorContainer && targetWidth > anchorWidth) {
+      anchorContainer.style.width = `${targetWidth}px`;
+    }
   }
 };
 
-const positionDropdownBelowButton = (dropdown, button) => {
+const positionDropdownBelowButton = (dropdown, button, root) => {
   if (!dropdown || !button) return;
   const parent = dropdown.offsetParent;
   if (!parent) return;
 
-  const GAP = 10;
+  const GAP = -1;
   const VIEWPORT_MARGIN = 8;
+  const statsContainer = root?.closest?.('[data-stats]');
   const buttonRect = button.getBoundingClientRect();
+  const statsRect = statsContainer?.getBoundingClientRect();
   const parentRect = parent.getBoundingClientRect();
   const viewportWidth = globalScope?.document?.documentElement?.clientWidth || globalScope?.innerWidth || 0;
   const dropdownStyle = globalScope.getComputedStyle ? getComputedStyle(dropdown) : null;
@@ -152,8 +159,8 @@ const positionDropdownBelowButton = (dropdown, button) => {
     || parseSize(dropdownStyle?.width)
     || parseSize(dropdown.style.width);
 
-  const initialLeft = buttonRect.left - parentRect.left;
-  const top = (buttonRect.top - parentRect.top) + button.offsetHeight + GAP;
+  const initialLeft = (statsRect ? statsRect.left : buttonRect.left) - parentRect.left;
+  const top = ((statsRect ? statsRect.bottom : (buttonRect.top + button.offsetHeight)) - parentRect.top) + GAP;
   const minLeft = VIEWPORT_MARGIN - parentRect.left;
   const maxLeft = viewportWidth
     ? viewportWidth - VIEWPORT_MARGIN - parentRect.left - measuredWidth
@@ -229,7 +236,7 @@ const setupCountryDropdown = (button, dropdown, root) => {
   const open = () => {
     if (!dropdown.children.length) return;
     closeSiblings();
-    positionDropdownBelowButton(dropdown, button);
+    positionDropdownBelowButton(dropdown, button, root);
     dropdown.hidden = false;
     button.setAttribute('aria-expanded', 'true');
   };
@@ -318,7 +325,7 @@ export function renderStats(metrics) {
   if (countryDropdown && countryList) {
     if (visitedCountries.length) {
       countryList.innerHTML = renderCountryList(visitedCountries);
-      setDropdownWidth(countryDropdown);
+      setDropdownWidth(countryDropdown, container);
       countryDropdown.hidden = true;
       if ('disabled' in countriesEl) countriesEl.disabled = false;
       countriesEl.setAttribute('aria-expanded', 'false');
@@ -338,7 +345,7 @@ export function renderStats(metrics) {
   if (roasterDropdown && roasterList) {
     if (roasterCountries.length) {
       roasterList.innerHTML = renderCountryList(roasterCountries);
-      setDropdownWidth(roasterDropdown);
+      setDropdownWidth(roasterDropdown, container);
       roasterDropdown.hidden = true;
       if ('disabled' in roasterCountriesEl) roasterCountriesEl.disabled = false;
       roasterCountriesEl.setAttribute('aria-expanded', 'false');
@@ -358,7 +365,7 @@ export function renderStats(metrics) {
   if (consumedDropdown && consumedList) {
     if (consumedCountries.length) {
       consumedList.innerHTML = renderCountryList(consumedCountries);
-      setDropdownWidth(consumedDropdown);
+      setDropdownWidth(consumedDropdown, container);
       consumedDropdown.hidden = true;
       if ('disabled' in consumedCountriesEl) consumedCountriesEl.disabled = false;
       consumedCountriesEl.setAttribute('aria-expanded', 'false');

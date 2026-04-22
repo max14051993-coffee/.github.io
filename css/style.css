@@ -1048,6 +1048,10 @@ body[data-theme="dark"] .map-error{
   color:var(--text);
 }
 
+.popup-field--no-icon{
+  gap:0;
+}
+
 .popup-field span:last-child{
   min-width:0;
   word-break:break-word;

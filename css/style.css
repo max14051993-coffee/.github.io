@@ -1039,6 +1039,11 @@ body[data-theme="dark"] .map-error{
   row-gap:2px;
 }
 
+.popup-card--compact-fields .popup-fields{
+  max-width:252px;
+  margin-inline:auto;
+}
+
 .popup-field{
   margin:2px 0;
   display:flex;

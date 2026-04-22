@@ -203,7 +203,7 @@ function flagFromRow(flagEmojiCell, iso2Cell, flagMode) {
   return emoji || '🏳️';
 }
 
-function popupHTML(p, flagMode) {
+function popupHTML(p, flagMode, { compactFields = false } = {}) {
   const flag = flagFromRow(p.flagEmoji, p.countryIso2, flagMode);
   const country = p.originCountry ? ((flag ? `${flag} ` : '') + escapeHtml(p.originCountry)) : '';
   const region = escapeHtml(p.originRegion || '');
@@ -242,7 +242,7 @@ function popupHTML(p, flagMode) {
     : '';
 
   return `
-    <div class="popup-card">
+    <div class="popup-card${compactFields ? ' popup-card--compact-fields' : ''}">
       ${badge}
       ${photo}
       <div class="popup-body">
@@ -795,13 +795,13 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
       const feature = features[index];
       const properties = feature.properties;
       const nav = (features.length > 1)
-        ? `<div class="popup-nav" style="display:flex;align-items:center;justify-content:space-between;margin:8px 14px 14px;gap:8px">
+        ? `<div class="popup-nav" style="display:flex;align-items:center;justify-content:space-between;margin:8px 14px 6px;gap:8px">
              <button type="button" data-prev style="padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation">◀</button>
              <div class="idx" style="font:12px/1.1 system-ui;color:var(--muted)">${index + 1} из ${features.length}</div>
              <button type="button" data-next style="padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation">▶</button>
            </div>`
         : '';
-      popup.setHTML(popupHTML(properties, state.flagMode) + nav);
+      popup.setHTML(popupHTML(properties, state.flagMode, { compactFields: features.length > 1 }) + nav);
 
       setTimeout(() => {
         const el = popup.getElement();

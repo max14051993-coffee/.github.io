@@ -795,7 +795,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
       const feature = features[index];
       const properties = feature.properties;
       const nav = (features.length > 1)
-        ? `<div class="popup-nav" style="display:flex;align-items:center;justify-content:space-between;margin:8px 14px 14px;gap:8px">
+        ? `<div class="popup-nav" style="display:flex;align-items:center;justify-content:space-between;margin:8px 14px 6px;gap:8px">
              <button type="button" data-prev style="padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation">◀</button>
              <div class="idx" style="font:12px/1.1 system-ui;color:var(--muted)">${index + 1} из ${features.length}</div>
              <button type="button" data-next style="padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation">▶</button>

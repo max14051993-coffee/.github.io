@@ -203,7 +203,7 @@ function flagFromRow(flagEmojiCell, iso2Cell, flagMode) {
   return emoji || '🏳️';
 }
 
-function popupHTML(p, flagMode) {
+function popupHTML(p, flagMode, { compactFields = false } = {}) {
   const flag = flagFromRow(p.flagEmoji, p.countryIso2, flagMode);
   const country = p.originCountry ? ((flag ? `${flag} ` : '') + escapeHtml(p.originCountry)) : '';
   const region = escapeHtml(p.originRegion || '');
@@ -242,7 +242,7 @@ function popupHTML(p, flagMode) {
     : '';
 
   return `
-    <div class="popup-card">
+    <div class="popup-card${compactFields ? ' popup-card--compact-fields' : ''}">
       ${badge}
       ${photo}
       <div class="popup-body">
@@ -801,7 +801,7 @@ export function createMapController({ mapboxgl, accessToken, theme, flagMode, en
              <button type="button" data-next style="padding:8px 12px;border:1px solid var(--glass-br);background:var(--glass);border-radius:10px;cursor:pointer;touch-action:manipulation">▶</button>
            </div>`
         : '';
-      popup.setHTML(popupHTML(properties, state.flagMode) + nav);
+      popup.setHTML(popupHTML(properties, state.flagMode, { compactFields: features.length > 1 }) + nav);
 
       setTimeout(() => {
         const el = popup.getElement();

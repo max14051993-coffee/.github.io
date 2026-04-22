@@ -230,7 +230,7 @@ function popupHTML(p, flagMode) {
     if (p.consumedAddr) {
       whereHtml += `<br><span class="popup-subtext">${escapeHtml(p.consumedAddr)}</span>`;
     }
-    rows.push(emojiRow('📍', 'Where', whereHtml));
+    rows.push(emojiRow('', 'Where', whereHtml));
   }
 
   if (p.recipe) rows.push(emojiRow('📋', 'Recipe', escapeHtml(p.recipe)));
@@ -254,7 +254,8 @@ function popupHTML(p, flagMode) {
   `;
 
   function emojiRow(emoji, title, val) {
-    return `<div class="popup-field"><span class="row-emoji" title="${escapeAttr(title)}">${emoji}</span><span>${val || ''}</span></div>`;
+    const hasEmoji = Boolean(String(emoji || '').trim());
+    return `<div class="popup-field${hasEmoji ? '' : ' popup-field--no-icon'}">${hasEmoji ? `<span class="row-emoji" title="${escapeAttr(title)}">${emoji}</span>` : ''}<span>${val || ''}</span></div>`;
   }
 }
 

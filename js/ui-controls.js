@@ -198,6 +198,18 @@ const renderCountryList = (countries) => {
 const setupCountryDropdown = (button, dropdown, root) => {
   if (!button || !dropdown || dropdown.dataset.bound === 'true') return;
 
+  const closeSiblings = () => {
+    const scope = root?.closest?.('[data-stats]') || document;
+    const allDropdowns = scope.querySelectorAll?.('.map-stat-dropdown');
+    const allButtons = scope.querySelectorAll?.('.map-stat-value-button[aria-expanded="true"]');
+    allDropdowns?.forEach((el) => {
+      if (el !== dropdown) el.hidden = true;
+    });
+    allButtons?.forEach((el) => {
+      if (el !== button) el.setAttribute('aria-expanded', 'false');
+    });
+  };
+
   const close = () => {
     dropdown.hidden = true;
     button.setAttribute('aria-expanded', 'false');
@@ -205,6 +217,7 @@ const setupCountryDropdown = (button, dropdown, root) => {
 
   const open = () => {
     if (!dropdown.children.length) return;
+    closeSiblings();
     positionDropdownBelowButton(dropdown, button);
     dropdown.hidden = false;
     button.setAttribute('aria-expanded', 'true');

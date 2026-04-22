@@ -143,13 +143,24 @@ const positionDropdownBelowButton = (dropdown, button) => {
   if (!parent) return;
 
   const GAP = 10;
+  const VIEWPORT_MARGIN = 8;
   const buttonRect = button.getBoundingClientRect();
   const parentRect = parent.getBoundingClientRect();
+  const viewportWidth = globalScope?.document?.documentElement?.clientWidth || globalScope?.innerWidth || 0;
+  const dropdownStyle = globalScope.getComputedStyle ? getComputedStyle(dropdown) : null;
+  const measuredWidth = dropdown.offsetWidth
+    || parseSize(dropdownStyle?.width)
+    || parseSize(dropdown.style.width);
 
-  const left = buttonRect.left - parentRect.left;
+  const initialLeft = buttonRect.left - parentRect.left;
   const top = (buttonRect.top - parentRect.top) + button.offsetHeight + GAP;
+  const minLeft = VIEWPORT_MARGIN - parentRect.left;
+  const maxLeft = viewportWidth
+    ? viewportWidth - VIEWPORT_MARGIN - parentRect.left - measuredWidth
+    : initialLeft;
+  const clampedLeft = Math.min(Math.max(initialLeft, minLeft), Math.max(minLeft, maxLeft));
 
-  dropdown.style.left = `${left}px`;
+  dropdown.style.left = `${clampedLeft}px`;
   dropdown.style.top = `${top}px`;
 };
 

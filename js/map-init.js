@@ -215,10 +215,18 @@ function popupHTML(p, flagMode) {
   const rows = [];
   if (p.brewMethod) rows.push(emojiRow('🧉', 'Method', escapeHtml(p.brewMethod)));
 
-  if (p.whereConsumed || p.consumedCity || p.consumedAddr || p.cafeUrl) {
+  if (p.whereConsumed || p.cafeName || p.consumedAddr || p.cafeUrl) {
     const bits = [];
-    if (p.whereConsumed) bits.push(escapeHtml(p.whereConsumed));
-    if (p.consumedCity) bits.push(escapeHtml(p.consumedCity));
+    const whereConsumed = String(p.whereConsumed || '').trim();
+    const cafeName = String(p.cafeName || '').trim();
+    const isCoffeeShop = /^coffeeshop$/i.test(whereConsumed);
+    if (isCoffeeShop && cafeName) {
+      bits.push(escapeHtml(cafeName));
+    } else if (whereConsumed) {
+      bits.push(escapeHtml(whereConsumed));
+    } else if (cafeName) {
+      bits.push(escapeHtml(cafeName));
+    }
     let whereHtml = bits.join(' — ');
     if (p.cafeUrl) whereHtml += ` <a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener" title="Ссылка на заведение">🔗</a>`;
     if (p.consumedAddr) {
@@ -241,7 +249,7 @@ function popupHTML(p, flagMode) {
       ${badge}
       ${photo}
       <div class="popup-body">
-        <div class="popup-title">${escapeHtml(p.farmName || 'Без названия')}</div>
+        <div class="popup-title">${escapeHtml(p.roasterName || 'Без названия')}</div>
         <div class="meta">${place || '—'}</div>
         <div class="popup-fields">${rows.join('')}</div>
       </div>

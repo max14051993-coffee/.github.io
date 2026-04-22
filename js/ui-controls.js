@@ -136,9 +136,6 @@ const setDropdownWidth = (dropdown, anchorContainer) => {
     const anchorWidth = anchorContainer?.offsetWidth || 0;
     const targetWidth = Math.max(width, anchorWidth);
     dropdown.style.width = `${targetWidth}px`;
-    if (anchorContainer && targetWidth > anchorWidth) {
-      anchorContainer.style.width = `${targetWidth}px`;
-    }
   }
 };
 

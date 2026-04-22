@@ -221,13 +221,14 @@ function popupHTML(p, flagMode) {
     if (p.consumedCity) bits.push(escapeHtml(p.consumedCity));
     let whereHtml = bits.join(' — ');
     if (p.cafeUrl) whereHtml += ` <a href="${escapeAttr(p.cafeUrl)}" target="_blank" rel="noopener" title="Ссылка на заведение">🔗</a>`;
+    if (p.consumedAddr) {
+      whereHtml += `<br><span class="popup-subtext">${escapeHtml(p.consumedAddr)}</span>`;
+    }
     rows.push(emojiRow('📍', 'Where', whereHtml));
-    if (p.consumedAddr) rows.push(`<div class="row" style="margin-left:1.6em;color:#666">${escapeHtml(p.consumedAddr)}</div>`);
   }
 
   if (p.recipe) rows.push(emojiRow('📋', 'Recipe', escapeHtml(p.recipe)));
   if (roaster) rows.push(emojiRow('🏭', 'Roaster', roaster));
-  if (p.uploader) rows.push(emojiRow('👤', 'By', escapeHtml(p.uploader)));
 
   const processType = p.process_norm || 'other';
   const colors = processColors(processType);
@@ -242,13 +243,13 @@ function popupHTML(p, flagMode) {
       <div class="popup-body">
         <div class="popup-title">${escapeHtml(p.farmName || 'Без названия')}</div>
         <div class="meta">${place || '—'}</div>
-        ${rows.join('')}
+        <div class="popup-fields">${rows.join('')}</div>
       </div>
     </div>
   `;
 
   function emojiRow(emoji, title, val) {
-    return `<div class="row"><span class="row-emoji" title="${escapeAttr(title)}">${emoji}</span><span>${val || ''}</span></div>`;
+    return `<div class="popup-field"><span class="row-emoji" title="${escapeAttr(title)}">${emoji}</span><span>${val || ''}</span></div>`;
   }
 }
 

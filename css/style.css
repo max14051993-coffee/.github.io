@@ -1021,6 +1021,32 @@ body[data-theme="dark"] .map-error{
   color:var(--text);
 }
 
+.popup-fields{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  column-gap:10px;
+  row-gap:2px;
+}
+
+.popup-field{
+  margin:2px 0;
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  min-width:0;
+  color:var(--text);
+}
+
+.popup-field span:last-child{
+  min-width:0;
+  word-break:break-word;
+}
+
+.popup-subtext{
+  color:var(--muted);
+  font-size:var(--text-xs);
+}
+
 .row-emoji{
   width:1.4em;
   text-align:center;

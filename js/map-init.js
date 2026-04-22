@@ -208,8 +208,6 @@ function popupHTML(p, flagMode) {
   const country = p.originCountry ? ((flag ? `${flag} ` : '') + escapeHtml(p.originCountry)) : '';
   const region = escapeHtml(p.originRegion || '');
   const place = [country, region].filter(Boolean).join(', ');
-  const roaster = (p.roasterName ? escapeHtml(p.roasterName) : '') +
-    (p.roasterCity ? ` (${escapeHtml(p.roasterCity)})` : '');
   const photo = `<div class="popup-cover-box">${p.photoUrl ? driveImgHtml(p.photoUrl) : ''}</div>`;
 
   const rows = [];
@@ -219,9 +217,9 @@ function popupHTML(p, flagMode) {
     const bits = [];
     const whereConsumed = String(p.whereConsumed || '').trim();
     const cafeName = String(p.cafeName || '').trim();
-    const isCoffeeShop = /^coffeeshop$/i.test(whereConsumed);
+    const isCoffeeShop = /\bcoffeeshop\b/i.test(whereConsumed);
     if (isCoffeeShop && cafeName) {
-      bits.push(escapeHtml(cafeName));
+      bits.push(`☕ ${escapeHtml(cafeName)}`);
     } else if (whereConsumed) {
       bits.push(escapeHtml(whereConsumed));
     } else if (cafeName) {
@@ -236,7 +234,6 @@ function popupHTML(p, flagMode) {
   }
 
   if (p.recipe) rows.push(emojiRow('📋', 'Recipe', escapeHtml(p.recipe)));
-  if (roaster) rows.push(emojiRow('🏭', 'Roaster', roaster));
 
   const processType = p.process_norm || 'other';
   const colors = processColors(processType);

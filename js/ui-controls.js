@@ -133,7 +133,9 @@ const calculateDropdownWidth = (dropdown) => {
 const setDropdownWidth = (dropdown) => {
   const width = calculateDropdownWidth(dropdown);
   if (Number.isFinite(width) && width > 0) {
-    dropdown.style.width = `${width}px`;
+    const MIN_DROPDOWN_WIDTH = 160;
+    const targetWidth = Math.max(width, MIN_DROPDOWN_WIDTH);
+    dropdown.style.width = `${targetWidth}px`;
   }
 };
 

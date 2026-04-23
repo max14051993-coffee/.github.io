@@ -325,7 +325,7 @@ body[data-theme="dark"] .map-loading{
   position:absolute;
   top:calc(100% - 1px);
   left:0;
-  min-width:200px;
+  min-width:0;
   width:max-content;
   max-width:min(280px,calc(100vw - 32px));
   max-height:none;

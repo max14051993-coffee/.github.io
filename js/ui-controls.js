@@ -130,12 +130,10 @@ const calculateDropdownWidth = (dropdown) => {
   return Math.ceil(longestName + gap + flagWidth + padding + border);
 };
 
-const setDropdownWidth = (dropdown, anchorContainer) => {
+const setDropdownWidth = (dropdown) => {
   const width = calculateDropdownWidth(dropdown);
   if (Number.isFinite(width) && width > 0) {
-    const anchorWidth = anchorContainer?.offsetWidth || 0;
-    const targetWidth = Math.max(width, anchorWidth);
-    dropdown.style.width = `${targetWidth}px`;
+    dropdown.style.width = `${width}px`;
   }
 };
 
@@ -152,9 +150,14 @@ const positionDropdownBelowButton = (dropdown, button, root) => {
   const parentRect = parent.getBoundingClientRect();
   const viewportWidth = globalScope?.document?.documentElement?.clientWidth || globalScope?.innerWidth || 0;
   const dropdownStyle = globalScope.getComputedStyle ? getComputedStyle(dropdown) : null;
-  const measuredWidth = dropdown.offsetWidth
+  let measuredWidth = dropdown.offsetWidth
     || parseSize(dropdownStyle?.width)
     || parseSize(dropdown.style.width);
+  const maxAllowedWidth = viewportWidth ? Math.max(viewportWidth - (VIEWPORT_MARGIN * 2), 0) : 0;
+  if (maxAllowedWidth && measuredWidth > maxAllowedWidth) {
+    measuredWidth = maxAllowedWidth;
+    dropdown.style.width = `${maxAllowedWidth}px`;
+  }
 
   const initialLeft = (statsRect ? statsRect.left : buttonRect.left) - parentRect.left;
   const top = ((statsRect ? statsRect.bottom : (buttonRect.top + button.offsetHeight)) - parentRect.top) + GAP;

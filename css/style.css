@@ -734,6 +734,24 @@ body[data-theme="dark"] .map-loading{
     grid-template-columns:1fr;
   }
 
+  .achievements--detailed{
+    grid-template-columns:1fr;
+    gap:10px;
+  }
+
+  .ach-badge{
+    align-items:flex-start;
+  }
+
+  .ach-header{
+    flex-wrap:wrap;
+    row-gap:4px;
+  }
+
+  .ach-status{
+    white-space:nowrap;
+  }
+
 }
 
 .achievements-panel{
